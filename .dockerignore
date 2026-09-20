@@ -1,0 +1,16 @@
+.git
+.github
+.env
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.playwright-cli
+.playwright-mcp
+pgdata
+data
+reports
+server.log
+docs
+tests

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Straatix Tool Replay</title>
+  <link rel="stylesheet" href="/static/talent-tool-runner.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/talent" aria-label="Back to Talent">
+      <span>STRAATIX</span>
+      <span>Tool Replay</span>
+    </a>
+  </header>
+
+  <main class="runner">
+    <section class="runner-card">
+      <div class="runner-head">
+        <div>
+          <div class="eyebrow" id="sourceLabel">Tool</div>
+          <h1 id="toolTitle">Loading tool run...</h1>
+          <div class="status" id="runStatus">Preparing request</div>
+        </div>
+        <a class="ghost-link" href="/talent">Back to Talent</a>
+      </div>
+
+      <div class="runner-body">
+        <section>
+          <div class="eyebrow" id="sourceHeading">Input</div>
+          <pre class="code-block" id="toolSource">Loading...</pre>
+        </section>
+
+        <section>
+          <div class="eyebrow">Request payload</div>
+          <pre class="code-block" id="toolPayload">Loading...</pre>
+        </section>
+
+        <section>
+          <div class="eyebrow" id="resultHeading">Result</div>
+          <div id="toolResult">
+            <pre class="code-block">Waiting for response...</pre>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/talent-tool-runner.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+name: Keep Render Demo Awake
+
+on:
+  schedule:
+    # Avoid the start of the hour, when GitHub says scheduled jobs are most likely
+    # to be delayed or dropped. Each successful request resets Render's idle timer.
+    - cron: '7,17,27,37,47,57 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: render-demo-keep-alive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    name: Ping Health Endpoint
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - name: Send HTTP Ping
+        env:
+          HEALTH_URL: https://talent-atlas.onrender.com/health
+        run: |
+          set -euo pipefail
+          echo "Pinging the Render demo health endpoint..."
+          curl \
+            --fail \
+            --show-error \
+            --silent \
+            --retry 4 \
+            --retry-all-errors \
+            --retry-delay 10 \
+            --connect-timeout 20 \
+            --max-time 120 \
+            --header "Cache-Control: no-cache" \
+            "$HEALTH_URL" >/dev/null
+          echo "Render service is awake and healthy."

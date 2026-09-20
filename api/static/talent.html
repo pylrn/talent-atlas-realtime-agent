@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Straatix Talent Atlas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/talent.css">
+</head>
+<body>
+  <div class="talent-shell" data-screen-label="Straatix Talent">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a href="/talent" class="brand" aria-label="Straatix Talent home">
+          <span class="brand-main">STRAATIX</span>
+          <span class="brand-rule"></span>
+          <span class="brand-sub">Talent Atlas</span>
+        </a>
+        <div class="top-actions">
+          <span class="shortlist-pill"><span class="status-dot"></span>Shortlist · <span id="shortlistCount">0</span></span>
+          <a class="top-link" href="/journey">Project Story</a>
+          <a class="top-link" href="/ui">Admin Search</a>
+          <a class="top-link" href="/talent/settings">Settings</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-kicker">AI Talent Copilot</div>
+        <h1>High performing talent. <em>Delivered.</em></h1>
+        <p class="hero-copy">Describe the role in plain language — the copilot plans the search, scans the vetted talent pool and explains every ranking. Keep asking until you're satisfied.</p>
+
+        <form class="ai-search" id="heroForm">
+          <span class="ai-mark">✻</span>
+          <input class="ai-input" id="heroInput" autocomplete="off" placeholder="Senior backend engineer, Python + ML, Bengaluru...">
+          <button class="send-round" id="heroSubmit" type="submit" title="Start a copilot session">→</button>
+        </form>
+
+        <div class="feature-grid" id="featureGrid">
+          <article class="feature-card">
+            <div class="feature-bar"></div>
+            <div class="feature-title">Explained rankings</div>
+            <div class="feature-copy">Every score broken into signals you can audit.</div>
+          </article>
+          <article class="feature-card">
+            <div class="feature-bar"></div>
+            <div class="feature-title">Agentic copilot</div>
+            <div class="feature-copy">Refine, compare and draft until you're satisfied.</div>
+          </article>
+          <article class="feature-card">
+            <div class="feature-bar"></div>
+            <div class="feature-title">GCC hub coverage</div>
+            <div class="feature-copy">4,812 vetted candidates across 11 talent hubs.</div>
+          </article>
+        </div>
+
+        <div class="toggle-row" id="toggleRow">
+          <button class="toggle-pill" type="button" data-drawer="queryDrawer" aria-expanded="false">Specialised search · Query <span class="chev">▼</span></button>
+          <button class="toggle-pill" type="button" data-drawer="jdDrawer" aria-expanded="false">Specialised search · JD <span class="chev">▼</span></button>
+          <button class="toggle-pill" type="button" data-drawer="advancedDrawer" aria-expanded="false">Advanced options <span class="badge" id="filterBadge" hidden>0</span><span class="chev">▼</span></button>
+        </div>
+
+        <section class="drawer" id="queryDrawer" hidden>
+          <div class="section-label">Specialised search — query</div>
+          <p class="helper">Runs the retrieval pipeline directly — no agent, fastest path to ranked results.</p>
+          <textarea class="textarea" id="queryText" placeholder="backend engineer with python and ml leadership"></textarea>
+          <div class="drawer-actions">
+            <div class="segmented" id="modeSegment">
+              <button type="button" data-mode="no-llm">No-LLM</button>
+              <button type="button" data-mode="fast">Fast</button>
+              <button type="button" data-mode="quality" class="active">Quality</button>
+            </div>
+            <button class="primary-btn" id="runQueryBtn" type="button">Run search</button>
+          </div>
+        </section>
+
+        <section class="drawer" id="jdDrawer" hidden>
+          <div class="section-label">Specialised search — job description</div>
+          <p class="helper">Paste a full JD — requirements, responsibilities and nice-to-haves are extracted into a search spec automatically.</p>
+          <textarea class="textarea" id="jdText" style="min-height:150px" placeholder="Requirements: React, TypeScript, accessible responsive UI. Responsibilities: build reusable components and integrate APIs. Nice-to-have: performance tuning."></textarea>
+          <div class="drawer-actions" style="justify-content:flex-end">
+            <button class="primary-btn" id="runJdBtn" type="button">Search with JD</button>
+          </div>
+        </section>
+
+        <section class="drawer" id="advancedDrawer" hidden>
+          <div class="drawer-head">
+            <div class="section-label">Advanced options</div>
+            <button class="link-btn" id="clearFiltersBtn" type="button">Clear all</button>
+          </div>
+          <div class="filter-grid">
+            <section class="filter-group">
+              <div class="filter-title">Role and location</div>
+              <div class="form-grid compact">
+                <label class="form-label">Location<input class="field" id="fLocation" placeholder="Pune, India or remote"></label>
+                <label class="form-label">Country<input class="field" id="fCountry" placeholder="India"></label>
+                <label class="form-label">City<input class="field" id="fCity" placeholder="Bengaluru"></label>
+              </div>
+            </section>
+            <section class="filter-group">
+              <div class="filter-title">Experience and compensation</div>
+              <div class="form-grid compact">
+                <label class="form-label">Min exp<input class="field" id="fMinExp" inputmode="numeric" placeholder="0"></label>
+                <label class="form-label">Max exp<input class="field" id="fMaxExp" inputmode="numeric" placeholder="-"></label>
+                <label class="form-label">Min salary<input class="field" id="fMinSal" inputmode="numeric" placeholder="-"></label>
+                <label class="form-label">Max salary<input class="field" id="fMaxSal" inputmode="numeric" placeholder="-"></label>
+              </div>
+            </section>
+            <section class="filter-group">
+              <div class="filter-title">Search behavior</div>
+              <div class="search-knobs">
+                <label class="form-label">Top K<input class="field" id="fTopK" inputmode="numeric" placeholder="8"></label>
+                <label class="switch-row"><input id="talentRankExplanation" type="checkbox" checked> <span>Ranking explanations</span></label>
+                <label class="switch-row"><input id="talentAiInsights" type="checkbox"> <span>AI insights</span></label>
+                <label class="switch-row"><input id="talentRerank" type="checkbox"> <span>Reranking</span></label>
+              </div>
+            </section>
+          </div>
+          <div class="filter-group">
+            <div class="filter-title">Status</div>
+            <div class="status-row" id="statusRow">
+              <button class="status-chip active" type="button" data-status="">All</button>
+              <button class="status-chip" type="button" data-status="active">Active</button>
+              <button class="status-chip" type="button" data-status="hired">Hired</button>
+              <button class="status-chip" type="button" data-status="archived">Archived</button>
+              <button class="status-chip" type="button" data-status="rejected">Rejected</button>
+            </div>
+          </div>
+          <div class="filter-group">
+            <div class="filter-title">Must-have skills</div>
+            <div class="skill-row">
+              <div class="skill-row" id="skillChips"></div>
+              <input class="field" id="skillInput" style="flex:1;min-width:180px;height:38px" placeholder="Type a skill, press Enter">
+            </div>
+            <div class="helper" style="margin:0">Filters apply to your next search — copilot, query or JD.</div>
+          </div>
+        </section>
+      </section>
+
+      <section class="chat-wrap" id="chatSection">
+        <div class="chat-panel">
+          <div class="chat-top">
+            <span class="spinner" id="chatSpinner" hidden>✻</span>
+            <span class="run-dot" id="readyDot">⏺</span>
+            <span class="copilot-status" id="chatStatus">copilot ready — keep refining</span>
+            <span style="flex:1"></span>
+            <div class="chat-toolbar">
+              <select class="toolbar-select" id="agentModelSelect" title="Agent model">
+                <option value="deepseek:deepseek-v4-flash">deepseek v4 flash</option>
+                <option value="deepseek:deepseek-v4-pro">deepseek v4 pro</option>
+                <option value="deepseek:deepseek-chat">deepseek chat</option>
+                <option value="deepseek:deepseek-reasoner">deepseek reasoner</option>
+                <option value="gemini:gemini-2.5-flash">gemini flash</option>
+                <option value="groq:llama-3.3-70b-versatile">groq llama 70b</option>
+              </select>
+              <button class="mini-btn" id="sessionHistoryBtn" type="button">history</button>
+              <button class="mini-btn" id="fileUploadBtn" type="button">upload</button>
+              <button class="mini-btn" id="stopBtn" type="button" hidden>stop · esc</button>
+              <button class="mini-btn" id="newSessionBtn" type="button">new session</button>
+            </div>
+          </div>
+          <section class="live-spec-card" id="liveSpecCard" hidden aria-label="Live search spec"></section>
+          <div class="threads-area" id="threadsArea">
+            <div class="thread" id="thread"></div>
+            <div class="reason-rail" id="reasonThread" aria-label="Copilot reasoning"></div>
+          </div>
+          <div class="context-stack" id="contextStack" hidden></div>
+          <form class="chat-input-row" id="chatForm">
+            <input class="chat-input" id="chatInput" autocomplete="off" placeholder="Ask a follow-up — refine, compare, draft outreach...">
+            <button class="send-round" id="chatSubmit" type="submit" style="position:static;flex:0 0 auto">→</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="pipeline-strip" id="pipelineStrip" hidden></section>
+
+      <section class="results-section">
+        <div id="resultsContent">
+          <div class="starter" id="starterBlock">
+            <div class="starter-title">Try asking</div>
+            <div class="starter-row">
+              <button class="chip" type="button" data-starter="Senior Python engineers in Bengaluru">Senior Python engineers in Bengaluru</button>
+              <button class="chip" type="button" data-starter="Data engineers with 5+ years on Spark">Data engineers with 5+ years on Spark</button>
+              <button class="chip" type="button" data-starter="Remote platform engineers, Kubernetes">Remote platform engineers, Kubernetes</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="profile-drawer" id="profileDrawer" aria-label="Candidate profile" hidden>
+      <div class="drawer-panel-head">
+        <div>
+          <div class="results-eyebrow">Candidate profile</div>
+          <h2 id="profileTitle">No candidate selected</h2>
+        </div>
+        <button class="mini-btn" id="profileCloseBtn" type="button">close</button>
+      </div>
+      <div class="profile-body" id="profileBody"></div>
+    </aside>
+
+    <aside class="session-drawer" id="sessionDrawer" aria-label="Session history" hidden>
+      <div class="drawer-panel-head">
+        <div>
+          <div class="results-eyebrow">Session history</div>
+          <h2>Recent copilot work</h2>
+        </div>
+        <button class="mini-btn" id="sessionCloseBtn" type="button">close</button>
+      </div>
+      <div class="session-list" id="sessionList"></div>
+    </aside>
+
+    <div class="upload-modal" id="uploadModal" hidden>
+      <form class="upload-card" id="uploadForm">
+        <div class="drawer-panel-head">
+          <div>
+            <div class="results-eyebrow">Attach document</div>
+            <h2>Upload to candidate</h2>
+          </div>
+          <button class="mini-btn" id="uploadCloseBtn" type="button">close</button>
+        </div>
+        <label class="form-label">Candidate ID<input class="field" id="uploadCandidateId" required placeholder="Select a candidate first"></label>
+        <label class="form-label">Document type
+          <select class="select" id="uploadDocType">
+            <option value="resume">resume</option>
+            <option value="bio">bio</option>
+            <option value="certification">certification</option>
+            <option value="transcript">transcript</option>
+            <option value="cover_letter">cover_letter</option>
+            <option value="other">other</option>
+          </select>
+        </label>
+        <label class="form-label">Title<input class="field" id="uploadTitle" placeholder="Optional title"></label>
+        <label class="form-label">File<input class="field" id="uploadFileInput" type="file" accept=".txt,.md,.pdf,.docx"></label>
+        <div class="upload-status" id="uploadStatus"></div>
+        <button class="primary-btn" type="submit">Upload and ingest</button>
+      </form>
+    </div>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <span class="footer-brand">STRAATIX</span>
+        <span class="footer-rule"></span>
+        <span>Talent Atlas — every ranking explained</span>
+        <span class="footer-mono">pool live · copilot v0.3</span>
+      </div>
+    </footer>
+  </div>
+  <script src="/static/talent.js"></script>
+</body>
+</html>

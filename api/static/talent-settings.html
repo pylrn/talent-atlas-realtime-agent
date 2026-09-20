@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>STRAATIX Talent Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/talent.css">
+</head>
+<body>
+  <div class="talent-shell settings-shell">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a href="/talent" class="brand" aria-label="Straatix Talent home">
+          <span class="brand-main">STRAATIX</span>
+          <span class="brand-rule"></span>
+          <span class="brand-sub">Talent Atlas</span>
+        </a>
+        <nav class="top-actions">
+          <a class="top-link" href="/talent">Back to search</a>
+          <button class="primary-btn" id="saveSettingsBtn" type="button">Save settings</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="settings-main">
+      <section class="settings-hero">
+        <p class="hero-kicker">User settings</p>
+        <h1>Make the copilot behave like your search desk.</h1>
+        <p>Model, tool transparency, personalization, result defaults, and observability controls for the user-facing talent surface.</p>
+        <div class="settings-status" id="settingsStatus" role="status">Ready</div>
+      </section>
+
+      <section class="settings-grid">
+        <article class="settings-card">
+          <div class="settings-card-head">
+            <span class="settings-no">01</span>
+            <div><h2>Agent</h2><p>Reasoning model and tool disclosure.</p></div>
+          </div>
+          <label class="field-label" for="agentModel">Agent model</label>
+          <select id="agentModel" class="select">
+            <option value="deepseek:deepseek-v4-flash">deepseek:deepseek-v4-flash</option>
+            <option value="deepseek:deepseek-v4-pro">deepseek:deepseek-v4-pro</option>
+            <option value="deepseek:deepseek-chat">deepseek:deepseek-chat</option>
+            <option value="deepseek:deepseek-reasoner">deepseek:deepseek-reasoner</option>
+            <option value="gemini:gemini-2.5-flash">gemini:gemini-2.5-flash</option>
+            <option value="gemini:gemini-2.5-pro">gemini:gemini-2.5-pro</option>
+            <option value="groq:llama-3.3-70b-versatile">groq:llama-3.3-70b-versatile</option>
+          </select>
+          <label class="field-label" for="toolTransparency">Tool transparency</label>
+          <select id="toolTransparency" class="select">
+            <option value="compact">Compact</option>
+            <option value="detailed">Detailed</option>
+            <option value="developer">Developer</option>
+          </select>
+          <label class="switch-row"><input id="logsExpanded" type="checkbox"> <span>Completed tool logs expanded by default</span></label>
+        </article>
+
+        <article class="settings-card">
+          <div class="settings-card-head">
+            <span class="settings-no">02</span>
+            <div><h2>Search</h2><p>Defaults for direct Query/JD search.</p></div>
+          </div>
+          <label class="field-label" for="defaultMode">Default direct search mode</label>
+          <select id="defaultMode" class="select">
+            <option value="no-llm">no-llm</option>
+            <option value="fast">fast</option>
+            <option value="quality">quality</option>
+          </select>
+          <label class="field-label" for="defaultTopK">Default top K</label>
+          <input id="defaultTopK" class="input" type="number" min="1" max="100" step="1">
+          <label class="field-label" for="defaultStatus">Default status filter</label>
+          <select id="defaultStatus" class="select">
+            <option value="">Any status</option>
+            <option value="open">Open</option>
+            <option value="active">Active</option>
+            <option value="available">Available</option>
+            <option value="passive">Passive</option>
+            <option value="archived">Archived</option>
+          </select>
+          <label class="switch-row"><input id="includeRankExplanation" type="checkbox"> <span>Include ranking explanations</span></label>
+          <label class="switch-row"><input id="includeAiInsights" type="checkbox"> <span>Include AI insights</span></label>
+          <label class="switch-row"><input id="enableReranking" type="checkbox"> <span>Enable reranking</span></label>
+        </article>
+
+        <article class="settings-card settings-card-wide">
+          <div class="settings-card-head">
+            <span class="settings-no">03</span>
+            <div><h2>Personalization</h2><p>Active personalization only. Every new preference must be confirmed.</p></div>
+          </div>
+          <div class="two-col">
+            <div>
+              <label class="field-label" for="personalizationRecruiterId">Recruiter ID</label>
+              <input id="personalizationRecruiterId" class="input" type="text">
+              <label class="switch-row"><input id="personalizationEnabled" type="checkbox"> <span>Enable personalization</span></label>
+              <label class="switch-row"><input id="outcomeWhyPrompt" type="checkbox"> <span>Ask why after shortlist/reject</span></label>
+              <button class="ghost-btn" id="memoryRefreshBtn" type="button">Refresh memory</button>
+            </div>
+            <div class="memory-panel">
+              <h3>Confirmed memory</h3>
+              <div id="memoryFacts" class="memory-list">No confirmed memory loaded.</div>
+              <h3>Unconfirmed observations</h3>
+              <div id="memoryObservations" class="memory-list">No observations loaded.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="settings-card">
+          <div class="settings-card-head">
+            <span class="settings-no">04</span>
+            <div><h2>UI</h2><p>Default layout and session controls.</p></div>
+          </div>
+          <label class="field-label" for="copilotLayout">Copilot view</label>
+          <select id="copilotLayout" class="select">
+            <option value="inline">Inline — reasoning and answers in one column</option>
+            <option value="sidepanel">Side panel — answers left, reasoning right</option>
+          </select>
+          <label class="field-label" for="resultsDefaultCount">Results before expansion</label>
+          <input id="resultsDefaultCount" class="input" type="number" min="1" max="25" step="1">
+          <label class="switch-row"><input id="showStarters" type="checkbox"> <span>Show starter prompts</span></label>
+          <label class="switch-row"><input id="showFeatureCards" type="checkbox"> <span>Show feature cards under hero</span></label>
+          <label class="switch-row"><input id="showDirectSearch" type="checkbox"> <span>Show Query/JD dropdowns</span></label>
+          <label class="switch-row"><input id="showAdvancedFilters" type="checkbox"> <span>Show advanced filters</span></label>
+          <label class="field-label" for="recruiterId">Default recruiter ID</label>
+          <input id="recruiterId" class="input" type="text">
+          <button class="ghost-btn" id="resetSessionBtn" type="button">Reset session</button>
+        </article>
+
+        <article class="settings-card">
+          <div class="settings-card-head">
+            <span class="settings-no">05</span>
+            <div><h2>Observability</h2><p>Trace display for user and developer modes.</p></div>
+          </div>
+          <label class="switch-row"><input id="showTraceLinks" type="checkbox"> <span>Show Langfuse trace links in tool cards</span></label>
+          <label class="switch-row"><input id="showTimingBadges" type="checkbox"> <span>Show timing badges on tool rows</span></label>
+          <p class="settings-note">Developer tool transparency automatically keeps raw payload detail available inside each tool row.</p>
+        </article>
+      </section>
+    </main>
+  </div>
+  <script src="/static/talent-settings.js"></script>
+</body>
+</html>

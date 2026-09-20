@@ -1,0 +1,18 @@
+{
+  "run_date": "2026-09-21",
+  "objective": "Adapt Talent Atlas into a Samsung PRISM Theme 4 Streaming Live RAG prototype.",
+  "source_count": 13,
+  "primary_sources": ["S01", "S02", "S11", "S12", "S13"],
+  "outputs": [
+    "research-report.md",
+    "sources.jsonl",
+    "evidence.jsonl",
+    "claims.jsonl",
+    "../STRATEGY.md"
+  ],
+  "limitations": [
+    "The Theme 4 guide was image-only and was inspected from rendered pages.",
+    "External study metrics are not represented as project benchmark results.",
+    "The transformed public recruitment corpus is not a production hiring dataset."
+  ]
+}

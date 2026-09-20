@@ -1,0 +1,1304 @@
+{
+  "run_id": "840fe5db",
+  "summaries": {
+    "3": {
+      "total": 3,
+      "ok": 3,
+      "failed": 0,
+      "wall_p50_ms": 2937.3,
+      "wall_p95_ms": 3356.8,
+      "wall_max_ms": 3356.8,
+      "service_p50_ms": 2937.3,
+      "service_p95_ms": 3356.8,
+      "queue_wait_p50_ms": 0.0,
+      "queue_wait_p95_ms": 0.0,
+      "queue_wait_max_ms": 0.0,
+      "api_avg_latency_ms": 3054.0,
+      "pipeline_avg_ms": 2905.6,
+      "avg_results": 17.7,
+      "avg_phases_ms": {
+        "query_understanding_ms": 1.5,
+        "ranking_ms": 499.1,
+        "retrieval_ms": 2116.8
+      },
+      "keyword_statuses": {
+        "run": 3
+      },
+      "errors": [],
+      "batch_elapsed_ms": 3358.1
+    }
+  },
+  "results": {
+    "3": [
+      {
+        "index": 0,
+        "name": "python_bengaluru",
+        "status": 200,
+        "ok": true,
+        "wall_ms": 2937.2733339987462,
+        "service_wall_ms": 2937.2733339987462,
+        "queue_wait_ms": 0.0,
+        "api_latency_ms": 2930.44,
+        "total_results": 20,
+        "search_pipeline_ms": 2930.14,
+        "search_total_ms": 2930.28,
+        "trace_id": "a015d9eeb6ccccf38063ed47f140bb49",
+        "trace_url": "https://jp.cloud.langfuse.com/project/cmpqypywu001ead0cwu8wbl6m/traces/a015d9eeb6ccccf38063ed47f140bb49",
+        "phase_timings": {
+          "query_understanding_ms": 2.39,
+          "retrieval_ms": 1868.64,
+          "ranking_ms": 774.0
+        },
+        "retrieval_policy": {
+          "keyword": {
+            "action": "run",
+            "reason": "narrow_hard_filters",
+            "policy": "auto",
+            "timeout_ms": 800,
+            "candidate_count": 302,
+            "terms": [
+              "python"
+            ],
+            "specific_terms": [
+              "python"
+            ],
+            "broad_terms": [],
+            "filter_strength": "narrow",
+            "backend": "fts"
+          },
+          "search_pool": "primary",
+          "timings_ms": {
+            "count_ms": 303.92,
+            "skill_ms": 567.96,
+            "keyword_ms": 1050.34,
+            "dense_ms": 1317.09,
+            "fusion_ms": 0.2,
+            "hydrate_initial_ms": 249.02,
+            "group_hydrated_initial_ms": 2.33,
+            "enrichment_ms": 282.37,
+            "total_ms": 1868.64
+          },
+          "db_timings": {
+            "count": {
+              "cache_namespace": "count",
+              "cache_key_hash": "ea3a8f6a9f36c68b",
+              "rowset_cache_lookup_ms": 0.01,
+              "cache_hit": false,
+              "pool_acquire_ms": 0.03,
+              "fetch_roundtrip_ms": 262.22,
+              "rows": 1,
+              "total_ms": 296.48,
+              "pool_wait_ms": 0.03,
+              "db_roundtrip_ms": 262.22,
+              "app_overhead_ms": 34.23,
+              "timing_version": "db-v1"
+            },
+            "skill": {
+              "cache_namespace": "skill",
+              "cache_key_hash": "5994ab2807fc6a9b",
+              "rowset_cache_lookup_ms": 0.0,
+              "rowset_cache_hit": false,
+              "pool_acquire_ms": 0.01,
+              "fetch_roundtrip_ms": 532.62,
+              "rows": 40,
+              "total_ms": 567.52,
+              "pool_wait_ms": 0.01,
+              "db_roundtrip_ms": 532.62,
+              "app_overhead_ms": 34.89,
+              "timing_version": "db-v1"
+            },
+            "keyword": {
+              "backend": "fts",
+              "derived_from_semantic_query": false,
+              "cache_namespace": "bm25",
+              "cache_key_hash": "db9787d48ec5073d",
+              "rowset_cache_lookup_ms": 0.0,
+              "rowset_cache_hit": false,
+              "pool_acquire_ms": 0.01,
+              "statement_timeout_ms": 800,
+              "set_statement_timeout_ms": 36.48
+            },
+            "dense": {
+              "embedding_cache_namespace": "embed",
+              "embedding_cache_key_hash": "e24c5d4a2fdd1d86",
+              "embedding_cache_lookup_ms": 0.03,
+              "embedding_ms": 152.22,
+              "embedding_cache_hit": false,
+              "cache_namespace": "dense",
+              "cache_key_hash": "acd77daf2cd24c22",
+              "rowset_cache_lookup_ms": 0.0,
+              "rowset_cache_hit": false,
+              "hnsw_ef_search": 60,
+              "connection_hnsw_ef_search": 60,
+              "pool_acquire_ms": 0.01,
+              "set_local_ms": 0.0,
+              "fetch_roundtrip_ms": 1124.18,
+              "rows": 60,
+              "total_ms": 1316.82,
+              "pool_wait_ms": 0.01,
+              "db_roundtrip_ms": 1124.18,
+              "app_overhead_ms": 40.41,
+              "timing_version": "db-v1"
+            },
+            "hydrate_initial": {
+              "cache_namespace": "chunk",
+              "pool_acquire_ms": 0.01,
+              "fetch_roundtrip_ms": 213.48,
+              "rows": 20,
+              "requested_chunk_ids": 20,
+              "cache_hits": 0,
+              "cache_misses": 20,
+              "all_cache_hit": false,
+              "total_ms": 248.47,
+              "pool_wait_ms": 0.01,
+              "db_roundtrip_ms": 213.48,
+              "app_overhead_ms": 34.98,
+              "timing_version": "db-v1"
+            },
+            "enrichment": {
+              "cache_namespace": "candidate",
+              "pool_acquire_ms": 0.05,
+              "fetch_roundtrip_ms": 94.19,
+              "rows": 20,
+              "cache_hits": 0,
+              "cache_misses": 20,
+              "all_cache_hit": false,
+              "skill_recency_fetch_roundtrip_ms": 148.87,
+              "total_ms": 281.75,
+              "pool_wait_ms": 0.05,
+              "db_roundtrip_ms": 94.19,
+              "app_overhead_ms": 187.51,
+              "timing_version": "db-v1"
+            }
+          },
+          "row_counts": {
+            "filtered_candidates": 302,
+            "skill_rows": 40,
+            "keyword_rows": 0,
+            "dense_rows": 60,
+            "fused_rows": 98,
+            "grouped_candidates": 20,
+            "candidates_selected_for_enrichment": 20,
+            "deferred_candidate_ids": 0,
+            "enriched_candidates": 20
+          },
+          "hydration_passes": [
+            {
+              "pass": "initial",
+              "limit": 20,
+              "hydrated_rows": 20,
+              "elapsed_ms": 249.02,
+              "db_timing": {
+                "cache_namespace": "chunk",
+                "pool_acquire_ms": 0.01,
+                "fetch_roundtrip_ms": 213.48,
+                "rows": 20,
+                "requested_chunk_ids": 20,
+                "cache_hits": 0,
+                "cache_misses": 20,
+                "all_cache_hit": false,
+                "total_ms": 248.47,
+                "pool_wait_ms": 0.01,
+                "db_roundtrip_ms": 213.48,
+                "app_overhead_ms": 34.98,
+                "timing_version": "db-v1"
+              }
+            }
+          ],
+          "candidate_ids": [
+            "088be57e-791d-4a27-9053-645f87fabb3c",
+            "08f2de5a-d535-4669-9f17-bcf01e633bc4",
+            "44cf5eed-6728-4986-9a5b-f0bde3975109",
+            "00187823-394d-4404-9fb2-5b221ec6607b",
+            "13f4b1c4-01d9-4c59-a337-4675e67c502e",
+            "004039bc-2088-4583-9bf9-341cc26e24ca",
+            "1e127541-21ce-4023-aaaf-8c221b1e3d6c",
+            "00496790-6009-4667-b55b-9ce667228e79",
+            "4bcb1f26-5a9d-4093-b7a3-e1cc016709a5",
+            "006e33fa-0552-4d98-b560-ac13c8b4a9e2",
+            "2006cb90-6ae8-4a86-855b-94ce6f5fe58e",
+            "00b722ce-8e3c-4682-9d04-23acc6ef7f94",
+            "691a23bf-a767-4022-b0b2-7ac6ce201b9d",
+            "0106c583-cf26-4b7d-b6fc-42a5f5ace580",
+            "48b26889-c7f7-421a-a040-dcf817affefb",
+            "0111bf4f-cbff-42e5-9a4f-56a130f4f2e7",
+            "3ba4c833-f1a7-4474-b2cc-8a1bc9f80d42",
+            "021ea3c6-dbc7-4398-aa17-b29b016d5bc4",
+            "02d94aaf-203d-45ed-9d98-58fe9d3d1eb4",
+            "7aa2ef35-d1c5-4deb-ac95-b42abe0916fa"
+          ],
+          "deferred_candidate_ids": [],
+          "deferred_enrichment": {
+            "enabled": false,
+            "visible_enriched": 20,
+            "available_candidate_ids": 20,
+            "fetch_endpoint": "/talent/api/candidates/batch"
+          },
+          "timing_summary": {
+            "parallel_wall_ms": 1868.64,
+            "slowest_branch": "semantic",
+            "slowest_branch_elapsed_ms": 1317.09,
+            "largest_pool_wait_branch": "enrichment",
+            "largest_pool_wait_ms": 0.05,
+            "largest_db_roundtrip_branch": "semantic",
+            "largest_db_roundtrip_ms": 1124.18,
+            "total_pool_wait_ms": 0.11,
+            "total_db_roundtrip_ms": 1694.07,
+            "total_app_overhead_ms": 297.13,
+            "branches": {
+              "count": {
+                "elapsed_ms": 303.92,
+                "phase": "parallel",
+                "runs_parallel_with": [
+                  "count",
+                  "semantic",
+                  "keyword",
+                  "skill_match"
+                ],
+                "db": {
+                  "total_ms": 296.48,
+                  "pool_wait_ms": 0.03,
+                  "pool_acquire_ms": 0.03,
+                  "db_roundtrip_ms": 262.22,
+                  "fetch_roundtrip_ms": 262.22,
+                  "app_overhead_ms": 34.23,
+                  "rows": 1,
+                  "timing_version": "db-v1",
+                  "dominant_component": "db_roundtrip",
+                  "components_ms": {
+                    "pool_wait": 0.03,
+                    "db_roundtrip": 262.22,
+                    "app_overhead": 34.23
+                  },
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {
+                  "cache_hit": false,
+                  "rowset_cache_lookup_ms": 0.01,
+                  "namespace": "count",
+                  "key_hash": "ea3a8f6a9f36c68b",
+                  "summary": "miss"
+                },
+                "rows": 302
+              },
+              "semantic": {
+                "elapsed_ms": 1317.09,
+                "phase": "parallel",
+                "runs_parallel_with": [
+                  "count",
+                  "semantic",
+                  "keyword",
+                  "skill_match"
+                ],
+                "db": {
+                  "total_ms": 1316.82,
+                  "pool_wait_ms": 0.01,
+                  "pool_acquire_ms": 0.01,
+                  "db_roundtrip_ms": 1124.18,
+                  "fetch_roundtrip_ms": 1124.18,
+                  "app_overhead_ms": 40.41,
+                  "embedding_ms": 152.22,
+                  "set_local_ms": 0.0,
+                  "rows": 60,
+                  "timing_version": "db-v1",
+                  "dominant_component": "db_roundtrip",
+                  "components_ms": {
+                    "pool_wait": 0.01,
+                    "db_roundtrip": 1124.18,
+                    "app_overhead": 40.41,
+                    "embedding": 152.22
+                  },
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {
+                  "rowset_cache_hit": false,
+                  "embedding_cache_hit": false,
+                  "rowset_cache_lookup_ms": 0.0,
+                  "embedding_cache_lookup_ms": 0.03,
+                  "namespace": "dense",
+                  "key_hash": "acd77daf2cd24c22",
+                  "summary": "miss"
+                },
+                "rows": 60
+              },
+              "keyword": {
+                "elapsed_ms": 1050.34,
+                "phase": "parallel",
+                "runs_parallel_with": [
+                  "count",
+                  "semantic",
+                  "keyword",
+                  "skill_match"
+                ],
+                "db": {
+                  "pool_acquire_ms": 0.01,
+                  "set_statement_timeout_ms": 36.48,
+                  "dominant_component": "pool_wait",
+                  "components_ms": {
+                    "pool_wait": 0.01
+                  },
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {
+                  "rowset_cache_hit": false,
+                  "rowset_cache_lookup_ms": 0.0,
+                  "namespace": "bm25",
+                  "key_hash": "db9787d48ec5073d",
+                  "summary": "miss"
+                },
+                "rows": 0
+              },
+              "skill_match": {
+                "elapsed_ms": 567.96,
+                "phase": "parallel",
+                "runs_parallel_with": [
+                  "count",
+                  "semantic",
+                  "keyword",
+                  "skill_match"
+                ],
+                "db": {
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {},
+                "rows": 40
+              },
+              "fuse": {
+                "elapsed_ms": 0.2,
+                "phase": "sequential",
+                "runs_parallel_with": [],
+                "db": {
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {},
+                "rows": 98
+              },
+              "hydrate_initial": {
+                "elapsed_ms": 249.02,
+                "phase": "sequential",
+                "runs_parallel_with": [],
+                "db": {
+                  "total_ms": 248.47,
+                  "pool_wait_ms": 0.01,
+                  "pool_acquire_ms": 0.01,
+                  "db_roundtrip_ms": 213.48,
+                  "fetch_roundtrip_ms": 213.48,
+                  "app_overhead_ms": 34.98,
+                  "rows": 20,
+                  "requested_chunk_ids": 20,
+                  "timing_version": "db-v1",
+                  "dominant_component": "db_roundtrip",
+                  "components_ms": {
+                    "pool_wait": 0.01,
+                    "db_roundtrip": 213.48,
+                    "app_overhead": 34.98
+                  },
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {
+                  "all_cache_hit": false,
+                  "cache_hits": 0,
+                  "cache_misses": 20,
+                  "namespace": "chunk",
+                  "summary": "miss"
+                }
+              },
+              "enrichment": {
+                "elapsed_ms": 282.37,
+                "phase": "sequential",
+                "runs_parallel_with": [],
+                "db": {
+                  "total_ms": 281.75,
+                  "pool_wait_ms": 0.05,
+                  "pool_acquire_ms": 0.05,
+                  "db_roundtrip_ms": 94.19,
+                  "fetch_roundtrip_ms": 94.19,
+                  "app_overhead_ms": 187.51,
+                  "rows": 20,
+                  "timing_version": "db-v1",
+                  "dominant_component": "app_overhead",
+                  "components_ms": {
+                    "pool_wait": 0.05,
+                    "db_roundtrip": 94.19,
+                    "app_overhead": 187.51
+                  },
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {
+                  "all_cache_hit": false,
+                  "cache_hits": 0,
+                  "cache_misses": 20,
+                  "namespace": "candidate",
+                  "summary": "miss"
+                },
+                "rows": 20
+              }
+            },
+            "how_to_read": "count, semantic, keyword, and skill_match run in parallel; wall time is not their sum. fuse, hydrate, group, enrich, and rank run after retrieval."
+          },
+          "ranking_timings_ms": {
+            "cross_encoder_ms": 0.0,
+            "feature_ranker_ms": 0.26,
+            "mmr_ms": 772.21,
+            "explanation_ms": 0.26,
+            "total_ms": 774.0
+          }
+        },
+        "error": ""
+      },
+      {
+        "index": 1,
+        "name": "data_pune",
+        "status": 200,
+        "ok": true,
+        "wall_ms": 2907.207708005444,
+        "service_wall_ms": 2907.207708005444,
+        "queue_wait_ms": 0.0,
+        "api_latency_ms": 2881.75,
+        "total_results": 15,
+        "search_pipeline_ms": 2437.18,
+        "search_total_ms": 2437.93,
+        "trace_id": "26fcb45a592f6b492739c03528c7a7a0",
+        "trace_url": "https://jp.cloud.langfuse.com/project/cmpqypywu001ead0cwu8wbl6m/traces/26fcb45a592f6b492739c03528c7a7a0",
+        "phase_timings": {
+          "query_understanding_ms": 1.07,
+          "retrieval_ms": 1657.82,
+          "ranking_ms": 489.25
+        },
+        "retrieval_policy": {
+          "keyword": {
+            "action": "run",
+            "reason": "narrow_hard_filters",
+            "policy": "auto",
+            "timeout_ms": 800,
+            "candidate_count": 112,
+            "terms": [
+              "data",
+              "engineer",
+              "spark",
+              "airflow",
+              "etl",
+              "warehouse",
+              "pipelines"
+            ],
+            "specific_terms": [
+              "etl"
+            ],
+            "broad_terms": [
+              "data",
+              "engineer",
+              "spark",
+              "airflow",
+              "warehouse",
+              "pipelines"
+            ],
+            "filter_strength": "narrow",
+            "backend": "fts"
+          },
+          "search_pool": "primary",
+          "timings_ms": {
+            "count_ms": 579.44,
+            "skill_ms": 857.7,
+            "dense_ms": 1034.25,
+            "keyword_ms": 1051.3,
+            "fusion_ms": 0.14,
+            "hydrate_initial_ms": 235.34,
+            "group_hydrated_initial_ms": 0.29,
+            "enrichment_ms": 349.14,
+            "total_ms": 1657.82
+          },
+          "db_timings": {
+            "count": {
+              "cache_namespace": "count",
+              "cache_key_hash": "c5d884f92db27ff8",
+              "rowset_cache_lookup_ms": 0.0,
+              "cache_hit": false,
+              "pool_acquire_ms": 353.11,
+              "fetch_roundtrip_ms": 187.38,
+              "rows": 1,
+              "total_ms": 579.24,
+              "pool_wait_ms": 353.11,
+              "db_roundtrip_ms": 187.38,
+              "app_overhead_ms": 38.75,
+              "timing_version": "db-v1"
+            },
+            "skill": {
+              "cache_namespace": "skill",
+              "cache_key_hash": "5e33f77767b7f2e3",
+              "rowset_cache_lookup_ms": 0.0,
+              "rowset_cache_hit": false,
+              "pool_acquire_ms": 351.23,
+              "fetch_roundtrip_ms": 467.88,
+              "rows": 40,
+              "total_ms": 857.48,
+              "pool_wait_ms": 351.23,
+              "db_roundtrip_ms": 467.88,
+              "app_overhead_ms": 38.37,
+              "timing_version": "db-v1"
+            },
+            "dense": {
+              "embedding_cache_namespace": "embed",
+              "embedding_cache_key_hash": "8bb13779497f2971",
+              "embedding_cache_lookup_ms": 0.02,
+              "embedding_ms": 149.5,
+              "embedding_cache_hit": false,
+              "cache_namespace": "dense",
+              "cache_key_hash": "8bfbef965e4b335e",
+              "rowset_cache_lookup_ms": 0.0,
+              "rowset_cache_hit": false,
+              "hnsw_ef_search": 60,
+              "connection_hnsw_ef_search": 60,
+              "pool_acquire_ms": 142.87,
+              "set_local_ms": 0.0,
+              "fetch_roundtrip_ms": 708.25,
+              "rows": 60,
+              "total_ms": 1034.04,
+              "pool_wait_ms": 142.87,
+              "db_roundtrip_ms": 708.25,
+              "app_overhead_ms": 33.42,
+              "timing_version": "db-v1"
+            },
+            "keyword": {
+              "backend": "fts",
+              "derived_from_semantic_query": true,
+              "cache_namespace": "bm25",
+              "cache_key_hash": "41bccd3401671c41",
+              "rowset_cache_lookup_ms": 0.01,
+              "rowset_cache_hit": false,
+              "pool_acquire_ms": 373.17,
+              "statement_timeout_ms": 800,
+              "set_statement_timeout_ms": 35.47,
+              "fetch_roundtrip_ms": 467.73,
+              "rows": 60,
+              "pool_wait_ms": 373.17,
+              "db_roundtrip_ms": 467.73,
+              "timing_version": "db-v1"
+            },
+            "hydrate_initial": {
+              "cache_namespace": "chunk",
+              "pool_acquire_ms": 0.01,
+              "fetch_roundtrip_ms": 198.4,
+              "rows": 20,
+              "requested_chunk_ids": 20,
+              "cache_hits": 0,
+              "cache_misses": 20,
+              "all_cache_hit": false,
+              "total_ms": 235.1,
+              "pool_wait_ms": 0.01,
+              "db_roundtrip_ms": 198.4,
+              "app_overhead_ms": 36.69,
+              "timing_version": "db-v1"
+            },
+            "enrichment": {
+              "cache_namespace": "candidate",
+              "pool_acquire_ms": 0.02,
+              "fetch_roundtrip_ms": 97.21,
+              "rows": 15,
+              "cache_hits": 0,
+              "cache_misses": 15,
+              "all_cache_hit": false,
+              "skill_recency_fetch_roundtrip_ms": 217.53,
+              "total_ms": 348.46,
+              "pool_wait_ms": 0.02,
+              "db_roundtrip_ms": 97.21,
+              "app_overhead_ms": 251.23,
+              "timing_version": "db-v1"
+            }
+          },
+          "row_counts": {
+            "filtered_candidates": 112,
+            "skill_rows": 40,
+            "dense_rows": 60,
+            "keyword_rows": 0,
+            "fused_rows": 93,
+            "grouped_candidates": 15,
+            "candidates_selected_for_enrichment": 15,
+            "deferred_candidate_ids": 0,
+            "enriched_candidates": 15
+          },
+          "hydration_passes": [
+            {
+              "pass": "initial",
+              "limit": 20,
+              "hydrated_rows": 20,
+              "elapsed_ms": 235.34,
+              "db_timing": {
+                "cache_namespace": "chunk",
+                "pool_acquire_ms": 0.01,
+                "fetch_roundtrip_ms": 198.4,
+                "rows": 20,
+                "requested_chunk_ids": 20,
+                "cache_hits": 0,
+                "cache_misses": 20,
+                "all_cache_hit": false,
+                "total_ms": 235.1,
+                "pool_wait_ms": 0.01,
+                "db_roundtrip_ms": 198.4,
+                "app_overhead_ms": 36.69,
+                "timing_version": "db-v1"
+              }
+            }
+          ],
+          "candidate_ids": [
+            "07eea44b-556d-4966-a968-be9d50144dfb",
+            "081108d1-cd2f-493f-9ec0-f60f83aed476",
+            "05ab6699-2f66-433b-921b-64605026ed4d",
+            "0d6aa8c8-fbdf-4060-bb13-059b601b7084",
+            "1d9decb6-76ee-4cc4-974c-c8e3bd98f222",
+            "1def77c3-5c5a-44d6-a933-edbd12497934",
+            "29ade4c0-0b92-44a3-96e3-1dbf123024fa",
+            "6b464921-143d-422a-8e39-6d58c9717d02",
+            "02f124d2-8ce8-4c58-ba04-1d8cf6e65689",
+            "02fee72e-2960-443f-b56e-fcea7be95564",
+            "35da9f3a-f3ac-4fb8-9dab-54415e9cfad8",
+            "2fb00414-8982-431c-abab-8017994c7d7b",
+            "084c2c9e-333f-413e-b043-aaaeb1360f49",
+            "08dcc1e3-2720-461c-b741-a54582e9e94e",
+            "7916ccc5-10b5-406b-b846-6dc84906afe0"
+          ],
+          "deferred_candidate_ids": [],
+          "deferred_enrichment": {
+            "enabled": false,
+            "visible_enriched": 15,
+            "available_candidate_ids": 15,
+            "fetch_endpoint": "/talent/api/candidates/batch"
+          },
+          "timing_summary": {
+            "parallel_wall_ms": 1657.82,
+            "slowest_branch": "keyword",
+            "slowest_branch_elapsed_ms": 1051.3,
+            "largest_pool_wait_branch": "keyword",
+            "largest_pool_wait_ms": 373.17,
+            "largest_db_roundtrip_branch": "semantic",
+            "largest_db_roundtrip_ms": 708.25,
+            "total_pool_wait_ms": 869.18,
+            "total_db_roundtrip_ms": 1658.97,
+            "total_app_overhead_ms": 360.09,
+            "branches": {
+              "count": {
+                "elapsed_ms": 579.44,
+                "phase": "parallel",
+                "runs_parallel_with": [
+                  "count",
+                  "semantic",
+                  "keyword",
+                  "skill_match"
+                ],
+                "db": {
+                  "total_ms": 579.24,
+                  "pool_wait_ms": 353.11,
+                  "pool_acquire_ms": 353.11,
+                  "db_roundtrip_ms": 187.38,
+                  "fetch_roundtrip_ms": 187.38,
+                  "app_overhead_ms": 38.75,
+                  "rows": 1,
+                  "timing_version": "db-v1",
+                  "dominant_component": "pool_wait",
+                  "components_ms": {
+                    "pool_wait": 353.11,
+                    "db_roundtrip": 187.38,
+                    "app_overhead": 38.75
+                  },
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {
+                  "cache_hit": false,
+                  "rowset_cache_lookup_ms": 0.0,
+                  "namespace": "count",
+                  "key_hash": "c5d884f92db27ff8",
+                  "summary": "miss"
+                },
+                "rows": 112
+              },
+              "semantic": {
+                "elapsed_ms": 1034.25,
+                "phase": "parallel",
+                "runs_parallel_with": [
+                  "count",
+                  "semantic",
+                  "keyword",
+                  "skill_match"
+                ],
+                "db": {
+                  "total_ms": 1034.04,
+                  "pool_wait_ms": 142.87,
+                  "pool_acquire_ms": 142.87,
+                  "db_roundtrip_ms": 708.25,
+                  "fetch_roundtrip_ms": 708.25,
+                  "app_overhead_ms": 33.42,
+                  "embedding_ms": 149.5,
+                  "set_local_ms": 0.0,
+                  "rows": 60,
+                  "timing_version": "db-v1",
+                  "dominant_component": "db_roundtrip",
+                  "components_ms": {
+                    "pool_wait": 142.87,
+                    "db_roundtrip": 708.25,
+                    "app_overhead": 33.42,
+                    "embedding": 149.5
+                  },
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {
+                  "rowset_cache_hit": false,
+                  "embedding_cache_hit": false,
+                  "rowset_cache_lookup_ms": 0.0,
+                  "embedding_cache_lookup_ms": 0.02,
+                  "namespace": "dense",
+                  "key_hash": "8bfbef965e4b335e",
+                  "summary": "miss"
+                },
+                "rows": 60
+              },
+              "keyword": {
+                "elapsed_ms": 1051.3,
+                "phase": "parallel",
+                "runs_parallel_with": [
+                  "count",
+                  "semantic",
+                  "keyword",
+                  "skill_match"
+                ],
+                "db": {
+                  "pool_wait_ms": 373.17,
+                  "pool_acquire_ms": 373.17,
+                  "db_roundtrip_ms": 467.73,
+                  "fetch_roundtrip_ms": 467.73,
+                  "set_statement_timeout_ms": 35.47,
+                  "rows": 60,
+                  "timing_version": "db-v1",
+                  "dominant_component": "db_roundtrip",
+                  "components_ms": {
+                    "pool_wait": 373.17,
+                    "db_roundtrip": 467.73
+                  },
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {
+                  "rowset_cache_hit": false,
+                  "rowset_cache_lookup_ms": 0.01,
+                  "namespace": "bm25",
+                  "key_hash": "41bccd3401671c41",
+                  "summary": "miss"
+                },
+                "rows": 0
+              },
+              "skill_match": {
+                "elapsed_ms": 857.7,
+                "phase": "parallel",
+                "runs_parallel_with": [
+                  "count",
+                  "semantic",
+                  "keyword",
+                  "skill_match"
+                ],
+                "db": {
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {},
+                "rows": 40
+              },
+              "fuse": {
+                "elapsed_ms": 0.14,
+                "phase": "sequential",
+                "runs_parallel_with": [],
+                "db": {
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {},
+                "rows": 93
+              },
+              "hydrate_initial": {
+                "elapsed_ms": 235.34,
+                "phase": "sequential",
+                "runs_parallel_with": [],
+                "db": {
+                  "total_ms": 235.1,
+                  "pool_wait_ms": 0.01,
+                  "pool_acquire_ms": 0.01,
+                  "db_roundtrip_ms": 198.4,
+                  "fetch_roundtrip_ms": 198.4,
+                  "app_overhead_ms": 36.69,
+                  "rows": 20,
+                  "requested_chunk_ids": 20,
+                  "timing_version": "db-v1",
+                  "dominant_component": "db_roundtrip",
+                  "components_ms": {
+                    "pool_wait": 0.01,
+                    "db_roundtrip": 198.4,
+                    "app_overhead": 36.69
+                  },
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {
+                  "all_cache_hit": false,
+                  "cache_hits": 0,
+                  "cache_misses": 20,
+                  "namespace": "chunk",
+                  "summary": "miss"
+                }
+              },
+              "enrichment": {
+                "elapsed_ms": 349.14,
+                "phase": "sequential",
+                "runs_parallel_with": [],
+                "db": {
+                  "total_ms": 348.46,
+                  "pool_wait_ms": 0.02,
+                  "pool_acquire_ms": 0.02,
+                  "db_roundtrip_ms": 97.21,
+                  "fetch_roundtrip_ms": 97.21,
+                  "app_overhead_ms": 251.23,
+                  "rows": 15,
+                  "timing_version": "db-v1",
+                  "dominant_component": "app_overhead",
+                  "components_ms": {
+                    "pool_wait": 0.02,
+                    "db_roundtrip": 97.21,
+                    "app_overhead": 251.23
+                  },
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {
+                  "all_cache_hit": false,
+                  "cache_hits": 0,
+                  "cache_misses": 15,
+                  "namespace": "candidate",
+                  "summary": "miss"
+                },
+                "rows": 15
+              }
+            },
+            "how_to_read": "count, semantic, keyword, and skill_match run in parallel; wall time is not their sum. fuse, hydrate, group, enrich, and rank run after retrieval."
+          },
+          "ranking_timings_ms": {
+            "cross_encoder_ms": 0.0,
+            "feature_ranker_ms": 5.85,
+            "mmr_ms": 480.52,
+            "explanation_ms": 0.29,
+            "total_ms": 489.25
+          }
+        },
+        "error": ""
+      },
+      {
+        "index": 2,
+        "name": "linux_bangalore",
+        "status": 200,
+        "ok": true,
+        "wall_ms": 3356.818166008452,
+        "service_wall_ms": 3356.818166008452,
+        "queue_wait_ms": 0.0,
+        "api_latency_ms": 3349.67,
+        "total_results": 18,
+        "search_pipeline_ms": 3349.42,
+        "search_total_ms": 3349.53,
+        "trace_id": "b205090e8ef3b63a1be1e0f109fcbecf",
+        "trace_url": "https://jp.cloud.langfuse.com/project/cmpqypywu001ead0cwu8wbl6m/traces/b205090e8ef3b63a1be1e0f109fcbecf",
+        "phase_timings": {
+          "query_understanding_ms": 1.01,
+          "retrieval_ms": 2823.87,
+          "ranking_ms": 233.9
+        },
+        "retrieval_policy": {
+          "keyword": {
+            "action": "run",
+            "reason": "narrow_hard_filters",
+            "policy": "auto",
+            "timeout_ms": 800,
+            "candidate_count": 581,
+            "terms": [
+              "linux",
+              "docker",
+              "kubernetes"
+            ],
+            "specific_terms": [
+              "linux",
+              "docker",
+              "kubernetes"
+            ],
+            "broad_terms": [],
+            "filter_strength": "narrow",
+            "backend": "fts"
+          },
+          "search_pool": "primary",
+          "timings_ms": {
+            "count_ms": 505.23,
+            "skill_ms": 884.13,
+            "keyword_ms": 1289.45,
+            "dense_ms": 1734.8,
+            "fusion_ms": 0.21,
+            "hydrate_initial_ms": 299.91,
+            "group_hydrated_initial_ms": 0.16,
+            "enrichment_ms": 767.94,
+            "total_ms": 2823.87
+          },
+          "db_timings": {
+            "count": {
+              "cache_namespace": "count",
+              "cache_key_hash": "dde0468680c54637",
+              "rowset_cache_lookup_ms": 0.0,
+              "cache_hit": false,
+              "pool_acquire_ms": 317.12,
+              "fetch_roundtrip_ms": 149.29,
+              "rows": 1,
+              "total_ms": 504.99,
+              "pool_wait_ms": 317.12,
+              "db_roundtrip_ms": 149.29,
+              "app_overhead_ms": 38.58,
+              "timing_version": "db-v1"
+            },
+            "skill": {
+              "cache_namespace": "skill",
+              "cache_key_hash": "e1e352747bf7b9e0",
+              "rowset_cache_lookup_ms": 0.0,
+              "rowset_cache_hit": false,
+              "pool_acquire_ms": 368.39,
+              "fetch_roundtrip_ms": 481.52,
+              "rows": 40,
+              "total_ms": 883.89,
+              "pool_wait_ms": 368.39,
+              "db_roundtrip_ms": 481.52,
+              "app_overhead_ms": 33.98,
+              "timing_version": "db-v1"
+            },
+            "keyword": {
+              "backend": "fts",
+              "derived_from_semantic_query": false,
+              "cache_namespace": "bm25",
+              "cache_key_hash": "246dc09e459ff596",
+              "rowset_cache_lookup_ms": 0.0,
+              "rowset_cache_hit": false,
+              "pool_acquire_ms": 340.67,
+              "statement_timeout_ms": 800,
+              "set_statement_timeout_ms": 33.8
+            },
+            "dense": {
+              "embedding_cache_namespace": "embed",
+              "embedding_cache_key_hash": "db4350f4a1bb8b9d",
+              "embedding_cache_lookup_ms": 0.04,
+              "embedding_ms": 142.89,
+              "embedding_cache_hit": false,
+              "cache_namespace": "dense",
+              "cache_key_hash": "41222d4f3fa14ba2",
+              "rowset_cache_lookup_ms": 0.0,
+              "rowset_cache_hit": false,
+              "hnsw_ef_search": 60,
+              "connection_hnsw_ef_search": 60,
+              "pool_acquire_ms": 359.48,
+              "set_local_ms": 0.0,
+              "fetch_roundtrip_ms": 1197.4,
+              "rows": 60,
+              "total_ms": 1734.31,
+              "pool_wait_ms": 359.48,
+              "db_roundtrip_ms": 1197.4,
+              "app_overhead_ms": 34.54,
+              "timing_version": "db-v1"
+            },
+            "hydrate_initial": {
+              "cache_namespace": "chunk",
+              "pool_acquire_ms": 0.01,
+              "fetch_roundtrip_ms": 181.22,
+              "rows": 17,
+              "requested_chunk_ids": 20,
+              "cache_hits": 3,
+              "cache_misses": 17,
+              "all_cache_hit": false,
+              "total_ms": 299.73,
+              "pool_wait_ms": 0.01,
+              "db_roundtrip_ms": 181.22,
+              "app_overhead_ms": 118.5,
+              "timing_version": "db-v1"
+            },
+            "enrichment": {
+              "cache_namespace": "candidate",
+              "pool_acquire_ms": 0.01,
+              "fetch_roundtrip_ms": 558.47,
+              "rows": 15,
+              "cache_hits": 3,
+              "cache_misses": 15,
+              "all_cache_hit": false,
+              "skill_recency_fetch_roundtrip_ms": 145.85,
+              "total_ms": 767.6,
+              "pool_wait_ms": 0.01,
+              "db_roundtrip_ms": 558.47,
+              "app_overhead_ms": 209.12,
+              "timing_version": "db-v1"
+            }
+          },
+          "row_counts": {
+            "filtered_candidates": 581,
+            "skill_rows": 40,
+            "keyword_rows": 0,
+            "dense_rows": 60,
+            "fused_rows": 99,
+            "grouped_candidates": 18,
+            "candidates_selected_for_enrichment": 18,
+            "deferred_candidate_ids": 0,
+            "enriched_candidates": 18
+          },
+          "hydration_passes": [
+            {
+              "pass": "initial",
+              "limit": 20,
+              "hydrated_rows": 20,
+              "elapsed_ms": 299.91,
+              "db_timing": {
+                "cache_namespace": "chunk",
+                "pool_acquire_ms": 0.01,
+                "fetch_roundtrip_ms": 181.22,
+                "rows": 17,
+                "requested_chunk_ids": 20,
+                "cache_hits": 3,
+                "cache_misses": 17,
+                "all_cache_hit": false,
+                "total_ms": 299.73,
+                "pool_wait_ms": 0.01,
+                "db_roundtrip_ms": 181.22,
+                "app_overhead_ms": 118.5,
+                "timing_version": "db-v1"
+              }
+            }
+          ],
+          "candidate_ids": [
+            "0432a460-efb1-4d12-a0fe-f5b71d022eb0",
+            "25253ccb-c80f-46da-814e-adab2f27a6e4",
+            "00187823-394d-4404-9fb2-5b221ec6607b",
+            "73e78f52-7b44-4fbb-b7e7-49d095e943bb",
+            "00f765fd-87fa-4709-adc0-3cdc2e2438f8",
+            "48c1bfb7-2368-4862-9dae-98ada7d2cd9d",
+            "0111bf4f-cbff-42e5-9a4f-56a130f4f2e7",
+            "2f31b61b-100c-4ac8-82fc-638e4964bd90",
+            "01414ccc-f0f0-4fdd-a1a4-0496db7fb673",
+            "2287687d-9cbb-48b6-b543-0bd1b1727796",
+            "01622744-e204-4a71-a5b8-a1afefa5242c",
+            "018c3064-e35a-4024-9fb8-dc475abb62a7",
+            "019b7988-7879-4c22-8560-8a1e4ec5d9ce",
+            "53927ee2-7ba4-4992-a74d-8ee60b4c1e84",
+            "021ea3c6-dbc7-4398-aa17-b29b016d5bc4",
+            "39ae240e-2ddb-45d4-9854-06191d1cb8b9",
+            "022d95da-19f1-4535-bb40-70c89f9fa66a",
+            "120a4b09-64fc-416e-8679-fd91ea21ed03"
+          ],
+          "deferred_candidate_ids": [],
+          "deferred_enrichment": {
+            "enabled": false,
+            "visible_enriched": 18,
+            "available_candidate_ids": 18,
+            "fetch_endpoint": "/talent/api/candidates/batch"
+          },
+          "timing_summary": {
+            "parallel_wall_ms": 2823.87,
+            "slowest_branch": "semantic",
+            "slowest_branch_elapsed_ms": 1734.8,
+            "largest_pool_wait_branch": "semantic",
+            "largest_pool_wait_ms": 359.48,
+            "largest_db_roundtrip_branch": "semantic",
+            "largest_db_roundtrip_ms": 1197.4,
+            "total_pool_wait_ms": 1017.29,
+            "total_db_roundtrip_ms": 2086.38,
+            "total_app_overhead_ms": 400.74,
+            "branches": {
+              "count": {
+                "elapsed_ms": 505.23,
+                "phase": "parallel",
+                "runs_parallel_with": [
+                  "count",
+                  "semantic",
+                  "keyword",
+                  "skill_match"
+                ],
+                "db": {
+                  "total_ms": 504.99,
+                  "pool_wait_ms": 317.12,
+                  "pool_acquire_ms": 317.12,
+                  "db_roundtrip_ms": 149.29,
+                  "fetch_roundtrip_ms": 149.29,
+                  "app_overhead_ms": 38.58,
+                  "rows": 1,
+                  "timing_version": "db-v1",
+                  "dominant_component": "pool_wait",
+                  "components_ms": {
+                    "pool_wait": 317.12,
+                    "db_roundtrip": 149.29,
+                    "app_overhead": 38.58
+                  },
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {
+                  "cache_hit": false,
+                  "rowset_cache_lookup_ms": 0.0,
+                  "namespace": "count",
+                  "key_hash": "dde0468680c54637",
+                  "summary": "miss"
+                },
+                "rows": 581
+              },
+              "semantic": {
+                "elapsed_ms": 1734.8,
+                "phase": "parallel",
+                "runs_parallel_with": [
+                  "count",
+                  "semantic",
+                  "keyword",
+                  "skill_match"
+                ],
+                "db": {
+                  "total_ms": 1734.31,
+                  "pool_wait_ms": 359.48,
+                  "pool_acquire_ms": 359.48,
+                  "db_roundtrip_ms": 1197.4,
+                  "fetch_roundtrip_ms": 1197.4,
+                  "app_overhead_ms": 34.54,
+                  "embedding_ms": 142.89,
+                  "set_local_ms": 0.0,
+                  "rows": 60,
+                  "timing_version": "db-v1",
+                  "dominant_component": "db_roundtrip",
+                  "components_ms": {
+                    "pool_wait": 359.48,
+                    "db_roundtrip": 1197.4,
+                    "app_overhead": 34.54,
+                    "embedding": 142.89
+                  },
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {
+                  "rowset_cache_hit": false,
+                  "embedding_cache_hit": false,
+                  "rowset_cache_lookup_ms": 0.0,
+                  "embedding_cache_lookup_ms": 0.04,
+                  "namespace": "dense",
+                  "key_hash": "41222d4f3fa14ba2",
+                  "summary": "miss"
+                },
+                "rows": 60
+              },
+              "keyword": {
+                "elapsed_ms": 1289.45,
+                "phase": "parallel",
+                "runs_parallel_with": [
+                  "count",
+                  "semantic",
+                  "keyword",
+                  "skill_match"
+                ],
+                "db": {
+                  "pool_acquire_ms": 340.67,
+                  "set_statement_timeout_ms": 33.8,
+                  "dominant_component": "pool_wait",
+                  "components_ms": {
+                    "pool_wait": 340.67
+                  },
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {
+                  "rowset_cache_hit": false,
+                  "rowset_cache_lookup_ms": 0.0,
+                  "namespace": "bm25",
+                  "key_hash": "246dc09e459ff596",
+                  "summary": "miss"
+                },
+                "rows": 0
+              },
+              "skill_match": {
+                "elapsed_ms": 884.13,
+                "phase": "parallel",
+                "runs_parallel_with": [
+                  "count",
+                  "semantic",
+                  "keyword",
+                  "skill_match"
+                ],
+                "db": {
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {},
+                "rows": 40
+              },
+              "fuse": {
+                "elapsed_ms": 0.21,
+                "phase": "sequential",
+                "runs_parallel_with": [],
+                "db": {
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {},
+                "rows": 99
+              },
+              "hydrate_initial": {
+                "elapsed_ms": 299.91,
+                "phase": "sequential",
+                "runs_parallel_with": [],
+                "db": {
+                  "total_ms": 299.73,
+                  "pool_wait_ms": 0.01,
+                  "pool_acquire_ms": 0.01,
+                  "db_roundtrip_ms": 181.22,
+                  "fetch_roundtrip_ms": 181.22,
+                  "app_overhead_ms": 118.5,
+                  "rows": 17,
+                  "requested_chunk_ids": 20,
+                  "timing_version": "db-v1",
+                  "dominant_component": "db_roundtrip",
+                  "components_ms": {
+                    "pool_wait": 0.01,
+                    "db_roundtrip": 181.22,
+                    "app_overhead": 118.5
+                  },
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {
+                  "all_cache_hit": false,
+                  "cache_hits": 3,
+                  "cache_misses": 17,
+                  "namespace": "chunk",
+                  "summary": "hit"
+                }
+              },
+              "enrichment": {
+                "elapsed_ms": 767.94,
+                "phase": "sequential",
+                "runs_parallel_with": [],
+                "db": {
+                  "total_ms": 767.6,
+                  "pool_wait_ms": 0.01,
+                  "pool_acquire_ms": 0.01,
+                  "db_roundtrip_ms": 558.47,
+                  "fetch_roundtrip_ms": 558.47,
+                  "app_overhead_ms": 209.12,
+                  "rows": 15,
+                  "timing_version": "db-v1",
+                  "dominant_component": "db_roundtrip",
+                  "components_ms": {
+                    "pool_wait": 0.01,
+                    "db_roundtrip": 558.47,
+                    "app_overhead": 209.12
+                  },
+                  "roundtrip_note": "db_roundtrip_ms is the asyncpg fetch duration after pool acquire; it includes Postgres execution, network, and row decoding."
+                },
+                "cache": {
+                  "all_cache_hit": false,
+                  "cache_hits": 3,
+                  "cache_misses": 15,
+                  "namespace": "candidate",
+                  "summary": "hit"
+                },
+                "rows": 18
+              }
+            },
+            "how_to_read": "count, semantic, keyword, and skill_match run in parallel; wall time is not their sum. fuse, hydrate, group, enrich, and rank run after retrieval."
+          },
+          "ranking_timings_ms": {
+            "cross_encoder_ms": 0.0,
+            "feature_ranker_ms": 0.59,
+            "mmr_ms": 231.11,
+            "explanation_ms": 0.21,
+            "total_ms": 233.9
+          }
+        },
+        "error": ""
+      }
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m py_compile pipeline/constants.py pipeline/aliases.py pipeline/config.py pipeline/modes.py pipeline/sanitize.py pipeline/cache.py)",
+      "Bash(python -c \"from pipeline.feature_ranker import score_results, _apply_recruiter_prefs; print\\('OK'\\); print\\(_apply_recruiter_prefs\\({'a':0.5,'b':0.5}, None\\)\\); print\\(_apply_recruiter_prefs\\({'skill_match':0.2,'skill_recency':0.1,'x':0.7}, {'prioritize_recent_experience': True, 'prioritize_exact_skill_match': True, 'weight_overrides_json': {}}\\)\\)\")",
+      "Bash(python -m pytest tests/test_validator.py tests/test_normalizer.py tests/test_router.py tests/test_planner_fallback.py tests/test_fusion.py tests/test_mmr.py tests/test_explanation.py -x --tb=short)",
+      "Bash(python -m pytest tests/test_validator.py tests/test_normalizer.py tests/test_router.py tests/test_planner_fallback.py tests/test_fusion.py tests/test_mmr.py tests/test_explanation.py --tb=short)",
+      "Bash(python -m pytest tests/test_relax.py -v --tb=short)",
+      "Bash(python -c ' *)",
+      "Bash(python -m pytest tests/test_validator.py tests/test_normalizer.py tests/test_router.py tests/test_planner_fallback.py tests/test_fusion.py tests/test_mmr.py tests/test_explanation.py tests/test_relax.py)",
+      "Bash(python -m pytest tests/ -v)",
+      "Bash(python -m pytest tests/test_admin_api_helpers.py -v)",
+      "Bash(python -m pytest tests/test_relax.py tests/test_fusion.py tests/test_mmr.py tests/test_normalizer.py tests/test_validator.py tests/test_planner_fallback.py -x --tb=short)",
+      "Bash(python -c \"from pipeline.search import HybridSearchEngine; from pipeline.retrieve_dense import retrieve_dense; from pipeline.retrieve_bm25 import retrieve_bm25; from pipeline.retrieve_skill import retrieve_skill; from pipeline.sql_filter import build_candidate_filter; from pipeline import settings; print\\('imports ok'\\); print\\('hnsw_ef_search =', settings.hnsw_ef_search\\)\")",
+      "Bash(python -c \"from pipeline import settings; print\\('hnsw_ef_search =', settings.hnsw_ef_search\\)\")",
+      "WebSearch",
+      "WebFetch(domain:survey.stackoverflow.co)",
+      "Bash(pip3 list *)",
+      "Bash(cd /tmp/so2024 && head -2 survey_results_public.csv | tr ',' '\\\\n' | head -50 | nl)",
+      "Read(//private/tmp/so2024/**)",
+      "Bash(python3 -m venv .venv)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(.venv/bin/python -c ' *)"
+    ]
+  }
+}

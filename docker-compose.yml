@@ -1,0 +1,48 @@
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: hybrid_search_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hybrid_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hybrid_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-hiring_platform}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hybrid_user} -d ${POSTGRES_DB:-hiring_platform}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: hybrid_search_pgbouncer
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-hybrid_user}:${POSTGRES_PASSWORD:-hybrid_pass}@postgres:5432/${POSTGRES_DB:-hiring_platform}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 200
+      DEFAULT_POOL_SIZE: 25
+    ports:
+      - "6432:6432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    container_name: hybrid_search_redis
+    command: ["redis-server", "--appendonly", "no", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:

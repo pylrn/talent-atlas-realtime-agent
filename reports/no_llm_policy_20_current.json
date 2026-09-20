@@ -1,0 +1,1533 @@
+{
+  "source_baseline": "/Volumes/MAC/Projects_devolopment/hybrid search/reports/no_llm_warm_20_query_latency.json",
+  "summary": {
+    "count": 20,
+    "min_ms": 351.56,
+    "p50_ms": 696.87,
+    "p75_ms": 785.7,
+    "p90_ms": 810.05,
+    "max_ms": 858.05,
+    "avg_ms": 674.93
+  },
+  "old_summary": {
+    "count": 20,
+    "min_ms": 304.95,
+    "p50_ms": 855.73,
+    "p75_ms": 1299.97,
+    "p90_ms": 4035.85,
+    "max_ms": 4941.96,
+    "avg_ms": 1337.97,
+    "cache_stats_after_measured_run": {
+      "hits": 0,
+      "misses": 20,
+      "sets": 20
+    }
+  },
+  "keyword_action_counts": {
+    "run": 14,
+    "skip": 6
+  },
+  "quality_summary": {
+    "avg_top3_overlap": 1.1,
+    "avg_feature_score": 53.45,
+    "weak_result_count": 70,
+    "zero_result_queries": [
+      "country_india_cloud"
+    ]
+  },
+  "rows": [
+    {
+      "idx": 1,
+      "name": "python_bangalore",
+      "query": "backend engineer apis benchmarkcase1",
+      "filters": {
+        "skills": [
+          "python"
+        ],
+        "country": "india",
+        "city": "bangalore"
+      },
+      "old_elapsed_ms": 712.97,
+      "elapsed_ms": 816.08,
+      "delta_ms": 103.11,
+      "old_scanned": 423,
+      "scanned": 423,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.16,
+        "retrieval_ms": 810.18,
+        "ranking_ms": 5.39
+      },
+      "branch_timings": {
+        "count_ms": 68.58,
+        "count": 423,
+        "skill_ms": 140.98,
+        "skill_rows": 40,
+        "dense_ms": 492.35,
+        "dense_rows": 60,
+        "keyword_ms": 554.26,
+        "keyword_rows": 60
+      },
+      "keyword_policy": {
+        "action": "run",
+        "reason": "narrow_hard_filters",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 423,
+        "terms": [
+          "backend",
+          "engineer",
+          "apis",
+          "benchmarkcase1"
+        ],
+        "specific_terms": [
+          "backend",
+          "apis"
+        ],
+        "broad_terms": [
+          "engineer",
+          "benchmarkcase1"
+        ],
+        "filter_strength": "narrow",
+        "backend": "fts"
+      },
+      "top_feature_score": 80.88,
+      "avg_feature_score": 68.2,
+      "weak_result_count": 0,
+      "old_top3": [
+        "Database Administrator Candidate 1940",
+        "Etl Developer Candidate 1441",
+        "Java Developer Candidate 5623"
+      ],
+      "top3": [
+        "Python Developer Candidate 14672",
+        "Codex Test Candidate",
+        "Etl Developer Candidate 9863"
+      ],
+      "top3_overlap": 0,
+      "retrieval_paths": {
+        "dense": 9,
+        "bm25": 9,
+        "skill": 2
+      }
+    },
+    {
+      "idx": 2,
+      "name": "react_sf",
+      "query": "full-stack developer web apps benchmarkcase2",
+      "filters": {
+        "skills": [
+          "react"
+        ],
+        "country": "us",
+        "city": "san francisco"
+      },
+      "old_elapsed_ms": 652.24,
+      "elapsed_ms": 604.9,
+      "delta_ms": -47.34,
+      "old_scanned": 75,
+      "scanned": 75,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.29,
+        "retrieval_ms": 598.51,
+        "ranking_ms": 5.81
+      },
+      "branch_timings": {
+        "count_ms": 81.78,
+        "count": 75,
+        "skill_ms": 140.46,
+        "skill_rows": 40,
+        "keyword_ms": 290.08,
+        "keyword_rows": 0,
+        "dense_ms": 316.6,
+        "dense_rows": 60
+      },
+      "keyword_policy": {
+        "action": "run",
+        "reason": "narrow_hard_filters",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 75,
+        "terms": [
+          "full-stack",
+          "developer",
+          "web",
+          "apps",
+          "benchmarkcase2"
+        ],
+        "specific_terms": [
+          "full-stack"
+        ],
+        "broad_terms": [
+          "developer",
+          "web",
+          "apps",
+          "benchmarkcase2"
+        ],
+        "filter_strength": "narrow",
+        "backend": "fts"
+      },
+      "top_feature_score": 73.37,
+      "avg_feature_score": 69.15,
+      "weak_result_count": 0,
+      "old_top3": [
+        "Database Administrator Candidate 2267",
+        "Java Developer Candidate 5792",
+        "React Developer Candidate 12334"
+      ],
+      "top3": [
+        "Database Administrator Candidate 2267",
+        "Java Developer Candidate 5792",
+        "Software Developer Candidate 18975"
+      ],
+      "top3_overlap": 2,
+      "retrieval_paths": {
+        "dense": 9,
+        "skill": 10
+      }
+    },
+    {
+      "idx": 3,
+      "name": "sql_hyd",
+      "query": "microsoft server tsql ssis ssrs data warehousing developer benchmarkcase3",
+      "filters": {
+        "skills": [
+          "sql"
+        ],
+        "country": "india",
+        "city": "hyderabad"
+      },
+      "old_elapsed_ms": 911.86,
+      "elapsed_ms": 749.47,
+      "delta_ms": -162.39,
+      "old_scanned": 211,
+      "scanned": 311,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.24,
+        "retrieval_ms": 746.45,
+        "ranking_ms": 2.27
+      },
+      "branch_timings": {
+        "count_ms": 70.54,
+        "count": 311,
+        "skill_ms": 109.65,
+        "skill_rows": 40,
+        "dense_ms": 470.73,
+        "dense_rows": 60,
+        "keyword_ms": 579.64,
+        "keyword_rows": 60
+      },
+      "keyword_policy": {
+        "action": "run",
+        "reason": "narrow_hard_filters",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 311,
+        "terms": [
+          "microsoft",
+          "server",
+          "tsql",
+          "ssis",
+          "ssrs",
+          "data",
+          "warehousing",
+          "developer"
+        ],
+        "specific_terms": [],
+        "broad_terms": [
+          "microsoft",
+          "server",
+          "tsql",
+          "ssis",
+          "ssrs",
+          "data",
+          "warehousing",
+          "developer"
+        ],
+        "filter_strength": "narrow",
+        "backend": "fts"
+      },
+      "top_feature_score": 81.17,
+      "avg_feature_score": 71.78,
+      "weak_result_count": 0,
+      "old_top3": [
+        "Etl Developer Candidate 9921",
+        "Database Administrator Candidate 1837",
+        "Database Administrator Candidate 2287"
+      ],
+      "top3": [
+        "Software Developer Candidate 19424",
+        "Network Administrator Candidate 8398",
+        "Database Administrator Candidate 2287"
+      ],
+      "top3_overlap": 1,
+      "retrieval_paths": {
+        "dense": 9,
+        "bm25": 9,
+        "skill": 3
+      }
+    },
+    {
+      "idx": 4,
+      "name": "java_blr",
+      "query": "j2ee spring boot web application developer rest apis benchmarkcase4",
+      "filters": {
+        "skills": [
+          "java"
+        ],
+        "country": "india",
+        "city": "bangalore"
+      },
+      "old_elapsed_ms": 799.6,
+      "elapsed_ms": 713.01,
+      "delta_ms": -86.59,
+      "old_scanned": 448,
+      "scanned": 580,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.26,
+        "retrieval_ms": 708.09,
+        "ranking_ms": 4.3
+      },
+      "branch_timings": {
+        "count_ms": 56.98,
+        "count": 580,
+        "skill_ms": 85.8,
+        "skill_rows": 40,
+        "dense_ms": 360.97,
+        "dense_rows": 60,
+        "keyword_ms": 455.57,
+        "keyword_rows": 60
+      },
+      "keyword_policy": {
+        "action": "run",
+        "reason": "narrow_hard_filters",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 580,
+        "terms": [
+          "rest-api",
+          "spring-boot"
+        ],
+        "specific_terms": [
+          "rest-api",
+          "spring-boot"
+        ],
+        "broad_terms": [],
+        "filter_strength": "narrow",
+        "backend": "fts"
+      },
+      "top_feature_score": 75.99,
+      "avg_feature_score": 62.96,
+      "weak_result_count": 0,
+      "old_top3": [
+        "Java Developer Candidate 6414",
+        "Web Developer Candidate 29465",
+        "Java Developer Candidate 1847"
+      ],
+      "top3": [
+        "Java Developer Candidate 6414",
+        "Web Developer Candidate 29130",
+        "Python Developer Candidate 14912"
+      ],
+      "top3_overlap": 1,
+      "retrieval_paths": {
+        "dense": 7,
+        "bm25": 4,
+        "skill": 3
+      }
+    },
+    {
+      "idx": 5,
+      "name": "marketing_boston",
+      "query": "global digital director b2b social media cross functional teams benchmarkcase5",
+      "filters": {
+        "skills": [
+          "marketing"
+        ],
+        "country": "us",
+        "city": "boston"
+      },
+      "old_elapsed_ms": 548.58,
+      "elapsed_ms": 858.05,
+      "delta_ms": 309.47,
+      "old_scanned": 36,
+      "scanned": 54,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.32,
+        "retrieval_ms": 854.27,
+        "ranking_ms": 3.16
+      },
+      "branch_timings": {
+        "count_ms": 58.31,
+        "count": 54,
+        "skill_ms": 103.47,
+        "skill_rows": 40,
+        "dense_ms": 270.86,
+        "dense_rows": 60,
+        "keyword_ms": 640.55,
+        "keyword_rows": 14
+      },
+      "keyword_policy": {
+        "action": "run",
+        "reason": "narrow_hard_filters",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 54,
+        "terms": [
+          "social-media"
+        ],
+        "specific_terms": [
+          "social-media"
+        ],
+        "broad_terms": [],
+        "filter_strength": "narrow",
+        "backend": "fts"
+      },
+      "top_feature_score": 81.5,
+      "avg_feature_score": 75.81,
+      "weak_result_count": 0,
+      "old_top3": [
+        "Public Relations Candidate 5364",
+        "Engineering Candidate 4658",
+        "Digital Media Candidate 4462"
+      ],
+      "top3": [
+        "Public Relations Candidate 5364",
+        "Engineering Candidate 4658",
+        "Web Designing Candidate 5714"
+      ],
+      "top3_overlap": 2,
+      "retrieval_paths": {
+        "dense": 10,
+        "bm25": 4,
+        "skill": 8
+      }
+    },
+    {
+      "idx": 6,
+      "name": "finance_ny",
+      "query": "director financial reporting benchmarkcase6",
+      "filters": {
+        "skills": [
+          "finance"
+        ],
+        "country": "us",
+        "city": "new york"
+      },
+      "old_elapsed_ms": 511.84,
+      "elapsed_ms": 781.13,
+      "delta_ms": 269.29,
+      "old_scanned": 234,
+      "scanned": 694,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.26,
+        "retrieval_ms": 777.98,
+        "ranking_ms": 2.46
+      },
+      "branch_timings": {
+        "count_ms": 67.83,
+        "count": 694,
+        "skill_ms": 84.85,
+        "skill_rows": 40,
+        "dense_ms": 306.41,
+        "dense_rows": 60,
+        "keyword_ms": 515.9,
+        "keyword_rows": 60
+      },
+      "keyword_policy": {
+        "action": "run",
+        "reason": "narrow_hard_filters",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 694,
+        "terms": [
+          "financial-reporting"
+        ],
+        "specific_terms": [
+          "financial-reporting"
+        ],
+        "broad_terms": [],
+        "filter_strength": "narrow",
+        "backend": "fts"
+      },
+      "top_feature_score": 73.09,
+      "avg_feature_score": 69.39,
+      "weak_result_count": 0,
+      "old_top3": [
+        "Finance Candidate 4841",
+        "Finance Candidate 4856",
+        "Finance Candidate 4815"
+      ],
+      "top3": [
+        "Accountant Candidate 20",
+        "Finance Candidate 4815",
+        "Finance Candidate 4841"
+      ],
+      "top3_overlap": 2,
+      "retrieval_paths": {
+        "dense": 6,
+        "bm25": 9,
+        "skill": 5
+      }
+    },
+    {
+      "idx": 7,
+      "name": "blockchain_mumbai",
+      "query": "blockchain developer bitcoin ethereum solidity hyperledger benchmarkcase7",
+      "filters": {
+        "skills": [
+          "java"
+        ],
+        "country": "india",
+        "city": "mumbai"
+      },
+      "old_elapsed_ms": 548.85,
+      "elapsed_ms": 493.14,
+      "delta_ms": -55.71,
+      "old_scanned": 54,
+      "scanned": 77,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.34,
+        "retrieval_ms": 488.8,
+        "ranking_ms": 3.73
+      },
+      "branch_timings": {
+        "count_ms": 58.91,
+        "count": 77,
+        "skill_ms": 75.24,
+        "skill_rows": 40,
+        "keyword_ms": 207.42,
+        "keyword_rows": 8,
+        "dense_ms": 245.79,
+        "dense_rows": 60
+      },
+      "keyword_policy": {
+        "action": "run",
+        "reason": "narrow_hard_filters",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 77,
+        "terms": [
+          "blockchain",
+          "developer",
+          "bitcoin",
+          "ethereum",
+          "solidity",
+          "hyperledger",
+          "benchmarkcase7"
+        ],
+        "specific_terms": [
+          "solidity",
+          "hyperledger"
+        ],
+        "broad_terms": [
+          "blockchain",
+          "developer",
+          "bitcoin",
+          "ethereum",
+          "benchmarkcase7"
+        ],
+        "filter_strength": "narrow",
+        "backend": "fts"
+      },
+      "top_feature_score": 81.5,
+      "avg_feature_score": 65.88,
+      "weak_result_count": 0,
+      "old_top3": [
+        "Java Developer Candidate 6405",
+        "Blockchain Candidate 893",
+        "Etl Developer Candidate 9935"
+      ],
+      "top3": [
+        "Blockchain Candidate 893",
+        "Python Developer Candidate 14645",
+        "Project Manager Candidate 10934"
+      ],
+      "top3_overlap": 1,
+      "retrieval_paths": {
+        "dense": 6,
+        "bm25": 1,
+        "skill": 10
+      }
+    },
+    {
+      "idx": 8,
+      "name": "salesforce_pune",
+      "query": "salesforce administrator developer visualforce apex custom objects workflows dashboards benchmarkcase8",
+      "filters": {
+        "skills": [
+          "java"
+        ],
+        "country": "india",
+        "city": "pune"
+      },
+      "old_elapsed_ms": 483.25,
+      "elapsed_ms": 392.38,
+      "delta_ms": -90.87,
+      "old_scanned": 39,
+      "scanned": 82,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.3,
+        "retrieval_ms": 389.86,
+        "ranking_ms": 1.94
+      },
+      "branch_timings": {
+        "count_ms": 63.91,
+        "count": 82,
+        "skill_ms": 78.86,
+        "skill_rows": 40,
+        "keyword_ms": 180.44,
+        "keyword_rows": 12,
+        "dense_ms": 221.79,
+        "dense_rows": 60
+      },
+      "keyword_policy": {
+        "action": "run",
+        "reason": "narrow_hard_filters",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 82,
+        "terms": [
+          "salesforce",
+          "administrator",
+          "developer",
+          "visualforce",
+          "apex",
+          "custom",
+          "objects",
+          "workflows"
+        ],
+        "specific_terms": [
+          "salesforce",
+          "visualforce",
+          "apex"
+        ],
+        "broad_terms": [
+          "administrator",
+          "developer",
+          "custom",
+          "objects",
+          "workflows"
+        ],
+        "filter_strength": "narrow",
+        "backend": "fts"
+      },
+      "top_feature_score": 81.5,
+      "avg_feature_score": 69.87,
+      "weak_result_count": 0,
+      "old_top3": [
+        "Systems Administrator Candidate 25141",
+        "Testing Candidate 2624",
+        "Software Developer Candidate 19318"
+      ],
+      "top3": [
+        "Systems Administrator Candidate 25141",
+        "Blockchain Candidate 903",
+        "Software Developer Candidate 19318"
+      ],
+      "top3_overlap": 2,
+      "retrieval_paths": {
+        "dense": 8,
+        "bm25": 2,
+        "skill": 10
+      }
+    },
+    {
+      "idx": 9,
+      "name": "linux_ops",
+      "query": "infrastructure deployment operations benchmarkcase9",
+      "filters": {
+        "skills": [
+          "linux"
+        ],
+        "country": "india"
+      },
+      "old_elapsed_ms": 1192.16,
+      "elapsed_ms": 798.35,
+      "delta_ms": -393.81,
+      "old_scanned": 907,
+      "scanned": 907,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.36,
+        "retrieval_ms": 795.1,
+        "ranking_ms": 2.5
+      },
+      "branch_timings": {
+        "count_ms": 174.06,
+        "count": 907,
+        "skill_ms": 203.99,
+        "skill_rows": 40,
+        "dense_ms": 643.7,
+        "dense_rows": 17,
+        "keyword_ms": 643.82,
+        "keyword_rows": 60
+      },
+      "keyword_policy": {
+        "action": "run",
+        "reason": "specific_terms_with_medium_filters",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 907,
+        "terms": [
+          "infrastructure",
+          "deployment",
+          "operations",
+          "benchmarkcase9"
+        ],
+        "specific_terms": [
+          "infrastructure"
+        ],
+        "broad_terms": [
+          "deployment",
+          "operations",
+          "benchmarkcase9"
+        ],
+        "filter_strength": "medium",
+        "backend": "fts"
+      },
+      "top_feature_score": 75.38,
+      "avg_feature_score": 62.06,
+      "weak_result_count": 0,
+      "old_top3": [
+        "Software Developer Candidate 19434",
+        "Database Administrator Candidate 2496",
+        "Systems Administrator Candidate 24956"
+      ],
+      "top3": [
+        "DevOps Engineer Candidate 8918",
+        "DevOps Engineer Candidate 4429",
+        "Database Administrator Candidate 2102"
+      ],
+      "top3_overlap": 0,
+      "retrieval_paths": {
+        "dense": 4,
+        "bm25": 4,
+        "skill": 4
+      }
+    },
+    {
+      "idx": 10,
+      "name": "frontend_vague",
+      "query": "someone who can build modern frontend product screens and connect backend data",
+      "filters": {},
+      "old_elapsed_ms": 941.14,
+      "elapsed_ms": 607.79,
+      "delta_ms": -333.35,
+      "old_scanned": 14987,
+      "scanned": 14987,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.42,
+        "retrieval_ms": 603.13,
+        "ranking_ms": 3.96
+      },
+      "branch_timings": {
+        "skill_ms": 0.03,
+        "skill_rows": 0,
+        "count_ms": 89.56,
+        "count": 14987,
+        "keyword_ms": 279.46,
+        "keyword_rows": 19,
+        "dense_ms": 406.51,
+        "dense_rows": 60
+      },
+      "keyword_policy": {
+        "action": "run",
+        "reason": "specific_terms",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 14987,
+        "terms": [
+          "someone",
+          "can",
+          "build",
+          "modern",
+          "frontend",
+          "product",
+          "screens",
+          "connect"
+        ],
+        "specific_terms": [
+          "frontend"
+        ],
+        "broad_terms": [
+          "someone",
+          "can",
+          "build",
+          "modern",
+          "product",
+          "screens",
+          "connect"
+        ],
+        "filter_strength": "broad",
+        "backend": "fts"
+      },
+      "top_feature_score": 40.24,
+      "avg_feature_score": 38.87,
+      "weak_result_count": 10,
+      "old_top3": [
+        "Systems Administrator Candidate 24725",
+        "DevOps Engineer Candidate 4011",
+        "HR Candidate 5040"
+      ],
+      "top3": [
+        "Systems Administrator Candidate 24725",
+        "DevOps Engineer Candidate 4011",
+        "HR Candidate 5040"
+      ],
+      "top3_overlap": 3,
+      "retrieval_paths": {
+        "dense": 3,
+        "bm25": 7
+      }
+    },
+    {
+      "idx": 11,
+      "name": "marketing_vague",
+      "query": "person grow digital campaigns and coordinate teams benchmarkcase11",
+      "filters": {
+        "skills": [
+          "marketing"
+        ]
+      },
+      "old_elapsed_ms": 4110.22,
+      "elapsed_ms": 783.5,
+      "delta_ms": -3326.72,
+      "old_scanned": 2641,
+      "scanned": 2641,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.34,
+        "retrieval_ms": 780.39,
+        "ranking_ms": 2.52
+      },
+      "branch_timings": {
+        "count_ms": 104.08,
+        "count": 2641,
+        "skill_ms": 142.35,
+        "skill_rows": 40,
+        "dense_ms": 414.94,
+        "dense_rows": 54
+      },
+      "keyword_policy": {
+        "action": "skip",
+        "reason": "broad_pool_common_terms",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 2641,
+        "terms": [
+          "person",
+          "grow",
+          "digital",
+          "campaigns",
+          "coordinate",
+          "teams",
+          "benchmarkcase11"
+        ],
+        "specific_terms": [],
+        "broad_terms": [
+          "person",
+          "grow",
+          "digital",
+          "campaigns",
+          "coordinate",
+          "teams",
+          "benchmarkcase11"
+        ],
+        "filter_strength": "medium",
+        "backend": "fts"
+      },
+      "top_feature_score": 60.24,
+      "avg_feature_score": 58.99,
+      "weak_result_count": 0,
+      "old_top3": [
+        "Web Designing Candidate 13264",
+        "Digital Media Candidate 4456",
+        "Database Administrator Candidate 2041"
+      ],
+      "top3": [
+        "Digital Media Candidate 4462",
+        "Security Analyst Candidate 17453",
+        "Digital Media Candidate 9013"
+      ],
+      "top3_overlap": 0,
+      "retrieval_paths": {
+        "dense": 5,
+        "skill": 5
+      }
+    },
+    {
+      "idx": 12,
+      "name": "finance_vague",
+      "query": "senior person manage company money planning controls executive reporting benchmarkcase12",
+      "filters": {},
+      "old_elapsed_ms": 3366.47,
+      "elapsed_ms": 657.28,
+      "delta_ms": -2709.19,
+      "old_scanned": 14987,
+      "scanned": 14987,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.24,
+        "retrieval_ms": 654.95,
+        "ranking_ms": 1.89
+      },
+      "branch_timings": {
+        "skill_ms": 0.01,
+        "skill_rows": 0,
+        "count_ms": 66.23,
+        "count": 14987,
+        "dense_ms": 359.37,
+        "dense_rows": 60
+      },
+      "keyword_policy": {
+        "action": "skip",
+        "reason": "broad_pool_common_terms",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 14987,
+        "terms": [
+          "senior",
+          "person",
+          "manage",
+          "company",
+          "money",
+          "planning",
+          "controls",
+          "executive"
+        ],
+        "specific_terms": [],
+        "broad_terms": [
+          "senior",
+          "person",
+          "manage",
+          "company",
+          "money",
+          "planning",
+          "controls",
+          "executive"
+        ],
+        "filter_strength": "broad",
+        "backend": "fts"
+      },
+      "top_feature_score": 40.24,
+      "avg_feature_score": 38.43,
+      "weak_result_count": 10,
+      "old_top3": [
+        "Finance Candidate 4850",
+        "Systems Administrator Candidate 25156",
+        "Systems Administrator Candidate 24845"
+      ],
+      "top3": [
+        "Finance Candidate 4870",
+        "Pmo Candidate 10349",
+        "Finance Candidate 4830"
+      ],
+      "top3_overlap": 0,
+      "retrieval_paths": {
+        "dense": 10
+      }
+    },
+    {
+      "idx": 13,
+      "name": "database_vague",
+      "query": "person who can make databases faster and build reporting pipelines benchmarkcase13",
+      "filters": {},
+      "old_elapsed_ms": 2005.3,
+      "elapsed_ms": 673.18,
+      "delta_ms": -1332.12,
+      "old_scanned": 14987,
+      "scanned": 14987,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.22,
+        "retrieval_ms": 667.81,
+        "ranking_ms": 4.92
+      },
+      "branch_timings": {
+        "skill_ms": 0.01,
+        "skill_rows": 0,
+        "count_ms": 57.25,
+        "count": 14987,
+        "dense_ms": 456.5,
+        "dense_rows": 60
+      },
+      "keyword_policy": {
+        "action": "skip",
+        "reason": "broad_pool_common_terms",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 14987,
+        "terms": [
+          "person",
+          "can",
+          "make",
+          "databases",
+          "faster",
+          "build",
+          "reporting",
+          "pipelines"
+        ],
+        "specific_terms": [],
+        "broad_terms": [
+          "person",
+          "can",
+          "make",
+          "databases",
+          "faster",
+          "build",
+          "reporting",
+          "pipelines"
+        ],
+        "filter_strength": "broad",
+        "backend": "fts"
+      },
+      "top_feature_score": 40.24,
+      "avg_feature_score": 38.32,
+      "weak_result_count": 10,
+      "old_top3": [
+        "Python Developer Candidate 14282",
+        "Advocate Candidate 5996",
+        "Healthcare Candidate 5300"
+      ],
+      "top3": [
+        "Python Developer Candidate 14282",
+        "Network Administrator Candidate 8428",
+        "Web Developer Candidate 29333"
+      ],
+      "top3_overlap": 1,
+      "retrieval_paths": {
+        "dense": 10
+      }
+    },
+    {
+      "idx": 14,
+      "name": "crm_vague",
+      "query": "someone configure crm workflows dashboards user permissions business automations benchmarkcase14",
+      "filters": {},
+      "old_elapsed_ms": 657.16,
+      "elapsed_ms": 549.8,
+      "delta_ms": -107.36,
+      "old_scanned": 14987,
+      "scanned": 14987,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.26,
+        "retrieval_ms": 544.34,
+        "ranking_ms": 4.93
+      },
+      "branch_timings": {
+        "skill_ms": 0.01,
+        "skill_rows": 0,
+        "count_ms": 65.32,
+        "count": 14987,
+        "dense_ms": 302.28,
+        "dense_rows": 60,
+        "keyword_ms": 290.08,
+        "keyword_rows": 20
+      },
+      "keyword_policy": {
+        "action": "run",
+        "reason": "specific_terms",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 14987,
+        "terms": [
+          "someone",
+          "configure",
+          "crm",
+          "workflows",
+          "dashboards",
+          "user",
+          "permissions",
+          "business"
+        ],
+        "specific_terms": [
+          "crm"
+        ],
+        "broad_terms": [
+          "someone",
+          "configure",
+          "workflows",
+          "dashboards",
+          "user",
+          "permissions",
+          "business"
+        ],
+        "filter_strength": "broad",
+        "backend": "fts"
+      },
+      "top_feature_score": 40.24,
+      "avg_feature_score": 39.07,
+      "weak_result_count": 10,
+      "old_top3": [
+        "Network Administrator Candidate 8142",
+        "Information Technology Candidate 1773",
+        "Sap Developer Candidate 12779"
+      ],
+      "top3": [
+        "Network Administrator Candidate 8142",
+        "Information Technology Candidate 1773",
+        "Sap Developer Candidate 12779"
+      ],
+      "top3_overlap": 3,
+      "retrieval_paths": {
+        "dense": 4,
+        "bm25": 6
+      }
+    },
+    {
+      "idx": 15,
+      "name": "country_us_generic_it",
+      "query": "developer with information technology services background building full-time web applications benchmarkcase15",
+      "filters": {
+        "country": "us"
+      },
+      "old_elapsed_ms": 4941.96,
+      "elapsed_ms": 774.21,
+      "delta_ms": -4167.75,
+      "old_scanned": 9555,
+      "scanned": 9555,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.28,
+        "retrieval_ms": 770.83,
+        "ranking_ms": 2.83
+      },
+      "branch_timings": {
+        "skill_ms": 0.01,
+        "skill_rows": 0,
+        "count_ms": 69.57,
+        "count": 9555,
+        "dense_ms": 459.56,
+        "dense_rows": 36
+      },
+      "keyword_policy": {
+        "action": "skip",
+        "reason": "broad_pool_common_terms",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 9555,
+        "terms": [
+          "developer",
+          "information",
+          "technology",
+          "services",
+          "background",
+          "building",
+          "full-time",
+          "web"
+        ],
+        "specific_terms": [],
+        "broad_terms": [
+          "developer",
+          "information",
+          "technology",
+          "services",
+          "background",
+          "building",
+          "full-time",
+          "web"
+        ],
+        "filter_strength": "broad",
+        "backend": "fts"
+      },
+      "top_feature_score": 40.24,
+      "avg_feature_score": 38.33,
+      "weak_result_count": 10,
+      "old_top3": [
+        "Project Manager Candidate 10515",
+        "Information Technology Candidate 5449",
+        "Information Technology Candidate 10722"
+      ],
+      "top3": [
+        "Project Manager Candidate 10515",
+        "Software Developer Candidate 19581",
+        "Security Analyst Candidate 17026"
+      ],
+      "top3_overlap": 1,
+      "retrieval_paths": {
+        "dense": 10
+      }
+    },
+    {
+      "idx": 16,
+      "name": "country_us_generic_leader",
+      "query": "results oriented leader delivering innovation measurable outcomes collaborative teams benchmarkcase16",
+      "filters": {
+        "country": "us"
+      },
+      "old_elapsed_ms": 1335.91,
+      "elapsed_ms": 680.72,
+      "delta_ms": -655.19,
+      "old_scanned": 9555,
+      "scanned": 9555,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.32,
+        "retrieval_ms": 677.86,
+        "ranking_ms": 2.26
+      },
+      "branch_timings": {
+        "skill_ms": 0.01,
+        "skill_rows": 0,
+        "count_ms": 66.12,
+        "count": 9555,
+        "dense_ms": 485.27,
+        "dense_rows": 47
+      },
+      "keyword_policy": {
+        "action": "skip",
+        "reason": "broad_pool_common_terms",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 9555,
+        "terms": [
+          "results",
+          "oriented",
+          "leader",
+          "delivering",
+          "innovation",
+          "measurable",
+          "outcomes",
+          "collaborative"
+        ],
+        "specific_terms": [],
+        "broad_terms": [
+          "results",
+          "oriented",
+          "leader",
+          "delivering",
+          "innovation",
+          "measurable",
+          "outcomes",
+          "collaborative"
+        ],
+        "filter_strength": "broad",
+        "backend": "fts"
+      },
+      "top_feature_score": 39.93,
+      "avg_feature_score": 38.53,
+      "weak_result_count": 10,
+      "old_top3": [
+        "Pmo Candidate 11733",
+        "Chef Candidate 1099",
+        "Education Candidate 4248"
+      ],
+      "top3": [
+        "Project Manager Candidate 10932",
+        "Human Resources Candidate 1671",
+        "Health And Fitness Candidate 10221"
+      ],
+      "top3_overlap": 0,
+      "retrieval_paths": {
+        "dense": 10
+      }
+    },
+    {
+      "idx": 17,
+      "name": "country_india_generic_sdlc",
+      "query": "engineer experienced across sdlc design development maintenance web based applications benchmarkcase17",
+      "filters": {
+        "country": "india"
+      },
+      "old_elapsed_ms": 1128.69,
+      "elapsed_ms": 612.35,
+      "delta_ms": -516.34,
+      "old_scanned": 3359,
+      "scanned": 3359,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.27,
+        "retrieval_ms": 607.09,
+        "ranking_ms": 4.74
+      },
+      "branch_timings": {
+        "skill_ms": 0.01,
+        "skill_rows": 0,
+        "count_ms": 87.31,
+        "count": 3359,
+        "dense_ms": 397.8,
+        "dense_rows": 26
+      },
+      "keyword_policy": {
+        "action": "skip",
+        "reason": "broad_pool_common_terms",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 3359,
+        "terms": [
+          "engineer",
+          "experienced",
+          "across",
+          "sdlc",
+          "design",
+          "development",
+          "maintenance",
+          "web"
+        ],
+        "specific_terms": [],
+        "broad_terms": [
+          "engineer",
+          "experienced",
+          "across",
+          "sdlc",
+          "design",
+          "development",
+          "maintenance",
+          "web"
+        ],
+        "filter_strength": "broad",
+        "backend": "fts"
+      },
+      "top_feature_score": 40.24,
+      "avg_feature_score": 38.01,
+      "weak_result_count": 10,
+      "old_top3": [
+        "Security Analyst Candidate 16687",
+        "Java Developer Candidate 5640",
+        "Java Developer Candidate 6209"
+      ],
+      "top3": [
+        "Security Analyst Candidate 16687",
+        "Python Developer Candidate 14912",
+        "Database Administrator Candidate 2018"
+      ],
+      "top3_overlap": 1,
+      "retrieval_paths": {
+        "dense": 10
+      }
+    },
+    {
+      "idx": 18,
+      "name": "country_india_cloud",
+      "query": "engineer with cloud computing data and server admin benchmarkcase18",
+      "filters": {
+        "skills": [
+          "analytics",
+          "networking"
+        ],
+        "country": "india"
+      },
+      "old_elapsed_ms": 304.95,
+      "elapsed_ms": 351.56,
+      "delta_ms": 46.61,
+      "old_scanned": 0,
+      "scanned": 0,
+      "old_results": 0,
+      "results": 0,
+      "phase_timings": {
+        "query_understanding_ms": 0.27,
+        "retrieval_ms": 351.03,
+        "ranking_ms": 0.04
+      },
+      "branch_timings": {
+        "count_ms": 65.02,
+        "count": 0,
+        "skill_ms": 98.13,
+        "skill_rows": 0,
+        "keyword_ms": 150.37,
+        "keyword_rows": 0,
+        "dense_ms": 350.43,
+        "dense_rows": 0
+      },
+      "keyword_policy": {
+        "action": "run",
+        "reason": "narrow_hard_filters",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 0,
+        "terms": [
+          "engineer",
+          "cloud",
+          "computing",
+          "data",
+          "server",
+          "admin",
+          "benchmarkcase18"
+        ],
+        "specific_terms": [],
+        "broad_terms": [
+          "engineer",
+          "cloud",
+          "computing",
+          "data",
+          "server",
+          "admin",
+          "benchmarkcase18"
+        ],
+        "filter_strength": "narrow",
+        "backend": "fts"
+      },
+      "top_feature_score": 0.0,
+      "avg_feature_score": 0.0,
+      "weak_result_count": 0,
+      "old_top3": [],
+      "top3": [],
+      "top3_overlap": 0,
+      "retrieval_paths": {}
+    },
+    {
+      "idx": 19,
+      "name": "accounting_ny",
+      "query": "accountant risk management benchmarkcase19",
+      "filters": {
+        "skills": [
+          "accounting"
+        ],
+        "country": "us",
+        "city": "new york"
+      },
+      "old_elapsed_ms": 666.27,
+      "elapsed_ms": 792.29,
+      "delta_ms": 126.02,
+      "old_scanned": 822,
+      "scanned": 822,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.52,
+        "retrieval_ms": 789.14,
+        "ranking_ms": 2.28
+      },
+      "branch_timings": {
+        "count_ms": 65.37,
+        "count": 822,
+        "skill_ms": 111.97,
+        "skill_rows": 40,
+        "dense_ms": 322.02,
+        "dense_rows": 60,
+        "keyword_ms": 494.96,
+        "keyword_rows": 60
+      },
+      "keyword_policy": {
+        "action": "run",
+        "reason": "narrow_hard_filters",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 822,
+        "terms": [
+          "risk-management"
+        ],
+        "specific_terms": [
+          "risk-management"
+        ],
+        "broad_terms": [],
+        "filter_strength": "narrow",
+        "backend": "fts"
+      },
+      "top_feature_score": 74.48,
+      "avg_feature_score": 66.27,
+      "weak_result_count": 0,
+      "old_top3": [
+        "Accountant Candidate 110",
+        "Finance Candidate 4841",
+        "Accountant Candidate 91"
+      ],
+      "top3": [
+        "Accountant Candidate 22",
+        "Finance Candidate 4841",
+        "Accountant Candidate 67"
+      ],
+      "top3_overlap": 1,
+      "retrieval_paths": {
+        "dense": 6,
+        "bm25": 6,
+        "skill": 4
+      }
+    },
+    {
+      "idx": 20,
+      "name": "devops_broad",
+      "query": "engineer benchmarkcase20",
+      "filters": {
+        "skills": [
+          "docker"
+        ]
+      },
+      "old_elapsed_ms": 939.93,
+      "elapsed_ms": 809.38,
+      "delta_ms": -130.55,
+      "old_scanned": 597,
+      "scanned": 597,
+      "old_results": 10,
+      "results": 10,
+      "phase_timings": {
+        "query_understanding_ms": 0.19,
+        "retrieval_ms": 804.19,
+        "ranking_ms": 4.77
+      },
+      "branch_timings": {
+        "count_ms": 175.96,
+        "count": 597,
+        "skill_ms": 182.72,
+        "skill_rows": 40,
+        "keyword_ms": 182.6,
+        "keyword_rows": 0,
+        "dense_ms": 546.59,
+        "dense_rows": 10
+      },
+      "keyword_policy": {
+        "action": "run",
+        "reason": "small_filtered_pool",
+        "policy": "auto",
+        "timeout_ms": 800,
+        "candidate_count": 597,
+        "terms": [
+          "engineer",
+          "benchmarkcase20"
+        ],
+        "specific_terms": [],
+        "broad_terms": [
+          "engineer",
+          "benchmarkcase20"
+        ],
+        "filter_strength": "medium",
+        "backend": "fts"
+      },
+      "top_feature_score": 60.24,
+      "avg_feature_score": 59.02,
+      "weak_result_count": 0,
+      "old_top3": [
+        "DevOps Engineer Candidate 4030",
+        "Systems Administrator Candidate 25535",
+        "Project Manager Candidate 10471"
+      ],
+      "top3": [
+        "DevOps Engineer Candidate 8857",
+        "Project Manager Candidate 10471",
+        "Software Developer Candidate 19731"
+      ],
+      "top3_overlap": 1,
+      "retrieval_paths": {
+        "dense": 3,
+        "skill": 7
+      }
+    }
+  ]
+}

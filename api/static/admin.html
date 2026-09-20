@@ -1,0 +1,4960 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hybrid Search Admin</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7fb;
+      --surface: #ffffff;
+      --surface-2: #eef3f7;
+      --line: #cfd9e3;
+      --line-strong: #a8b6c5;
+      --text: #15202b;
+      --muted: #637384;
+      --accent: #0f766e;
+      --accent-dark: #115e59;
+      --amber: #b45309;
+      --red: #b42318;
+      --blue: #1d4ed8;
+      --shadow: 0 12px 28px rgba(20, 31, 43, 0.08);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      min-height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      padding: 7px 11px;
+      white-space: nowrap;
+    }
+
+    button:hover {
+      border-color: var(--accent);
+      color: var(--accent-dark);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    button:disabled:hover {
+      border-color: var(--line-strong);
+      color: var(--text);
+    }
+
+    button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    button.primary:hover {
+      background: var(--accent-dark);
+      color: #fff;
+    }
+
+    button.danger {
+      border-color: #e6b4ae;
+      color: var(--red);
+    }
+
+    button.tab {
+      border-color: transparent;
+      background: transparent;
+      color: var(--muted);
+    }
+
+    button.tab.active {
+      background: var(--surface);
+      border-color: var(--line);
+      color: var(--text);
+      box-shadow: 0 1px 0 rgba(20, 31, 43, 0.04);
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      padding: 8px 9px;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 108px;
+      resize: vertical;
+      line-height: 1.35;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--muted);
+      opacity: 0.45;
+      font-weight: 500;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+    }
+
+    label {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto auto auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(244, 247, 251, 0.94);
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .mark {
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border-radius: 7px;
+      border: 1px solid #99d4cb;
+      background: #e2f5f1;
+      color: var(--accent-dark);
+      font-weight: 900;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    h2 {
+      font-size: 15px;
+    }
+
+    h3 {
+      font-size: 13px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .subtle {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 28px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 9px;
+      background: var(--surface);
+      color: var(--muted);
+      max-width: 100%;
+    }
+
+    .chip.ok {
+      color: var(--accent-dark);
+      border-color: #99d4cb;
+      background: #edf9f6;
+    }
+
+    .chip.warn {
+      color: var(--amber);
+      border-color: #f2c98f;
+      background: #fff7ed;
+    }
+
+    .chip.error {
+      color: var(--red);
+      border-color: #f1b5ae;
+      background: #fff4f2;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(120px, 1fr));
+      gap: 10px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .metric {
+      min-height: 68px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 11px 12px;
+      box-shadow: 0 1px 0 rgba(20, 31, 43, 0.04);
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .metric-note {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.25;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) minmax(420px, 1fr) minmax(320px, 400px);
+      gap: 12px;
+      padding: 12px 18px 18px;
+      align-items: start;
+    }
+
+    .panel {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      min-height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+      background: #fbfcfe;
+    }
+
+    .panel-body {
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .form-grid.one {
+      grid-template-columns: 1fr;
+    }
+
+    .form-grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .wide {
+      grid-column: 1 / -1;
+    }
+
+    .inline {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .inline label {
+      display: inline-flex;
+      grid-auto-flow: column;
+      grid-template-columns: auto auto;
+      align-items: center;
+      gap: 6px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .inline input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+    }
+
+    .segmented {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(0, 1fr);
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+    }
+
+    .segmented label {
+      position: relative;
+      min-height: 34px;
+      display: grid;
+      place-items: center;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .segmented input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .segmented label:has(input:checked) {
+      border-color: var(--line);
+      background: var(--surface);
+      color: var(--accent-dark);
+      box-shadow: 0 1px 0 rgba(20, 31, 43, 0.05);
+    }
+
+    textarea.jd-input {
+      min-height: 164px;
+    }
+
+    .search-action-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .search-notices {
+      display: grid;
+      gap: 8px;
+    }
+
+    .notice {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      display: grid;
+      gap: 6px;
+      background: #fbfcfe;
+      color: #304152;
+      line-height: 1.35;
+    }
+
+    .notice strong {
+      font-size: 13px;
+    }
+
+    .notice.warn {
+      border-color: #f2c98f;
+      background: #fff7ed;
+      color: #713f12;
+    }
+
+    .notice.info {
+      border-color: #b8d9d3;
+      background: #f1fbf8;
+    }
+
+    .dropped-list {
+      display: grid;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .dropped-section {
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      gap: 8px;
+      align-items: start;
+    }
+    .dropped-section-label {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
+      color: var(--muted);
+      padding-top: 3px;
+    }
+
+    .pipeline-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 9px;
+    }
+
+    .pipeline-metric {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      padding: 8px;
+      display: grid;
+      gap: 3px;
+    }
+
+    .pipeline-metric strong {
+      color: var(--accent-dark);
+      font-size: 16px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .pipeline-metric span {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--line);
+      margin: 2px 0;
+    }
+
+    .results {
+      display: grid;
+      gap: 8px;
+      max-height: 560px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .result-row {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      display: grid;
+      gap: 9px;
+      background: #fff;
+    }
+    .result-row.source-candidate {
+      border-color: #5cbfa3;
+      background: #ecfaf4;
+      box-shadow: 0 0 0 2px rgba(92, 191, 163, 0.25);
+    }
+    .source-badge {
+      display: inline-block;
+      background: var(--accent-dark, #2c8d7c);
+      color: #fff;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .back-btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--accent-dark, #2c8d7c);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+    .back-btn:hover {
+      background: #f1f5f9;
+    }
+
+    .latency-details {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      padding: 9px;
+    }
+
+    .phase-section {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 10px 12px;
+    }
+
+    .phase-row {
+      display: grid;
+      grid-template-columns: 1fr 3fr 72px;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .phase-label {
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .phase-label small {
+      display: block;
+      font-weight: 400;
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    .phase-bar-wrap {
+      height: 8px;
+      background: var(--line);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .phase-bar {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      min-width: 2px;
+    }
+
+    .phase-value {
+      font-size: 12px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      color: var(--accent-dark);
+    }
+
+    .timing-breakdown-panel {
+      margin-bottom: 8px;
+    }
+
+    .timing-toggle {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 6px 4px;
+      user-select: none;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .timing-toggle::-webkit-details-marker { display: none; }
+
+    .timing-toggle::before {
+      content: "▶";
+      font-size: 9px;
+      transition: transform 0.15s ease;
+    }
+
+    details[open] > .timing-toggle::before {
+      transform: rotate(90deg);
+    }
+
+    .planner-spec-toggle {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 6px 2px;
+      user-select: none;
+    }
+
+    .planner-spec-body {
+      background: #f8f9fa;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 11px;
+      line-height: 1.5;
+      overflow-x: auto;
+      white-space: pre;
+      max-height: 400px;
+      overflow-y: auto;
+      margin: 4px 0 0;
+    }
+
+    .latency-item {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      padding: 8px;
+      display: grid;
+      gap: 3px;
+    }
+
+    .latency-item strong {
+      font-size: 12px;
+    }
+
+    .latency-item .latency-value {
+      color: var(--accent-dark);
+      font-size: 17px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .latency-item small {
+      color: var(--muted);
+      line-height: 1.25;
+    }
+
+    .result-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .score {
+      min-width: 62px;
+      text-align: right;
+      color: var(--accent-dark);
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+    }
+
+    .score small {
+      display: block;
+      margin-top: 1px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .snippet {
+      color: #304152;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .skill-chip-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 8px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .skill-chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-height: 0;
+    }
+    .skill-chip-list:empty::before {
+      content: "No skills yet — type one below or pick from suggestions.";
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .skill-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #cbd6e2;
+      border-radius: 999px;
+      padding: 4px 10px 4px 12px;
+      background: #f1f5f9;
+      color: #1f2937;
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 120ms ease, border-color 120ms ease;
+    }
+    .skill-chip:hover {
+      background: #e2e8f0;
+    }
+    .skill-chip.active {
+      border-color: var(--accent-dark, #2c8d7c);
+      background: #e8f3f1;
+    }
+
+    .skill-chip-weight {
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+      color: #475569;
+      background: #fff;
+      border: 1px solid #cbd6e2;
+      border-radius: 999px;
+      padding: 0 6px;
+      line-height: 16px;
+    }
+
+    .skill-chip-remove {
+      display: inline-grid;
+      place-items: center;
+      flex: 0 0 auto;
+      width: 18px;
+      height: 18px;
+      min-height: 0;
+      background: transparent;
+      border: 0;
+      border-radius: 999px;
+      color: #64748b;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+    }
+    .skill-chip-remove:hover {
+      color: var(--red, #c0392b);
+    }
+
+    .skill-chip-input-row input {
+      width: 100%;
+    }
+
+    .skill-chip-popover {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfe;
+      padding: 10px;
+      display: grid;
+      gap: 6px;
+    }
+    .skill-chip-popover[hidden] {
+      display: none;
+    }
+    .skill-chip-popover-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .skill-chip-popover-slider {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .skill-chip-popover-slider input[type="range"] {
+      flex: 1;
+    }
+    .skill-chip-popover-help {
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .skill-chip-remove-btn {
+      border: 1px solid #f1b5ae;
+      background: #fff4f2;
+      color: var(--red, #c0392b);
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .more-like-btn {
+      border: 1px solid #99d4cb;
+      background: #edf9f6;
+      color: var(--accent-dark, #2c8d7c);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .more-like-btn:hover {
+      background: #d8efe9;
+    }
+    .thumb {
+      border: 1px solid var(--border, #d8dee4);
+      background: var(--surface, #fff);
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 13px;
+      line-height: 1;
+      cursor: pointer;
+      opacity: 0.55;
+      transition: opacity .15s, background .15s, border-color .15s;
+    }
+    .thumb:hover { opacity: 1; }
+    .thumb.active { opacity: 1; border-color: var(--accent, #2c8d7c); background: #edf9f6; }
+
+    .tag {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 2px 7px;
+      color: #475569;
+      background: var(--surface-2);
+      font-size: 12px;
+    }
+
+    .score-strip,
+    .retrieval-paths {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .score-pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 2px 7px;
+      color: #475569;
+      background: #fff;
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rank-explanation {
+      border: 1px solid #cbd7e3;
+      border-radius: 8px;
+      background: #f8fafc;
+      overflow: hidden;
+    }
+
+    .rank-toggle {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 10px;
+    }
+
+    .rank-toggle::-webkit-details-marker {
+      display: none;
+    }
+
+    .rank-toggle-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .rank-chevron {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      color: var(--accent-dark);
+      background: #e8f3f1;
+      font-size: 12px;
+      font-weight: 900;
+      transform: rotate(0deg);
+      transition: transform 140ms ease;
+    }
+
+    .rank-explanation[open] .rank-chevron {
+      transform: rotate(90deg);
+    }
+
+    .rank-title-text {
+      min-width: 0;
+      display: grid;
+      gap: 1px;
+    }
+
+    .rank-title-text strong {
+      display: block;
+      font-size: 13px;
+    }
+
+    .rank-title-text span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
+    .rank-score-ring {
+      --rank-angle: 0deg;
+      flex: 0 0 auto;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at center, #fff 0 55%, transparent 56%),
+        conic-gradient(var(--accent) var(--rank-angle), #d7e5e2 0);
+      color: var(--accent-dark);
+      font-size: 11px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rank-confidence {
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .rank-confidence.high {
+      color: #166534;
+      background: #dcfce7;
+    }
+
+    .rank-confidence.medium {
+      color: #854d0e;
+      background: #fef3c7;
+    }
+
+    .rank-confidence.low {
+      color: #991b1b;
+      background: #fee2e2;
+    }
+
+    .rank-body {
+      display: grid;
+      gap: 10px;
+      border-top: 1px solid var(--line);
+      padding: 10px;
+      background: #fff;
+    }
+
+    .rank-columns {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .rank-mini-panel {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      padding: 8px;
+      min-width: 0;
+    }
+
+    .rank-mini-panel strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+    }
+
+    .rank-mini-panel div {
+      color: #405163;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .rank-summary-note {
+      color: #405163;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .rank-breakdown {
+      display: grid;
+      gap: 7px;
+    }
+
+    .check-list {
+      display: grid;
+      gap: 5px;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      color: #405163;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .check-dot {
+      flex: 0 0 auto;
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      margin-top: 1px;
+      color: #fff;
+      background: var(--red);
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .check-dot.ok {
+      background: var(--accent);
+    }
+
+    .rank-contribution {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      padding: 8px;
+      display: grid;
+      gap: 7px;
+    }
+
+    .rank-contribution-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .rank-contribution-head strong {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .rank-contribution-points {
+      color: var(--accent-dark);
+      font-size: 13px;
+      font-weight: 900;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rank-contribution-summary {
+      color: #405163;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .rank-bar {
+      height: 7px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      overflow: hidden;
+    }
+
+    .rank-bar span {
+      display: block;
+      height: 100%;
+      width: var(--rank-bar-width);
+      border-radius: inherit;
+      background: var(--accent);
+    }
+
+    .rank-evidence {
+      display: grid;
+      gap: 7px;
+    }
+
+    .rank-evidence blockquote {
+      margin: 0;
+      border-left: 3px solid #b8d9d3;
+      padding: 6px 8px;
+      background: #f8fafc;
+      color: #304152;
+      line-height: 1.35;
+      font-size: 12px;
+    }
+
+    .center-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .ai-insight-body {
+      display: grid;
+      gap: 10px;
+    }
+
+    .ai-best {
+      border: 1px solid #b8d9d3;
+      border-radius: 8px;
+      background: #f1fbf8;
+      padding: 11px;
+      display: grid;
+      gap: 7px;
+    }
+
+    .ai-best strong {
+      font-size: 16px;
+    }
+
+    .ai-best p {
+      margin: 0;
+      color: #304152;
+      line-height: 1.4;
+    }
+    .ai-comparative {
+      margin-top: 6px !important;
+      padding: 8px 10px;
+      background: #f0f4f8;
+      border-left: 3px solid #4a90d9;
+      border-radius: 0 4px 4px 0;
+      font-size: 0.85em;
+    }
+
+    .ai-matrix {
+      display: grid;
+      gap: 8px;
+      max-height: 430px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .ai-row {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .ai-row-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .ai-score {
+      color: var(--accent-dark);
+      font-size: 18px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .ai-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .ai-cell {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fbfcfe;
+      padding: 8px;
+      min-width: 0;
+    }
+
+    .ai-cell strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .ai-cell ul {
+      margin: 0;
+      padding-left: 16px;
+      color: #304152;
+      line-height: 1.35;
+    }
+
+    .ai-cell li + li {
+      margin-top: 3px;
+    }
+
+    .ai-probe {
+      color: #304152;
+      line-height: 1.4;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .profile-docs {
+      display: grid;
+      gap: 8px;
+    }
+
+    .profile-doc-row {
+      display: grid;
+      gap: 7px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px;
+      background: #fff;
+    }
+
+    .doc-preview {
+      margin: 0;
+      color: #304152;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* ── Toggle / advanced panel ──────────────────────────────────────────── */
+
+    .overrides-toggle {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface-2);
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin: 0;
+    }
+
+    .overrides-toggle::-webkit-details-marker { display: none; }
+
+    .overrides-toggle::after {
+      content: "▾";
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    details[open] > .overrides-toggle::after {
+      content: "▴";
+    }
+
+    .overrides-body {
+      display: grid;
+      gap: 10px;
+      padding: 10px 0 2px;
+    }
+
+    .overrides-group {
+      display: grid;
+      gap: 6px;
+    }
+
+    .overrides-group-title {
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--accent-dark);
+      padding-bottom: 2px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .toggle-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 5px;
+    }
+
+    .toggle-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      padding: 5px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+      min-width: 0;
+    }
+
+    .toggle-item:has(input:checked) {
+      border-color: #99d4cb;
+      background: #f1fbf8;
+    }
+
+    .toggle-item input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      margin: 2px 0 0;
+      flex: 0 0 auto;
+      accent-color: var(--accent);
+    }
+
+    .toggle-label {
+      min-width: 0;
+      display: grid;
+      gap: 1px;
+    }
+
+    .toggle-label strong {
+      font-size: 11px;
+      font-weight: 700;
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .toggle-label small {
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .knob-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .knob-item label {
+      font-size: 11px;
+    }
+
+    .knob-item input {
+      padding: 5px 7px;
+      font-size: 12px;
+    }
+
+    .status-segmented {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 3px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+    }
+
+    .status-segmented label {
+      position: relative;
+      min-height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      color: var(--muted);
+      background: transparent;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .status-segmented input {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .status-segmented label:has(input:checked) {
+      border-color: var(--line);
+      background: var(--surface);
+      color: var(--accent-dark);
+    }
+
+    .rank-evidence {
+      display: grid;
+      gap: 6px;
+    }
+
+    .rank-evidence blockquote {
+      margin: 0;
+      padding: 7px 9px;
+      border-left: 3px solid var(--line);
+      background: var(--surface-2);
+      color: #304152;
+      font-size: 12px;
+      line-height: 1.4;
+      border-radius: 0 5px 5px 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* ── DB panel ──────────────────────────────────────────────────────────── */
+
+    .db-panel {
+      grid-column: 1 / 3;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      padding: 6px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+    }
+
+    .table-tools {
+      display: grid;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .candidate-table-tools {
+      grid-template-columns: minmax(160px, 1.2fr) repeat(4, minmax(120px, 1fr));
+    }
+
+    .generic-table-tools {
+      grid-template-columns: minmax(180px, 1fr);
+    }
+
+    .table-actions {
+      justify-content: flex-end;
+    }
+
+    .pager {
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    .pager label {
+      width: auto;
+    }
+
+    .pager select {
+      width: auto;
+      min-width: 76px;
+    }
+
+    .table-wrap {
+      max-height: 520px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+      background: #fff;
+    }
+
+    th,
+    td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #f8fafc;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    tr {
+      cursor: default;
+    }
+
+    tr:hover td {
+      background: #f7fbfa;
+    }
+
+    tr.selected td {
+      background: #ecfdf9;
+    }
+
+    td.preview-cell {
+      max-width: 420px;
+      color: #405163;
+      line-height: 1.35;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+    }
+
+    .muted-box {
+      border: 1px dashed var(--line-strong);
+      border-radius: 8px;
+      padding: 11px;
+      background: #fbfcfe;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .right-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      align-items: stretch;
+    }
+    .right-stack > .panel { min-width: 0; flex: 0 0 auto; }
+
+    /* Distinct identities for the two left-column cards so the
+       "view/edit selected candidate" panel never reads as the same
+       thing as the "create a new candidate" panel. */
+    .panel--view {
+      border-left: 3px solid #16a34a;
+    }
+    .panel--view .panel-header {
+      background: #f0fdf4;
+    }
+    .panel--view .panel-header h2::before {
+      content: "";
+      display: inline-block;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #16a34a; margin-right: 7px; vertical-align: middle;
+    }
+    .panel--create {
+      border-left: 3px solid #4f46e5;
+    }
+    .panel--create .panel-header {
+      background: #eef2ff;
+    }
+    .panel--create .panel-header h2::before {
+      content: "+";
+      display: inline-block;
+      margin-right: 7px;
+      font-weight: 700;
+      color: #4f46e5;
+    }
+    .panel--create .panel-header h2 {
+      color: #4338ca;
+    }
+
+    .danger-zone {
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+
+    dialog {
+      width: min(860px, calc(100vw - 28px));
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      padding: 0;
+      color: var(--text);
+      box-shadow: 0 28px 70px rgba(20, 31, 43, 0.24);
+    }
+
+    dialog::backdrop {
+      background: rgba(16, 24, 40, 0.42);
+    }
+
+    .dialog-body {
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    pre.raw {
+      margin: 0;
+      max-height: 480px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #0f172a;
+      color: #e5edf6;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 1250px) {
+      .workspace {
+        grid-template-columns: minmax(280px, 380px) minmax(420px, 1fr);
+      }
+
+      .right-stack {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        align-items: flex-start;
+      }
+      .right-stack > .panel { flex: 1; }
+
+      .db-panel {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .metrics,
+      .workspace,
+      .right-stack,
+      .form-grid,
+      .form-grid.three,
+      .table-tools,
+      .candidate-table-tools,
+      .generic-table-tools {
+        grid-template-columns: 1fr;
+      }
+
+      .right-stack {
+        flex-direction: column;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .top-actions {
+        justify-content: flex-start;
+      }
+
+      table {
+        min-width: 680px;
+      }
+
+      .rank-columns {
+        grid-template-columns: 1fr;
+      }
+
+      .latency-details {
+        grid-template-columns: 1fr;
+      }
+
+      .segmented,
+      .pipeline-metrics {
+        grid-template-columns: 1fr;
+      }
+
+      .ai-panel,
+      .ai-grid {
+        grid-column: 1 / -1;
+        grid-template-columns: 1fr;
+      }
+    }
+
+  /* ── Agent side panel ──────────────────────────────────────────────── */
+    .agent-panel {
+      width: 380px;
+      min-width: 280px;
+      max-width: 480px;
+      border-left: 1px solid var(--border, #e0e0e0);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--surface, #fff);
+      flex-shrink: 0;
+    }
+    .agent-panel-header {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border, #e0e0e0);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .agent-panel-header button { font-size: 11px; }
+    .agent-model-bar {
+      padding: 4px 12px;
+      border-bottom: 1px solid var(--border, #e0e0e0);
+      display: flex; align-items: center; gap: 4px;
+      background: var(--surface, #fff);
+    }
+    .agent-model-pill {
+      font-size: 10px; font-weight: 600; padding: 2px 9px;
+      border-radius: 10px; border: 1px solid var(--border, #e0e0e0);
+      background: transparent; color: var(--muted, #888); cursor: pointer;
+      line-height: 1.6; white-space: nowrap;
+    }
+    .agent-model-pill.active {
+      background: var(--accent, #4f46e5); color: #fff;
+      border-color: var(--accent, #4f46e5);
+    }
+    #agentChat {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .agent-msg { padding: 8px 10px; border-radius: 8px; max-width: 95%; word-break: break-word; }
+    .agent-msg--user { background: var(--accent-light, #e8f0fe); align-self: flex-end; }
+    .agent-msg--assistant { background: var(--surface-2, #f5f5f5); align-self: flex-start; }
+    .agent-msg--error { background: #ffeaea; color: #c00; align-self: flex-start; }
+    .agent-msg--system { color: #888; font-size: 11px; align-self: center; font-style: italic; }
+    /* ── Agent run log (Codex-style timeline) ── */
+    .agent-turn { display: flex; flex-direction: column; gap: 6px; max-width: 96%; align-self: flex-start; }
+    .agent-run-log {
+      border: 1px solid #e2e8f4; border-radius: 10px;
+      background: #f8fafc; overflow: hidden; font-size: 12px;
+    }
+    .agent-run-log.has-error { border-color: #fca5a5; background: #fff8f8; }
+    .agent-run-header {
+      display: flex; align-items: center; gap: 7px;
+      padding: 7px 11px; cursor: pointer; user-select: none;
+      color: #475569; font-weight: 500;
+    }
+    .agent-run-header:hover { background: #f1f5fb; }
+    .agent-run-log.has-error .agent-run-header { color: #dc2626; }
+    .run-spinner {
+      width: 11px; height: 11px; border-radius: 50%;
+      border: 2px solid #dde3ed; border-top-color: #4f46e5;
+      flex: 0 0 auto; display: none;
+      animation: agentspin .7s linear infinite;
+    }
+    .agent-run-log.is-busy .run-spinner { display: inline-block; }
+    @keyframes agentspin { to { transform: rotate(360deg); } }
+    .run-done-icon { flex: 0 0 auto; font-size: 12px; color: #16a34a; }
+    .agent-run-log.is-busy .run-done-icon { display: none; }
+    .agent-run-log.has-error:not(.is-busy) .run-done-icon { color: #dc2626; }
+    .run-label { flex: 1; font-size: 11.5px; }
+    .run-chevron { color: #94a3b8; font-size: 9px; transition: transform .15s; flex: 0 0 auto; }
+    .agent-run-log.open .run-chevron { transform: rotate(90deg); }
+    /* Steps timeline */
+    .agent-run-steps {
+      display: none; padding: 2px 12px 10px 12px;
+      border-top: 1px solid #edf2f7; flex-direction: column;
+    }
+    .agent-run-log.open .agent-run-steps { display: flex; }
+    .agent-run-step {
+      display: flex; align-items: flex-start; gap: 9px;
+      padding: 5px 0 5px 14px;
+      border-left: 2px solid #e8edf5;
+      margin-left: 5px; position: relative;
+    }
+    .agent-run-step:last-child { border-left-color: transparent; }
+    .step-bullet {
+      width: 10px; height: 10px; border-radius: 50%;
+      border: 2px solid #cbd5e1; background: white;
+      flex: 0 0 auto; position: absolute; left: -6px; top: 7px;
+    }
+    .agent-run-step[data-status="running"] .step-bullet {
+      border-color: #4f46e5; border-top-color: transparent;
+      animation: agentspin .7s linear infinite;
+    }
+    .agent-run-step[data-status="done"] .step-bullet { border-color: #16a34a; background: #16a34a; }
+    .agent-run-step[data-status="error"] .step-bullet { border-color: #dc2626; background: #dc2626; }
+    .agent-run-step[data-status="thinking"] .step-bullet { border-color: #7c3aed; }
+    .step-body { flex: 1; min-width: 0; }
+    .step-row { display: flex; align-items: baseline; gap: 6px; }
+    .step-name { font-weight: 600; color: #1e293b; font-size: 11.5px; }
+    .step-name--think { color: #7c3aed; font-weight: 500; }
+    .step-result { font-size: 10.5px; color: #9aa5b1; margin-left: auto; white-space: nowrap; padding-left: 6px; flex: 0 0 auto; }
+    .agent-run-step[data-status="running"] .step-result { color: #6366f1; }
+    .agent-run-step[data-status="done"] .step-result { color: #16a34a; }
+    .agent-run-step[data-status="error"] .step-result { color: #dc2626; }
+    .step-args {
+      color: #64748b; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 10px; margin-top: 1px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+    }
+    .step-think {
+      margin-top: 3px; color: #7c3aed; font-style: italic;
+      font-size: 11px; white-space: pre-wrap; line-height: 1.4;
+      max-height: 240px; overflow-y: auto;
+    }
+    .step-detail {
+      margin-top: 4px; background: #f1f5f9; border-radius: 5px;
+      padding: 5px 7px; font-size: 10px; white-space: pre-wrap;
+      color: #475569; max-height: 130px; overflow: auto;
+      font-family: ui-monospace, monospace;
+    }
+    .step-expand-btn {
+      font-size: 10px; color: #94a3b8; background: none; border: none;
+      cursor: pointer; padding: 2px 0; text-decoration: underline; display: block;
+    }
+    .step-error-msg {
+      margin: 5px 2px 2px; padding: 6px 8px; background: #fef2f2;
+      border: 1px solid #fca5a5; border-radius: 6px;
+      color: #dc2626; font-size: 11px;
+    }
+    /* ── Agent answer card ── */
+    .agent-answer {
+      padding: 10px 12px; background: #fff;
+      border-radius: 10px; border: 1px solid #e2e8f4;
+      line-height: 1.55; font-size: 13px;
+    }
+    .agent-answer p { margin: 0 0 6px; }
+    .agent-answer ul, .agent-answer ol { margin: 0 0 6px; padding-left: 18px; }
+    .agent-answer li { margin-bottom: 2px; }
+    .agent-answer h1, .agent-answer h2, .agent-answer h3 { font-size: 13px; font-weight: 700; margin: 8px 0 4px; }
+    .agent-answer code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-family: ui-monospace,monospace; font-size: 11px; }
+    .agent-answer pre { background: #f0f0f0; padding: 6px 8px; border-radius: 5px; overflow-x: auto; font-size: 11px; margin: 0 0 6px; }
+    .agent-answer pre code { background: none; padding: 0; }
+    .agent-answer table { border-collapse: collapse; font-size: 11px; margin: 4px 0 6px; width: 100%; }
+    .agent-answer th, .agent-answer td { border: 1px solid #ddd; padding: 3px 7px; text-align: left; }
+    .agent-answer th { background: #f5f5f5; font-weight: 600; }
+    .agent-answer strong { font-weight: 700; }
+    .agent-answer em { font-style: italic; }
+    .agent-answer blockquote { border-left: 3px solid #c7d7fd; margin: 0 0 6px; padding: 2px 8px; color: #555; }
+    /* ── Quick action chips ── */
+    .agent-quick-actions {
+      padding: 5px 8px 4px; display: flex; flex-wrap: wrap; gap: 4px;
+      border-bottom: 1px solid var(--border, #e0e0e0); min-height: 0;
+    }
+    .agent-chip {
+      font-size: 11px; padding: 3px 9px; border-radius: 12px;
+      background: #f0f4ff; border: 1px solid #c7d7fd; color: #3b5bdb;
+      cursor: pointer; white-space: nowrap; line-height: 1.4;
+    }
+    .agent-chip:hover { background: #dbe4ff; }
+    /* ── Resize handle ── */
+    .agent-resize-handle {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+      cursor: col-resize; z-index: 10;
+    }
+    .agent-resize-handle:hover, .agent-resize-handle:active { background: rgba(74,108,247,.25); }
+    /* ── Stop button ── */
+    .agent-stop-btn {
+      background: #fee2e2; border: 1px solid #fca5a5; color: #dc2626;
+      font-size: 12px; border-radius: 6px; padding: 6px 10px; cursor: pointer; white-space: nowrap;
+    }
+    .agent-stop-btn:hover { background: #fecaca; }
+    /* ── In-chat suggested actions ── */
+    .agent-suggested-actions {
+      margin-top: 7px; padding: 8px 10px; background: #f8faff;
+      border: 1px solid #dde8fb; border-radius: 8px;
+    }
+    .agent-suggested-label {
+      font-size: 11px; color: #6b7280; margin-bottom: 5px; font-style: italic;
+    }
+    .agent-suggested-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+    .agent-chip--action {
+      background: #fff; border: 1px solid #bfcffa; color: #3451b2;
+      font-size: 11px; border-radius: 12px; padding: 3px 10px; cursor: pointer;
+      line-height: 1.5;
+    }
+    .agent-chip--action:hover { background: #eef2ff; border-color: #a5b4fc; }
+    .agent-results { border: 1px solid var(--border, #e0e0e0); border-radius: 8px; padding: 8px; margin: 4px 0; }
+    .agent-results-label { font-size: 11px; font-weight: 600; color: #666; margin-bottom: 6px; }
+    /* "How I read your query" — planner interpretation panel */
+    .query-interpretation { margin: 6px 0; border: 1px solid var(--line, #e0e0e0); border-radius: 8px; background: #fafafa; overflow: hidden; font-size: 12.5px; }
+    .query-interpretation > summary { cursor: pointer; list-style: none; padding: 7px 10px; font-weight: 600; color: #333; display: flex; align-items: center; gap: 8px; }
+    .query-interpretation > summary::-webkit-details-marker { display: none; }
+    .query-interpretation > summary::before { content: "›"; transition: transform .15s ease; color: var(--muted, #888); }
+    .query-interpretation[open] > summary::before { transform: rotate(90deg); }
+    .qi-body { padding: 2px 10px 9px; display: grid; gap: 6px; }
+    .qi-row { display: grid; grid-template-columns: 120px 1fr; gap: 8px; align-items: start; }
+    .qi-key { color: var(--muted, #888); font-size: 11.5px; }
+    .qi-val { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+    .qi-row.qi-warn .qi-key, .qi-row.qi-warn .qi-val { color: #b45309; }
+    .qi-conf { margin-left: auto; font-size: 10.5px; font-weight: 500; color: var(--muted, #888); }
+    .qi-conf-low { color: #b45309; }
+    /* Compact result cards inside chat — override main-panel article sizing */
+    .agent-results .result-row { font-size: 12px; padding: 8px 10px; }
+    .agent-results .result-row .result-head { gap: 6px; }
+    .agent-results .result-row .snippet { font-size: 11px; -webkit-line-clamp: 3; line-clamp: 3; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+    .agent-results .result-row .inline { flex-wrap: wrap; gap: 4px; }
+    .agent-results .result-row .inline button { font-size: 11px; min-height: 28px; padding: 4px 8px; }
+    .agent-memory-panel {
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+      font-size: 12px;
+    }
+    .agent-memory-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+    }
+    .agent-memory-toggle::-webkit-details-marker { display: none; }
+    .agent-memory-toggle::after {
+      content: "Expand";
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .agent-memory-panel[open] .agent-memory-toggle::after {
+      content: "Collapse";
+    }
+    .agent-memory-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .agent-memory-head button {
+      min-height: 24px;
+      padding: 2px 8px;
+      font-size: 11px;
+    }
+    .agent-memory-content {
+      padding: 0 12px 10px;
+      border-top: 1px solid var(--line);
+    }
+    .agent-memory-section { margin-top: 6px; }
+    .agent-memory-section strong {
+      display: block;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+    .agent-memory-item {
+      color: var(--muted);
+      line-height: 1.35;
+      padding: 2px 0;
+    }
+    .agent-memory-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .agent-memory-actions button {
+      min-height: 22px;
+      padding: 1px 7px;
+      font-size: 11px;
+    }
+    .agent-memory-item span {
+      color: #6b7280;
+      font-size: 11px;
+    }
+    .agent-candidate-card {
+      border: 1px solid #e0e0e0; border-radius: 6px;
+      padding: 7px 9px; margin-bottom: 6px; font-size: 12px;
+    }
+    .agent-card-name { font-weight: 600; margin-bottom: 2px; }
+    .agent-card-meta { color: #666; font-size: 11px; }
+    .agent-card-skills { margin: 3px 0; display: flex; flex-wrap: wrap; gap: 3px; }
+    .agent-card-detail { margin-top: 6px; font-size: 11px; color: #444; border-top: 1px solid #eee; padding-top: 5px; }
+    .agent-expand-btn { font-size: 11px; background: none; border: none; color: #4a6cf7; cursor: pointer; padding: 2px 0; }
+    .agent-view-main-btn { font-size: 11px; margin-top: 4px; cursor: pointer; }
+    .agent-panel-input-row {
+      padding: 8px;
+      border-top: 1px solid var(--border, #e0e0e0);
+      display: flex; gap: 6px;
+    }
+    #agentInput {
+      flex: 1; font-size: 13px;
+      padding: 6px 8px; border-radius: 6px;
+      border: 1px solid var(--border, #e0e0e0);
+      resize: none; min-height: 34px; max-height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">HS</div>
+        <div>
+          <h1>Hybrid Search Admin</h1>
+          <div class="subtle" id="configLine">Loading config...</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="chip" id="statusChip">Connecting</span>
+        <button id="refreshAllBtn" type="button">Refresh</button>
+        <a class="chip" href="/talent" style="font-weight: 600;">Talent Atlas</a>
+        <a class="chip" href="/journey">Project Story</a>
+        <a class="chip" href="/settings">Settings</a>
+        <a class="chip" href="/docs" target="_blank" rel="noreferrer">API docs</a>
+      </div>
+    </header>
+
+    <section class="metrics" aria-label="Database metrics">
+      <div class="metric"><span>Candidates</span><strong id="metricCandidates">-</strong></div>
+      <div class="metric"><span>Active</span><strong id="metricActive">-</strong></div>
+      <div class="metric"><span>Documents</span><strong id="metricDocuments">-</strong></div>
+      <div class="metric"><span>Chunks</span><strong id="metricChunks">-</strong></div>
+      <div class="metric">
+        <span>DB latency</span>
+        <strong id="metricLatency">-</strong>
+        <small class="metric-note">DB latency is a health check query, not the full search time.</small>
+      </div>
+    </section>
+
+    <main class="workspace" style="display:grid;grid-template-rows:auto auto;grid-template-columns:minmax(280px,360px) 1fr minmax(280px,480px);grid-template-areas:'search results agent' 'candidate dbview agent';align-items:start;gap:12px;padding:12px 18px 18px;">
+      <section class="panel" style="grid-area:search;">
+        <div class="panel-header">
+          <h2>Search</h2>
+          <button id="clearSearchBtn" type="button">Clear</button>
+        </div>
+        <div class="panel-body">
+          <label class="wide">Mode
+            <div class="segmented" role="radiogroup" aria-label="Search mode">
+              <label><input type="radio" name="searchMode" value="no-llm" checked>No-LLM</label>
+              <label><input type="radio" name="searchMode" value="fast">Fast</label>
+              <label><input type="radio" name="searchMode" value="quality">Quality</label>
+            </div>
+          </label>
+          <label class="wide">Query
+            <textarea id="searchQuery" placeholder="backend engineer with python and ml leadership"></textarea>
+          </label>
+          <label class="wide">Job description
+            <textarea id="searchJd" class="jd-input" placeholder="Requirements: React, JavaScript, accessible responsive UI. Responsibilities: build reusable components and integrate APIs. Nice-to-have: performance tuning."></textarea>
+          </label>
+          <div class="form-grid">
+            <label>Location
+              <input id="searchLocation" list="locationOptions" placeholder="Pune, India or remote">
+              <datalist id="locationOptions"></datalist>
+            </label>
+            <label>Country
+              <input id="searchCountry" list="countryOptions" placeholder="India">
+              <datalist id="countryOptions"></datalist>
+            </label>
+            <label>City
+              <input id="searchCity" list="cityOptions" placeholder="Bengaluru">
+              <datalist id="cityOptions"></datalist>
+            </label>
+          </div>
+          <label class="wide">Skills
+            <div id="skillChipBox" class="skill-chip-box">
+              <div id="skillChipList" class="skill-chip-list" role="list" aria-label="Selected skills"></div>
+              <div class="skill-chip-input-row">
+                <input id="skillChipInput" list="skillOptions" placeholder="Type a skill and press Enter — tap a chip to set its importance"
+                       autocomplete="off">
+                <datalist id="skillOptions"></datalist>
+              </div>
+              <div id="skillChipPopover" class="skill-chip-popover" hidden>
+                <div class="skill-chip-popover-row">
+                  <strong id="skillChipPopoverName">skill</strong>
+                  <button type="button" class="skill-chip-remove-btn" id="skillChipRemove">Remove</button>
+                </div>
+                <div class="skill-chip-popover-slider">
+                  <input type="range" id="skillChipSlider" min="0" max="100" step="1" value="50">
+                  <span id="skillChipSliderValue">50</span>
+                </div>
+                <div class="skill-chip-popover-help">Importance 0–100. Higher = this skill weighs more in ranking.</div>
+              </div>
+            </div>
+          </label>
+          <label class="wide">Status filter
+            <div class="status-segmented" role="radiogroup" aria-label="Status filter">
+              <label><input type="radio" name="searchStatus" value="" checked>All</label>
+              <label><input type="radio" name="searchStatus" value="active">Active</label>
+              <label><input type="radio" name="searchStatus" value="archived">Archived</label>
+              <label><input type="radio" name="searchStatus" value="hired">Hired</label>
+              <label><input type="radio" name="searchStatus" value="rejected">Rejected</label>
+            </div>
+          </label>
+          <div class="form-grid three">
+            <label>Min exp
+              <input id="searchMinExp" type="number" min="0" inputmode="numeric">
+            </label>
+            <label>Max exp
+              <input id="searchMaxExp" type="number" min="0" inputmode="numeric">
+            </label>
+            <label>Min salary
+              <input id="searchMinSalary" type="number" min="0" step="1000" inputmode="numeric">
+            </label>
+            <label>Max salary
+              <input id="searchMaxSalary" type="number" min="0" step="1000" inputmode="numeric">
+            </label>
+            <label>Top K
+              <input id="searchTopK" type="number" min="1" max="1000" value="10" inputmode="numeric">
+            </label>
+            <input type="hidden" id="searchRecruiterId">
+          </div>
+
+          <!-- ── Pipeline overrides (all toggleable features from toggle.md) ── -->
+          <details id="selectedCandidatesPanel" open style="margin-bottom: 12px; background: var(--bg-hover); border-radius: var(--radius); padding: 8px;">
+            <summary><strong>Selected Candidates</strong></summary>
+            <div id="selectedCandidatesList" style="padding: 8px; font-size: 13px; color: var(--subtle); display: flex; flex-direction: column; gap: 4px;">
+              No candidates selected this session.
+            </div>
+          </details>
+
+          <details id="overridesPanel">
+            <summary class="overrides-toggle">Pipeline overrides</summary>
+            <div class="overrides-body">
+
+              <div class="overrides-group">
+                <div class="overrides-group-title">Query understanding (steps 1-7)</div>
+                <div class="toggle-grid">
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_route_detector" checked>
+                    <div class="toggle-label">
+                      <strong>Route detector</strong>
+                      <small>Classifies input as query / JD / name lookup / filters-only</small>
+                    </div>
+                  </label>
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_sanitizer" checked>
+                    <div class="toggle-label">
+                      <strong>Sanitizer</strong>
+                      <small>Prompt-injection defence — wraps input in safe delimiters</small>
+                    </div>
+                  </label>
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_cache" checked>
+                    <div class="toggle-label">
+                      <strong>Cache</strong>
+                      <small>Skip LLM/embed when an identical query was seen recently</small>
+                    </div>
+                  </label>
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_llm_planner" checked>
+                    <div class="toggle-label">
+                      <strong>LLM planner</strong>
+                      <small>GPT-4o / Gemini → CanonicalSearchSpec. Fallback: regex</small>
+                    </div>
+                  </label>
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_validator" checked>
+                    <div class="toggle-label">
+                      <strong>Validator</strong>
+                      <small>Drops forbidden fields (gender, age…) and hallucinated skills</small>
+                    </div>
+                  </label>
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_normalizer" checked>
+                    <div class="toggle-label">
+                      <strong>Normalizer</strong>
+                      <small>JS→javascript, Bengaluru→bangalore — alias expansion</small>
+                    </div>
+                  </label>
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_confidence_gate" checked>
+                    <div class="toggle-label">
+                      <strong>Confidence gate</strong>
+                      <small>Returns a clarify question instead of running a bad search</small>
+                    </div>
+                  </label>
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_intent_router" checked>
+                    <div class="toggle-label">
+                      <strong>Intent router</strong>
+                      <small>Name lookup skips embeddings; filter-only skips BM25</small>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div class="overrides-group">
+                <div class="overrides-group-title">Retrieval (steps 8-11)</div>
+                <div class="toggle-grid">
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_sql_filter" checked>
+                    <div class="toggle-label">
+                      <strong>SQL hard filter</strong>
+                      <small>WHERE skills/country/city/years/salary — cuts corpus 90%</small>
+                    </div>
+                  </label>
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_search_target_weighting" checked>
+                    <div class="toggle-label">
+                      <strong>Search-target weighting</strong>
+                      <small>Resume/bio chunks get 2× RRF weight when LLM picks them</small>
+                    </div>
+                  </label>
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_dense" checked>
+                    <div class="toggle-label">
+                      <strong>Dense (semantic)</strong>
+                      <small>Embedding → pgvector HNSW cosine search</small>
+                    </div>
+                  </label>
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_bm25" checked>
+                    <div class="toggle-label">
+                      <strong>BM25 (keyword)</strong>
+                      <small>Postgres tsquery full-text, catches exact rare terms</small>
+                    </div>
+                  </label>
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_skill_exact" checked>
+                    <div class="toggle-label">
+                      <strong>Skill exact match</strong>
+                      <small>Scores candidates.skills[] array directly (structured)</small>
+                    </div>
+                  </label>
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_rrf" checked>
+                    <div class="toggle-label">
+                      <strong>RRF fusion</strong>
+                      <small>Combines dense + BM25 + skill into one ranked list</small>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div class="overrides-group">
+                <div class="overrides-group-title">Ranking &amp; diversity (steps 13-18)</div>
+                <div class="toggle-grid">
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_empty_result_guard" checked>
+                    <div class="toggle-label">
+                      <strong>Auto-relax</strong>
+                      <small>Drops filters one-by-one when results &lt; threshold</small>
+                    </div>
+                  </label>
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_cross_encoder" checked>
+                    <div class="toggle-label">
+                      <strong>Cross-encoder rerank</strong>
+                      <small>ms-marco MiniLM re-sorts top 100 — most accurate signal</small>
+                    </div>
+                  </label>
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_feature_ranker" checked>
+                    <div class="toggle-label">
+                      <strong>Feature ranker</strong>
+                      <small>Blends 7 signals into feature_score 0-100</small>
+                    </div>
+                  </label>
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_mmr" checked>
+                    <div class="toggle-label">
+                      <strong>MMR diversity</strong>
+                      <small>Prevents top 10 being clones — balances relevance vs variety</small>
+                    </div>
+                  </label>
+                  <label class="toggle-item">
+                    <input type="checkbox" id="tog_impression_logging" checked>
+                    <div class="toggle-label">
+                      <strong>Impression logging</strong>
+                      <small>Async INSERT per shown candidate — feeds LTR training</small>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
+              <div class="overrides-group">
+                <div class="overrides-group-title">Numeric knobs</div>
+                <div class="knob-grid">
+                  <div class="knob-item"><label>Dense top-K (def 200)<input id="knob_dense_top_k" type="number" min="1" max="2000" placeholder="200"></label></div>
+                  <div class="knob-item"><label>BM25 top-K (def 200)<input id="knob_bm25_top_k" type="number" min="1" max="2000" placeholder="200"></label></div>
+                  <div class="knob-item"><label>Skill top-K (def 100)<input id="knob_skill_top_k" type="number" min="1" max="2000" placeholder="100"></label></div>
+                  <div class="knob-item"><label>CE top-K (def 100)<input id="knob_cross_encoder_top_k" type="number" min="0" max="2000" placeholder="100"></label></div>
+                  <div class="knob-item"><label>Final top-K (def 25)<input id="knob_final_top_k" type="number" min="1" max="1000" placeholder="25"></label></div>
+                  <div class="knob-item"><label>Confidence threshold (0-1)<input id="knob_confidence_threshold" type="number" min="0" max="1" step="0.05" placeholder="0.6"></label></div>
+                  <div class="knob-item"><label>Min results before relax<input id="knob_min_results_before_relax" type="number" min="0" max="100" placeholder="5"></label></div>
+                  <div class="knob-item"><label>MMR lambda (0=diversity 1=relevance)<input id="knob_mmr_lambda" type="number" min="0" max="1" step="0.05" placeholder="0.7"></label></div>
+                  <div class="knob-item"><label>RRF k (default 60)<input id="knob_rrf_k" type="number" min="1" max="500" placeholder="60"></label></div>
+                </div>
+              </div>
+
+            </div>
+          </details>
+          <!-- ── End pipeline overrides ── -->
+
+          <div class="search-action-row">
+            <div class="inline">
+              <label><input id="searchRankExplanation" type="checkbox" checked> Ranking explanation</label>
+              <label><input id="searchAiInsight" type="checkbox"> AI insight</label>
+              <label title="Use regex fallback if the LLM planner fails. Turn off to surface planner errors."><input type="checkbox" id="tog_planner_fallback" checked> Planner fallback</label>
+            </div>
+            <button id="runSearchBtn" class="primary" type="button">Search</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="center-stack" style="grid-area:results;">
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Results
+              <button type="button" id="resultsBackBtn" class="back-btn" hidden>← Back</button>
+            </h2>
+            <div class="subtle" id="resultsMeta">No search yet</div>
+          </div>
+          <div>
+            <span class="chip" id="langfuseChip" hidden></span>
+            <span class="chip" id="latencyChip">-</span>
+          </div>
+        </div>
+        <div class="panel-body">
+          <details id="timingBreakdownPanel" class="timing-breakdown-panel">
+            <summary class="timing-toggle">Time breakdown</summary>
+            <div id="latencyDetails" class="latency-details muted-box">
+              Run a search to see where time is spent.
+            </div>
+          </details>
+          <details id="plannerSpecPanel" class="timing-breakdown-panel" hidden>
+            <summary class="timing-toggle">Planner spec (JSON)</summary>
+            <pre id="plannerSpecBody" class="planner-spec-body"></pre>
+          </details>
+          <div id="searchNotices" class="search-notices" hidden></div>
+          <details id="sessionStatsPanel" class="timing-breakdown-panel" hidden>
+            <summary class="timing-toggle">Session stats</summary>
+            <div id="pipelineMetrics" class="pipeline-metrics muted-box"></div>
+          </details>
+          <div class="results" id="resultsList">
+            <div class="muted-box">Run a search to see ranked candidates.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel ai-panel" id="aiInsightPanel" hidden>
+        <div class="panel-header">
+          <div>
+            <h2>AI evidence matrix</h2>
+            <div class="subtle" id="aiInsightMeta">Best-fit readout</div>
+          </div>
+          <span class="chip" id="aiInsightStatus">off</span>
+        </div>
+        <div class="panel-body ai-insight-body" id="aiInsightBody"></div>
+      </section>
+      </div>
+
+      <aside class="right-stack" style="grid-area:candidate;">
+        <section class="panel panel--view">
+          <div class="panel-header">
+            <div>
+              <h2>Candidate</h2>
+              <div class="subtle" id="selectedCandidateId">No selection</div>
+            </div>
+            <button id="clearSelectionBtn" type="button">Clear</button>
+          </div>
+          <div class="panel-body">
+            <div id="candidateEditorEmpty" class="muted-box">Select a candidate row or search result.</div>
+            <form id="candidateEditor" class="form-grid" hidden>
+              <label class="wide">Full name
+                <input id="candidateName" required>
+              </label>
+              <label>Email
+                <input id="candidateEmail" type="email">
+              </label>
+              <label>Status
+                <select id="candidateStatus">
+                  <option value="active">active</option>
+                  <option value="archived">archived</option>
+                  <option value="hired">hired</option>
+                  <option value="rejected">rejected</option>
+                </select>
+              </label>
+              <label>Age
+                <input id="candidateAge" type="number" min="16" max="100">
+              </label>
+              <label>Years exp
+                <input id="candidateYears" type="number" min="0">
+              </label>
+              <label>City
+                <input id="candidateCity">
+              </label>
+              <label>Country
+                <input id="candidateCountry">
+              </label>
+              <label class="wide">Location
+                <input id="candidateLocation">
+              </label>
+              <label class="wide">Skills
+                <input id="candidateSkills" placeholder="python, ml, postgres">
+              </label>
+              <label class="wide">Interests
+                <input id="candidateInterests" placeholder="research, leadership">
+              </label>
+              <div class="inline wide">
+                <button class="primary" type="submit">Save</button>
+                <button id="deleteCandidateBtn" class="danger" type="button">Delete</button>
+              </div>
+            </form>
+            <section id="candidateDocumentsSection" hidden>
+              <div class="divider"></div>
+              <div class="section-head">
+                <h3>Documents</h3>
+                <span class="chip" id="candidateDocumentsMeta">-</span>
+              </div>
+              <div class="profile-docs" id="candidateDocumentsList">
+                <div class="muted-box">Open a candidate to load document previews.</div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="panel panel--create">
+          <div class="panel-header">
+            <div>
+              <h2>Add Data</h2>
+              <div class="subtle">Create a new candidate or ingest a document</div>
+            </div>
+            <span class="chip" id="selectedCounts">-</span>
+          </div>
+          <div class="panel-body">
+            <form id="createCandidateForm" class="form-grid">
+              <h3 class="wide">New Candidate</h3>
+              <label class="wide">Full name
+                <input id="newName" required placeholder="Grace Hopper">
+              </label>
+              <label>Email
+                <input id="newEmail" type="email" placeholder="grace@example.com">
+              </label>
+              <label>Years exp
+                <input id="newYears" type="number" min="0" value="0">
+              </label>
+              <label>City
+                <input id="newCity">
+              </label>
+              <label>Country
+                <input id="newCountry">
+              </label>
+              <label class="wide">Skills
+                <input id="newSkills" placeholder="python, systems">
+              </label>
+              <button class="primary wide" type="submit">Add Candidate</button>
+            </form>
+
+            <div class="divider"></div>
+
+            <form id="ingestForm" class="form-grid">
+              <h3 class="wide">Ingest Document</h3>
+              <label>Doc type
+                <select id="docType">
+                  <option value="resume">resume</option>
+                  <option value="transcript">transcript</option>
+                  <option value="certification">certification</option>
+                  <option value="bio">bio</option>
+                  <option value="cover_letter">cover_letter</option>
+                  <option value="other">other</option>
+                </select>
+              </label>
+              <label>Chunking
+                <select id="chunkStrategy">
+                  <option value="sliding_window">sliding_window</option>
+                  <option value="paragraph">paragraph</option>
+                </select>
+              </label>
+              <label class="wide">Title
+                <input id="docTitle" placeholder="Resume v1">
+              </label>
+              <label class="wide">Raw text
+                <textarea id="docText" placeholder="Paste resume, transcript, notes, or any unstructured text"></textarea>
+              </label>
+              <button class="primary wide" type="submit">Ingest for Selected Candidate</button>
+            </form>
+          </div>
+        </section>
+      </aside>
+
+      <section class="panel db-panel" style="grid-area:dbview;overflow:auto;min-height:0;">
+        <div class="panel-header">
+          <div class="tabs" role="tablist" aria-label="Database tables">
+            <button class="tab active" id="tabCandidates" type="button">Candidates</button>
+            <button class="tab" id="tabDocuments" type="button">Documents</button>
+            <button class="tab" id="tabChunks" type="button">Chunks</button>
+            <button class="tab" id="tabHistory" type="button">History Logs</button>
+          </div>
+          <span class="chip" id="tableMeta">-</span>
+        </div>
+        <div class="panel-body">
+          <div class="table-tools candidate-table-tools" id="candidateTableFilters">
+            <label>Name/email
+              <input id="candidateNameFilter" placeholder="Ada or ada@example.com">
+            </label>
+            <label>Country
+              <input id="candidateCountryFilter" list="countryOptions" placeholder="India">
+            </label>
+            <label>City
+              <input id="candidateCityFilter" list="candidateCityOptions" placeholder="Bangalore">
+              <datalist id="candidateCityOptions"></datalist>
+            </label>
+            <label>Skills
+              <input id="candidateSkillFilter" list="skillOptions" placeholder="python, postgresql">
+            </label>
+            <label>Status
+              <select id="statusFilter">
+                <option value="">all</option>
+                <option value="active">active</option>
+                <option value="archived">archived</option>
+                <option value="hired">hired</option>
+                <option value="rejected">rejected</option>
+              </select>
+            </label>
+          </div>
+          <div class="table-tools generic-table-tools" id="genericTableFilters" hidden>
+            <label>Filter
+              <input id="tableFilter" placeholder="candidate, title, or document text">
+            </label>
+          </div>
+          <div class="table-tools history-table-tools" id="historyTableFilters" hidden>
+            <label>Action
+              <select id="historyActionFilter">
+                <option value="">All logs</option>
+                <option value="shortlisted">Selected</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </label>
+          </div>
+          <div class="inline table-actions">
+            <button id="applyTableFilterBtn" type="button">Apply</button>
+            <button id="showAllBtn" type="button">Clear filters</button>
+          </div>
+          <div class="inline pager" aria-label="Table pagination">
+            <label>Rows
+              <select id="tablePageSize">
+                <option value="40">40</option>
+                <option value="80" selected>80</option>
+                <option value="120">120</option>
+                <option value="200">200</option>
+              </select>
+            </label>
+            <button id="tablePrevBtn" type="button">Previous</button>
+            <span class="chip" id="tablePageMeta">Page 1</span>
+            <button id="tableNextBtn" type="button">Next</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead id="tableHead"></thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Agent side panel ──────────────────────────────────────────── -->
+      <aside id="agentPanel" class="agent-panel" style="grid-area:agent;position:sticky;top:12px;align-self:start;max-height:calc(100vh - 24px); display: flex; flex-direction: row;">
+        <div class="agent-resize-handle" title="Drag to resize panel"></div>
+        <div id="agentHistoryRail" style="width: 4px; background: var(--line); transition: width 0.2s; overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 12px; flex-shrink: 0;">
+           <!-- Breadcrumbs render here -->
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden;">
+        <div class="agent-panel-header">
+          <span style="flex:1">Agent</span>
+          <button id="agentBackBtn" type="button" disabled title="Go back one step">← Back</button>
+          <button id="agentNewSessionBtn" type="button" title="Start a new session">New session</button>
+        </div>
+        <div class="agent-model-bar">
+          <div id="agentModelPills" style="display:flex;gap:4px;">
+            <button type="button" class="agent-model-pill" data-model="deepseek:deepseek-chat" title="DeepSeek Chat — fast">DS</button>
+            <button type="button" class="agent-model-pill" data-model="deepseek:deepseek-reasoner" title="DeepSeek R1 — thinking">R1</button>
+            <button type="button" class="agent-model-pill" data-model="google:gemini-2.0-flash" title="Gemini 2.0 Flash">Flash</button>
+          </div>
+        </div>
+        
+        <div id="agentSpecCard" class="agent-spec-card" style="display: none; padding: 12px; background: #f8fafc; border-bottom: 1px solid var(--line); font-size: 13px; line-height: 1.4;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <strong style="color: var(--text);">Working Requirements</strong>
+            <span id="agentShortlistCount" style="background: var(--accent-light, #d1fae5); color: var(--accent-dark); padding: 2px 6px; border-radius: 12px; font-size: 11px; font-weight: bold;">0 selected</span>
+          </div>
+          <div id="agentSpecContent" style="color: var(--muted);">Waiting for role details...</div>
+        </div>
+
+        <details id="agentMemoryPanel" class="agent-memory-panel">
+          <summary class="agent-memory-toggle">
+            <strong>Personalization memory</strong>
+          </summary>
+          <div class="agent-memory-content">
+            <div class="agent-memory-head">
+              <span class="muted">Confirmed memory and pending observations</span>
+              <button id="agentMemoryRefreshBtn" type="button">Refresh</button>
+            </div>
+            <div id="agentMemoryBody" class="muted">Loading memory...</div>
+          </div>
+        </details>
+
+        <div id="agentChat"></div>
+        <div id="agentQuickActions" class="agent-quick-actions"></div>
+        <div class="agent-panel-input-row">
+          <textarea id="agentInput" placeholder="Ask the agent to search, compare, or explain…" rows="2"></textarea>
+          <button id="agentSendBtn" type="button" class="primary">Send</button>
+        </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <dialog id="documentDialog">
+    <div class="panel-header">
+      <div>
+        <h2 id="dialogTitle">Document</h2>
+        <div class="subtle" id="dialogMeta">-</div>
+      </div>
+      <div class="inline">
+        <button id="deleteDialogDocumentBtn" class="danger" type="button">Delete</button>
+        <button id="closeDialogBtn" type="button">Close</button>
+      </div>
+    </div>
+    <div class="dialog-body">
+      <pre class="raw" id="dialogRawText"></pre>
+    </div>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+  <script src="/static/agent-panel.js"></script>
+  <script>
+    const state = {
+      activeTable: "candidates",
+      selectedCandidate: null,
+      selectedDocument: null,
+      tableCandidateFilter: "",
+      tableDocumentFilter: "",
+      tablePage: 0,
+      tablePageSize: 80,
+      filterOptions: {
+        countries: [],
+        cities: [],
+        locations: [],
+        location_values: [],
+        skills: [],
+      },
+      syncingLocationFields: false,
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function setStatus(message, type = "") {
+      const chip = $("statusChip");
+      chip.textContent = message;
+      chip.className = `chip ${type}`.trim();
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function getThemeSetting() {
+      return localStorage.getItem("theme") || "auto";
+    }
+
+    // Recruiter Outcomes & History Logic
+    const sessionSelectedCandidates = [];
+
+    async function logOutcome(action, impressionId, candidateId, candidateName, btnElement) {
+      const recruiterId = $("searchRecruiterId").value.trim();
+      if (!recruiterId) {
+        setStatus("Please set a Recruiter ID first to record feedback.", "warn");
+        return;
+      }
+      try {
+        if (impressionId) {
+          await api("/outcomes", {
+            method: "POST",
+            body: JSON.stringify({
+              impression_id: impressionId,
+              action: action
+            })
+          });
+        }
+
+        // Hide the candidate card smoothly
+        const article = btnElement.closest(".result-row");
+        if (article) {
+          showOutcomeReasonPrompt(article, action, impressionId, candidateId, candidateName);
+        }
+
+        if (action === "shortlisted") {
+          sessionSelectedCandidates.push(candidateName);
+          const listDiv = $("selectedCandidatesList");
+          if (sessionSelectedCandidates.length === 1) {
+            listDiv.innerHTML = "";
+            listDiv.style.color = "var(--text)";
+          }
+          const div = document.createElement("div");
+          div.innerHTML = `✓ <strong>${escapeHtml(candidateName)}</strong>`;
+          listDiv.appendChild(div);
+          setStatus(`Accepted ${candidateName}`, "ok");
+          
+          if (window.AgentPanel && window.AgentPanel.sendHiddenMessage) {
+            window.AgentPanel.sendHiddenMessage(`[System] User accepted candidate ${candidateId} (${candidateName}). Please run update_shortlist('${candidateId}', 'accepted').`);
+          }
+        } else if (action === "rejected") {
+          setStatus(`Rejected ${candidateName}`, "ok");
+          
+          if (window.AgentPanel && window.AgentPanel.sendHiddenMessage) {
+            window.AgentPanel.sendHiddenMessage(`[System] User rejected candidate ${candidateId} (${candidateName}). Please run update_shortlist('${candidateId}', 'rejected').`);
+          }
+        }
+
+        // Refresh history if active
+        if (state.activeTable === "history") {
+          loadHistory().catch(console.error);
+        }
+
+      } catch (err) {
+        setStatus("Failed to log outcome", "error");
+      }
+    }
+    window.logOutcome = logOutcome;
+
+    function showOutcomeReasonPrompt(article, action, impressionId, candidateId, candidateName) {
+      if (!article || article.querySelector(".outcome-reason-box")) return;
+      const label = action === "shortlisted" ? "accepted" : "rejected";
+      const actionRow = article.querySelector(".result-actions");
+      const box = document.createElement("div");
+      box.className = "notice outcome-reason-box";
+      box.style.marginTop = "8px";
+      box.innerHTML = `
+        <strong>Why did you ${escapeHtml(label)} this candidate?</strong>
+        <textarea rows="2" maxlength="500"
+          placeholder="Optional, e.g. strong React depth, missing location fit, salary too high"
+          style="width:100%; margin-top:6px; resize:vertical"></textarea>
+        <div class="inline" style="justify-content:flex-end; margin-top:6px">
+          <button type="button" class="primary">Save reason</button>
+          <button type="button">Skip</button>
+        </div>
+      `;
+      const [saveBtn, skipBtn] = box.querySelectorAll("button");
+      const textarea = box.querySelector("textarea");
+      saveBtn.addEventListener("click", async () => {
+        const reason = textarea.value.trim();
+        if (reason) {
+          try {
+            if (impressionId) {
+              await api("/outcomes", {
+                method: "POST",
+                body: JSON.stringify({
+                  impression_id: impressionId,
+                  action,
+                  reason
+                })
+              });
+            } else {
+              const recruiterId = $("searchRecruiterId").value.trim();
+              await api(`/api/recruiter/${encodeURIComponent(recruiterId)}/outcome-reason`, {
+                method: "POST",
+                body: JSON.stringify({
+                  candidate_id: candidateId,
+                  action,
+                  reason
+                })
+              });
+            }
+            if (window.AgentPanel && window.AgentPanel.sendHiddenMessage) {
+              window.AgentPanel.sendHiddenMessage(`[System] User ${label} candidate ${candidateId} (${candidateName}) because: ${reason}`);
+            }
+            setStatus("Reason saved", "ok");
+          } catch (err) {
+            setStatus("Could not save reason", "error");
+            return;
+          }
+        }
+        dismissOutcomeCard(article);
+      });
+      skipBtn.addEventListener("click", () => dismissOutcomeCard(article));
+      if (actionRow) {
+        actionRow.replaceChildren(box);
+      } else {
+        article.appendChild(box);
+      }
+      textarea.focus();
+    }
+
+    function dismissOutcomeCard(article) {
+      article.style.opacity = "0.5";
+      article.style.pointerEvents = "none";
+      setTimeout(() => article.remove(), 300);
+    }
+
+    function renderAgentMemory(data) {
+      const body = $("agentMemoryBody");
+      if (!body) return;
+      const facts = data.facts || [];
+      const observations = data.observations || [];
+      const parts = [];
+
+      if (facts.length) {
+        parts.push(`
+          <div class="agent-memory-section">
+            <strong>Confirmed preferences</strong>
+            ${facts.slice(0, 5).map((f) => `
+              <div class="agent-memory-item">${escapeHtml(f.content)}
+                <span>(${escapeHtml(f.source || "manual")})</span>
+              </div>
+            `).join("")}
+          </div>
+        `);
+      } else {
+        parts.push(`
+          <div class="agent-memory-section">
+            <strong>Confirmed preferences</strong>
+            <div class="agent-memory-item">No confirmed preferences yet.</div>
+          </div>
+        `);
+      }
+
+      if (observations.length) {
+        parts.push(`
+          <div class="agent-memory-section">
+            <strong>Unconfirmed observations</strong>
+            ${observations.slice(0, 5).map((o) => `
+              <div class="agent-memory-item">
+                ${escapeHtml(o.content)}
+                <span>(${Math.round((o.confidence || 0) * 100)}%)</span>
+                <div class="agent-memory-actions">
+                  <button type="button" class="primary"
+                    onclick="confirmObservation('${escapeHtml(o.id)}', true)">Confirm</button>
+                  <button type="button"
+                    onclick="confirmObservation('${escapeHtml(o.id)}', false)">Dismiss</button>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        `);
+      } else {
+        parts.push(`
+          <div class="agent-memory-section">
+            <strong>Unconfirmed observations</strong>
+            <div class="agent-memory-item">Nothing waiting for confirmation.</div>
+          </div>
+        `);
+      }
+
+	      body.innerHTML = parts.join("");
+	    }
+
+	    async function confirmObservation(observationId, accept) {
+	      const recId = $("searchRecruiterId")?.value?.trim();
+	      if (!recId) {
+	        setStatus("Set a recruiter ID first.", "warn");
+	        return;
+	      }
+	      try {
+	        await api(`/api/recruiter/${encodeURIComponent(recId)}/observations/${encodeURIComponent(observationId)}/confirm`, {
+	          method: "POST",
+	          body: JSON.stringify({ accept })
+	        });
+	        setStatus(accept ? "Preference confirmed" : "Observation dismissed", "ok");
+	        await loadAgentMemory();
+	      } catch (err) {
+	        setStatus("Could not update observation", "error");
+	      }
+	    }
+	    window.confirmObservation = confirmObservation;
+
+    async function loadAgentMemory() {
+      const body = $("agentMemoryBody");
+      if (!body) return;
+      const recId = $("searchRecruiterId")?.value?.trim();
+      if (!recId) {
+        body.textContent = "Set a recruiter ID to view memory.";
+        return;
+      }
+      body.textContent = "Loading memory...";
+      try {
+        const data = await api(`/api/recruiter/${encodeURIComponent(recId)}/memory`);
+        renderAgentMemory(data);
+      } catch (err) {
+        body.textContent = "Could not load memory.";
+      }
+    }
+    window.loadAgentMemory = loadAgentMemory;
+
+    // Relevance verdict (👍/👎) — "did this result match the query?". Distinct
+    // from Accept/Reject (hiring decision). The card stays visible; this is a
+    // label, not a workflow action. Re-clicking the active verdict clears it.
+    async function logRelevance(impressionId, relevant, btnElement) {
+      if (!impressionId) {
+        setStatus("No impression id for this result — run a fresh search and try again.", "warn");
+        return;
+      }
+      const recruiterId = $("searchRecruiterId").value.trim() || null;
+      const group = btnElement.closest(".relevance-group");
+      const wasActive = btnElement.classList.contains("active");
+      const newVal = wasActive ? null : relevant;   // toggle off if re-clicking active
+      try {
+        await api("/relevance", {
+          method: "POST",
+          body: JSON.stringify({ impression_id: impressionId, relevant: newVal, recruiter_id: recruiterId })
+        });
+        if (group) group.querySelectorAll(".thumb").forEach(b => b.classList.remove("active"));
+        if (newVal !== null) btnElement.classList.add("active");
+        setStatus(newVal === null ? "Relevance cleared" : (newVal ? "Marked relevant 👍" : "Marked not relevant 👎"), "ok");
+      } catch (err) {
+        setStatus("Failed to record relevance", "error");
+      }
+    }
+    window.logRelevance = logRelevance;
+
+    async function loadHistory() {
+      const recruiterId = $("searchRecruiterId").value.trim();
+      if (!recruiterId) {
+        $("tableMeta").textContent = `0 logs`;
+        $("tableHead").innerHTML = `<tr><th>Provide Recruiter ID</th></tr>`;
+        $("tableBody").innerHTML = `<tr><td><div class="muted-box">Set your Recruiter ID in the left panel to see history.</div></td></tr>`;
+        return { total: 0, limit: state.tablePageSize, offset: 0, items: [] };
+      }
+
+      const data = await api(`/outcomes?recruiter_id=${encodeURIComponent(recruiterId)}`);
+      const filterAction = $("historyActionFilter").value;
+      const items = filterAction ? data.items.filter(i => i.action === filterAction) : data.items;
+      
+      renderHistoryTable(items);
+      
+      // We manually paginate history here since the endpoint returns max 200 items in one shot
+      const total = items.length;
+      const offset = state.tablePage * state.tablePageSize;
+      const pageItems = items.slice(offset, offset + state.tablePageSize);
+      
+      updateTablePager({
+        total: total,
+        limit: state.tablePageSize,
+        offset: offset,
+        items: pageItems
+      });
+      
+      return { total: total, limit: state.tablePageSize, offset: offset, items: pageItems };
+    }
+
+    function renderHistoryTable(items) {
+      const offset = state.tablePage * state.tablePageSize;
+      const pageItems = items.slice(offset, offset + state.tablePageSize);
+      
+      $("tableMeta").textContent = `${items.length} logs`;
+      $("tableHead").innerHTML = `
+        <tr>
+          <th>Time</th><th>Action</th><th>Candidate</th><th></th>
+        </tr>
+      `;
+      $("tableBody").innerHTML = pageItems.map((item) => {
+        const actionColor = item.action === "shortlisted" ? "var(--accent)" : (item.action === "rejected" ? "var(--red)" : "var(--subtle)");
+        return `
+          <tr>
+            <td class="mono">${escapeHtml(formatDate(item.occurred_at))}</td>
+            <td><strong style="color: ${actionColor}">${escapeHtml(item.action.toUpperCase())}</strong></td>
+            <td><strong>${escapeHtml(item.candidate_name)}</strong> <div class="subtle mono">${escapeHtml(shortId(item.candidate_id))}</div></td>
+            <td><button type="button" onclick="event.stopPropagation(); selectCandidateById('${escapeHtml(item.candidate_id)}')">View</button></td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function splitList(value) {
+      return String(value || "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+
+    function formatSalaryRange(minValue, maxValue) {
+      if (!minValue && !maxValue) return "";
+      const format = (value) => value ? `$${Math.round(value / 1000)}k` : "";
+      return [format(minValue), format(maxValue)].filter(Boolean).join("-");
+    }
+
+    function formatPercent(value) {
+      const number = Number(value);
+      return Number.isFinite(number) ? `${Math.round(number)}%` : "-";
+    }
+
+    function formatDecimal(value, digits = 3) {
+      const number = Number(value);
+      return Number.isFinite(number) ? number.toFixed(digits) : "-";
+    }
+
+    function formatScore(value) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return "-";
+      const score = number <= 1 && number >= 0 ? number * 100 : number;
+      return `${Math.round(score)}%`;
+    }
+
+    function selectedSearchMode() {
+      return document.querySelector('input[name="searchMode"]:checked')?.value || "no-llm";
+    }
+
+    function joinList(value) {
+      return Array.isArray(value) ? value.join(", ") : "";
+    }
+
+    function numberOrNull(value) {
+      if (value === "" || value === null || value === undefined) return null;
+      const number = Number(value);
+      return Number.isFinite(number) ? number : null;
+    }
+
+    // ── Skill chips (selected skills + per-skill 0-100 importance) ────────────
+    const skillChips = {
+      items: [],            // [{ name, weight }] — weight 0-100
+      activeIndex: null,    // index of chip whose popover is open
+    };
+
+    function renderSkillChips() {
+      const list = $("skillChipList");
+      list.innerHTML = "";
+      skillChips.items.forEach((item, idx) => {
+        const chip = document.createElement("span");
+        chip.className = "skill-chip" + (skillChips.activeIndex === idx ? " active" : "");
+        chip.dataset.idx = String(idx);
+        chip.innerHTML = `
+          <span class="skill-chip-name">${escapeHtml(item.name)}</span>
+          <span class="skill-chip-weight">${Math.round(item.weight)}</span>
+          <button type="button" class="skill-chip-remove" title="Remove" data-remove="${idx}">×</button>
+        `;
+        list.appendChild(chip);
+      });
+      renderSkillPopover();
+    }
+
+    function renderSkillPopover() {
+      const pop = $("skillChipPopover");
+      if (skillChips.activeIndex === null || !skillChips.items[skillChips.activeIndex]) {
+        pop.hidden = true;
+        return;
+      }
+      const item = skillChips.items[skillChips.activeIndex];
+      pop.hidden = false;
+      $("skillChipPopoverName").textContent = item.name;
+      $("skillChipSlider").value = String(Math.round(item.weight));
+      $("skillChipSliderValue").textContent = String(Math.round(item.weight));
+    }
+
+    function addSkillChip(rawName) {
+      const name = String(rawName || "").trim().toLowerCase();
+      if (!name) return false;
+      if (skillChips.items.some((s) => s.name === name)) return false;
+      skillChips.items.push({ name, weight: 50 });
+      skillChips.activeIndex = skillChips.items.length - 1;
+      renderSkillChips();
+      return true;
+    }
+
+    function removeSkillChip(idx) {
+      if (idx < 0 || idx >= skillChips.items.length) return;
+      skillChips.items.splice(idx, 1);
+      if (skillChips.activeIndex === idx) {
+        skillChips.activeIndex = null;
+      } else if (skillChips.activeIndex !== null && skillChips.activeIndex > idx) {
+        skillChips.activeIndex -= 1;
+      }
+      renderSkillChips();
+    }
+
+    function clearSkillChips() {
+      skillChips.items = [];
+      skillChips.activeIndex = null;
+      renderSkillChips();
+    }
+
+    function bindSkillChipEvents() {
+      const input = $("skillChipInput");
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" || event.key === ",") {
+          event.preventDefault();
+          if (addSkillChip(input.value)) input.value = "";
+        } else if (event.key === "Backspace" && !input.value && skillChips.items.length) {
+          removeSkillChip(skillChips.items.length - 1);
+        }
+      });
+      input.addEventListener("change", () => {
+        if (input.value && addSkillChip(input.value)) input.value = "";
+      });
+      $("skillChipList").addEventListener("click", (event) => {
+        const removeBtn = event.target.closest("[data-remove]");
+        if (removeBtn) {
+          event.stopPropagation();
+          removeSkillChip(Number(removeBtn.dataset.remove));
+          return;
+        }
+        const chip = event.target.closest(".skill-chip");
+        if (!chip) return;
+        const idx = Number(chip.dataset.idx);
+        skillChips.activeIndex = (skillChips.activeIndex === idx) ? null : idx;
+        renderSkillChips();
+      });
+      $("skillChipSlider").addEventListener("input", (event) => {
+        if (skillChips.activeIndex === null) return;
+        const value = Number(event.target.value);
+        skillChips.items[skillChips.activeIndex].weight = value;
+        $("skillChipSliderValue").textContent = String(value);
+        // Update the badge on the chip without rerendering the whole list.
+        const chip = $("skillChipList").querySelector(`.skill-chip[data-idx="${skillChips.activeIndex}"] .skill-chip-weight`);
+        if (chip) chip.textContent = String(value);
+      });
+      $("skillChipRemove").addEventListener("click", () => {
+        if (skillChips.activeIndex === null) return;
+        removeSkillChip(skillChips.activeIndex);
+      });
+    }
+
+    function compactPayload(payload) {
+      const clean = {};
+      for (const [key, value] of Object.entries(payload)) {
+        if (value === "" || value === null || value === undefined) continue;
+        if (Array.isArray(value) && value.length === 0) continue;
+        clean[key] = value;
+      }
+      return clean;
+    }
+
+    function queryString(params) {
+      const search = new URLSearchParams();
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== "" && value !== null && value !== undefined) {
+          search.set(key, value);
+        }
+      }
+      const text = search.toString();
+      return text ? `?${text}` : "";
+    }
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(options.headers || {}),
+        },
+        ...options,
+      });
+      const contentType = response.headers.get("content-type") || "";
+      // 204 No Content has no body — skip parsing regardless of Content-Type header
+      // (FastAPI sends Content-Type: application/json even on 204, which causes
+      // response.json() to throw "Unexpected end of JSON input").
+      const data = response.status === 204 || response.headers.get("content-length") === "0"
+        ? null
+        : contentType.includes("application/json")
+          ? await response.json()
+          : await response.text();
+      if (!response.ok) {
+        const detail = typeof data === "object" ? JSON.stringify(data.detail || data) : data;
+        throw new Error(detail || `HTTP ${response.status}`);
+      }
+      return data;
+    }
+
+    function replaceDatalist(id, values) {
+      const list = $(id);
+      list.replaceChildren();
+      for (const value of values || []) {
+        list.append(new Option(value, value));
+      }
+    }
+
+    function replaceSelectOptions(id, values, placeholder) {
+      const select = $(id);
+      select.replaceChildren(new Option(placeholder, ""));
+      for (const value of values || []) {
+        select.append(new Option(value, value));
+      }
+    }
+
+    function refreshCityOptions() {
+      const country = $("searchCountry").value.trim();
+      const options = country
+        ? state.filterOptions.locations
+            .filter((item) => item.country === country && item.city)
+            .map((item) => item.city)
+        : state.filterOptions.cities;
+      replaceDatalist("cityOptions", [...new Set(options)].sort());
+    }
+
+    function normalizeLocationValue(value) {
+      return String(value || "").trim().toLowerCase();
+    }
+
+    function formatLocationLabel(city, country) {
+      return [city, country].filter(Boolean).join(", ");
+    }
+
+    function findLocationMatch(value) {
+      const clean = normalizeLocationValue(value);
+      if (!clean) return null;
+
+      for (const item of state.filterOptions.locations || []) {
+        const city = item.city || "";
+        const country = item.country || "";
+        const cityCountry = normalizeLocationValue(formatLocationLabel(city, country));
+        const countryCity = normalizeLocationValue(formatLocationLabel(country, city));
+        if (clean === cityCountry || clean === countryCity) {
+          return { city, country };
+        }
+      }
+
+      const parts = String(value).split(",").map((part) => part.trim()).filter(Boolean);
+      if (parts.length >= 2) {
+        const [first, second] = parts;
+        const direct = state.filterOptions.locations.find((item) =>
+          normalizeLocationValue(item.city) === normalizeLocationValue(first) &&
+          normalizeLocationValue(item.country) === normalizeLocationValue(second)
+        );
+        if (direct) return { city: direct.city || "", country: direct.country || "" };
+
+        const reversed = state.filterOptions.locations.find((item) =>
+          normalizeLocationValue(item.country) === normalizeLocationValue(first) &&
+          normalizeLocationValue(item.city) === normalizeLocationValue(second)
+        );
+        if (reversed) return { city: reversed.city || "", country: reversed.country || "" };
+      }
+
+      const cityMatches = (state.filterOptions.locations || []).filter((item) =>
+        normalizeLocationValue(item.city) === clean
+      );
+      if (cityMatches.length === 1) {
+        const match = cityMatches[0];
+        return { city: match.city || "", country: match.country || "" };
+      }
+
+      const countryMatches = (state.filterOptions.locations || []).filter((item) =>
+        normalizeLocationValue(item.country) === clean
+      );
+      if (countryMatches.length === 1) {
+        const match = countryMatches[0];
+        return { city: match.city || "", country: match.country || "" };
+      }
+      if (countryMatches.length > 1) {
+        return { city: "", country: countryMatches[0].country || "" };
+      }
+
+      return null;
+    }
+
+    function syncLocationToCityCountry() {
+      if (state.syncingLocationFields) return;
+      const match = findLocationMatch($("searchLocation").value);
+      if (!match) return;
+
+      state.syncingLocationFields = true;
+      $("searchCountry").value = match.country || "";
+      refreshCityOptions();
+      $("searchCity").value = match.city || "";
+      state.syncingLocationFields = false;
+    }
+
+    function syncCityCountryToLocation() {
+      if (state.syncingLocationFields) return;
+
+      state.syncingLocationFields = true;
+      refreshCityOptions();
+      const country = $("searchCountry").value.trim();
+      let city = $("searchCity").value.trim();
+
+      if (city && !country) {
+        const match = findLocationMatch(city);
+        if (match?.country) {
+          $("searchCountry").value = match.country;
+          refreshCityOptions();
+        }
+      }
+
+      city = $("searchCity").value.trim();
+      const updatedCountry = $("searchCountry").value.trim();
+      $("searchLocation").value = formatLocationLabel(city, updatedCountry);
+      state.syncingLocationFields = false;
+    }
+
+    function refreshCandidateCityOptions() {
+      const country = $("candidateCountryFilter").value.trim();
+      const options = country
+        ? state.filterOptions.locations
+            .filter((item) => item.country === country && item.city)
+            .map((item) => item.city)
+        : state.filterOptions.cities;
+      replaceDatalist("candidateCityOptions", [...new Set(options)].sort());
+    }
+
+    function populateFilterOptions(options) {
+      state.filterOptions = {
+        countries: options.countries || [],
+        cities: options.cities || [],
+        locations: options.locations || [],
+        location_values: options.location_values || [],
+        skills: options.skills || [],
+      };
+
+      replaceDatalist("locationOptions", state.filterOptions.location_values);
+      replaceDatalist("countryOptions", state.filterOptions.countries);
+      refreshCityOptions();
+      refreshCandidateCityOptions();
+      replaceDatalist("skillOptions", state.filterOptions.skills);
+    }
+
+    async function loadFilterOptions() {
+      const options = await api("/admin/filter-options");
+      populateFilterOptions(options);
+    }
+
+    function appendListValue(inputId, value) {
+      if (!value) return;
+      const input = $(inputId);
+      const existing = splitList(input.value);
+      if (!existing.includes(value)) {
+        existing.push(value);
+      }
+      input.value = existing.join(", ");
+      input.focus();
+    }
+
+    async function refreshStats() {
+      const data = await api("/admin/stats");
+      $("metricCandidates").textContent = data.database.candidates;
+      $("metricActive").textContent = data.database.active_candidates;
+      $("metricDocuments").textContent = data.database.documents;
+      $("metricChunks").textContent = data.database.chunks;
+      $("metricLatency").textContent = `${data.database.latency_ms} ms`;
+      $("configLine").textContent =
+        `${data.config.embedding_provider} / ${data.config.embedding_model} / ${data.config.embedding_dimensions}d`;
+      setStatus("Connected", "ok");
+    }
+
+    async function refreshPipelineMetrics() {
+      try {
+        const data = await api("/metrics");
+        const counters = data.counters || {};
+        const derived = data.derived || {};
+        const planner = data.latency_ms?.planner_ms || {};
+        const cache = data.cache || {};
+        $("sessionStatsPanel").hidden = false;
+        $("pipelineMetrics").innerHTML = [
+          ["Searches", counters.searches_total ?? 0],
+          ["Clarify", counters.clarify_returned ?? 0],
+          ["Relaxed", counters.relaxations_triggered ?? 0],
+          ["Forbidden", counters.forbidden_field_attempts ?? 0],
+          ["Planner p95", `${Math.round(Number(planner.p95 || 0))} ms`],
+          ["Fallback", formatScore(derived.planner_fallback_rate ?? 0)],
+          ["Cache hit", formatScore(derived.planner_cache_hit_rate ?? 0)],
+          ["Cache sets", cache.sets ?? 0],
+        ].map(([label, value]) => `
+          <div class="pipeline-metric">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value)}</strong>
+          </div>
+        `).join("");
+      } catch (error) {
+        $("sessionStatsPanel").hidden = true;
+      }
+    }
+
+    // Mode presets — mirrors pipeline/modes.py exactly
+    const MODE_PRESETS = {
+      "no-llm": {
+        use_llm_planner:     false,
+        use_planner_fallback: true,
+        use_fallback_repair: false,
+        use_cross_encoder:   false,
+        use_mmr:             true,
+        dense_top_k:         100,
+        bm25_top_k:          100,
+        skill_top_k:         50,
+        cross_encoder_top_k: 0,
+        final_top_k:         25,
+      },
+      fast: {
+        use_cross_encoder:    false,
+        use_mmr:              true,
+        dense_top_k:          100,
+        bm25_top_k:           100,
+        skill_top_k:          50,
+        cross_encoder_top_k:  0,
+        final_top_k:          25,
+      },
+      quality: {
+        use_cross_encoder:    true,
+        use_mmr:              true,
+        dense_top_k:          200,
+        bm25_top_k:           200,
+        skill_top_k:          100,
+        cross_encoder_top_k:  100,
+        final_top_k:          25,
+      },
+      explanation: {
+        use_cross_encoder:    true,
+        use_mmr:              true,
+        dense_top_k:          200,
+        bm25_top_k:           200,
+        skill_top_k:          100,
+        cross_encoder_top_k:  100,
+        final_top_k:          10,
+      },
+    };
+
+    function applyModeToUI(mode) {
+      const preset = MODE_PRESETS[mode] || MODE_PRESETS.quality;
+
+      const toggleMap = {
+        tog_route_detector:           "use_route_detector",
+        tog_sanitizer:                "use_sanitizer",
+        tog_cache:                    "use_cache",
+        tog_llm_planner:              "use_llm_planner",
+        tog_planner_fallback:         "use_planner_fallback",
+        tog_validator:                "use_validator",
+        tog_normalizer:               "use_normalizer",
+        tog_confidence_gate:          "use_confidence_gate",
+        tog_intent_router:            "use_intent_router",
+        tog_sql_filter:               "use_sql_filter",
+        tog_search_target_weighting:  "use_search_target_weighting",
+        tog_dense:                    "use_dense",
+        tog_bm25:                     "use_bm25",
+        tog_skill_exact:              "use_skill_exact",
+        tog_rrf:                      "use_rrf",
+        tog_empty_result_guard:       "use_empty_result_guard",
+        tog_cross_encoder:            "use_cross_encoder",
+        tog_feature_ranker:           "use_feature_ranker",
+        tog_mmr:                      "use_mmr",
+        tog_impression_logging:       "use_impression_logging",
+      };
+      for (const [id, key] of Object.entries(toggleMap)) {
+        const el = $(id);
+        if (el) el.checked = key in preset ? preset[key] : true;
+      }
+
+      const knobMap = {
+        knob_dense_top_k:              "dense_top_k",
+        knob_bm25_top_k:               "bm25_top_k",
+        knob_skill_top_k:              "skill_top_k",
+        knob_cross_encoder_top_k:      "cross_encoder_top_k",
+        knob_final_top_k:              "final_top_k",
+        knob_confidence_threshold:     "confidence_threshold",
+        knob_min_results_before_relax: "min_results_before_relax",
+        knob_mmr_lambda:               "mmr_lambda",
+        knob_rrf_k:                    "rrf_k",
+      };
+      for (const [id, key] of Object.entries(knobMap)) {
+        const el = $(id);
+        if (!el) continue;
+        el.value = key in preset ? preset[key] : "";
+      }
+    }
+
+    function collectConfigOverrides() {
+      const overrides = {};
+      const preset = MODE_PRESETS[selectedSearchMode()] || {};
+
+      // Boolean toggles — all default true; only include when unchecked
+      const toggleMap = {
+        tog_route_detector:           "use_route_detector",
+        tog_sanitizer:                "use_sanitizer",
+        tog_cache:                    "use_cache",
+        tog_llm_planner:              "use_llm_planner",
+        tog_planner_fallback:         "use_planner_fallback",
+        tog_validator:                "use_validator",
+        tog_normalizer:               "use_normalizer",
+        tog_confidence_gate:          "use_confidence_gate",
+        tog_intent_router:            "use_intent_router",
+        tog_sql_filter:               "use_sql_filter",
+        tog_search_target_weighting:  "use_search_target_weighting",
+        tog_dense:                    "use_dense",
+        tog_bm25:                     "use_bm25",
+        tog_skill_exact:              "use_skill_exact",
+        tog_rrf:                      "use_rrf",
+        tog_empty_result_guard:       "use_empty_result_guard",
+        tog_cross_encoder:            "use_cross_encoder",
+        tog_feature_ranker:           "use_feature_ranker",
+        tog_mmr:                      "use_mmr",
+        tog_impression_logging:       "use_impression_logging",
+      };
+      for (const [id, key] of Object.entries(toggleMap)) {
+        const el = $(id);
+        if (el && !el.checked) overrides[key] = false;
+      }
+
+      // Numeric knobs — only include when the user changed them away from the
+      // selected mode preset. Sending preset values as overrides prevents the
+      // backend from shrinking retrieval windows for small top_k requests.
+      const knobMap = [
+        ["knob_dense_top_k",              "dense_top_k",              parseInt],
+        ["knob_bm25_top_k",               "bm25_top_k",               parseInt],
+        ["knob_skill_top_k",              "skill_top_k",              parseInt],
+        ["knob_cross_encoder_top_k",      "cross_encoder_top_k",      parseInt],
+        ["knob_final_top_k",              "final_top_k",              parseInt],
+        ["knob_confidence_threshold",     "confidence_threshold",     parseFloat],
+        ["knob_min_results_before_relax", "min_results_before_relax", parseInt],
+        ["knob_mmr_lambda",               "mmr_lambda",               parseFloat],
+        ["knob_rrf_k",                    "rrf_k",                    parseInt],
+      ];
+      for (const [id, key, parse] of knobMap) {
+        const el = $(id);
+        if (el && el.value.trim() !== "") {
+          const v = parse(el.value);
+          if (isNaN(v)) continue;
+          if (Object.hasOwn(preset, key) && Number(preset[key]) === Number(v)) {
+            continue;
+          }
+          overrides[key] = v;
+        }
+      }
+
+      return overrides;
+    }
+
+    async function runSearch() {
+      const query = $("searchQuery").value.trim();
+      const jd = $("searchJd").value.trim();
+      const includeAiInsight = $("searchAiInsight").checked;
+      const statusVal = document.querySelector('input[name="searchStatus"]:checked')?.value;
+      const configOverrides = collectConfigOverrides();
+      
+      if (!sessionStorage.getItem('searchSessionId')) {
+        sessionStorage.setItem('searchSessionId', crypto.randomUUID());
+      }
+      const sessionId = sessionStorage.getItem('searchSessionId');
+
+      const payload = compactPayload({
+        query,
+        jd,
+        mode: selectedSearchMode(),
+        location: $("searchLocation").value.trim(),
+        country: $("searchCountry").value.trim(),
+        city: $("searchCity").value.trim(),
+        min_years_exp: numberOrNull($("searchMinExp").value),
+        max_years_exp: numberOrNull($("searchMaxExp").value),
+        min_salary: numberOrNull($("searchMinSalary").value),
+        max_salary: numberOrNull($("searchMaxSalary").value),
+        skills: skillChips.items.map((s) => s.name),
+        skill_weights: skillChips.items.length
+          ? Object.fromEntries(skillChips.items.map((s) => [s.name, s.weight]))
+          : undefined,
+        recruiter_id: $("searchRecruiterId").value.trim(),
+        top_k: numberOrNull($("searchTopK").value) || 10,
+        include_rank_explanation: $("searchRankExplanation").checked,
+        include_ai_insights: $("searchAiInsight").checked,
+        max_chunks_per_candidate: 3,
+        status: statusVal ? [statusVal] : undefined,
+        config_overrides: Object.keys(configOverrides).length ? configOverrides : undefined,
+        session_id: sessionId,
+      });
+
+      setStatus("Searching", "warn");
+      $("runSearchBtn").disabled = true;
+      window._lastSearchFilters = payload;
+      try {
+        const data = await api("/search", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        renderResults(data, { resetHistory: true });
+        refreshPipelineMetrics();
+        if (includeAiInsight) {
+          renderAiInsightLoading();
+          try {
+            const insight = await api("/search/insights", {
+              method: "POST",
+              body: JSON.stringify(payload),
+            });
+            renderAiInsight(insight);
+            setStatus("Search + AI complete", "ok");
+          } catch (error) {
+            renderAiInsightError(error);
+            setStatus("Search complete, AI failed", "warn");
+          }
+        } else {
+          clearAiInsight();
+          setStatus("Search complete", "ok");
+        }
+      } catch (error) {
+        setStatus("Search failed", "error");
+        $("latencyDetails").textContent = "Search did not complete, so no latency breakdown is available.";
+        $("resultsList").innerHTML = `<div class="muted-box">${escapeHtml(error.message)}</div>`;
+        clearAiInsight();
+      } finally {
+        $("runSearchBtn").disabled = false;
+      }
+    }
+
+    function clearAiInsight() {
+      $("aiInsightPanel").hidden = true;
+      $("aiInsightBody").innerHTML = "";
+      $("aiInsightMeta").textContent = "Best-fit readout";
+      $("aiInsightStatus").textContent = "off";
+      $("aiInsightStatus").className = "chip";
+    }
+
+    function renderAiInsightLoading() {
+      $("aiInsightPanel").hidden = false;
+      $("aiInsightMeta").textContent = "Comparing the current top results";
+      $("aiInsightStatus").textContent = "running";
+      $("aiInsightStatus").className = "chip warn";
+      $("aiInsightBody").innerHTML = `
+        <div class="muted-box">AI insight is comparing up to 10 candidates from the current result set.</div>
+      `;
+    }
+
+    function renderAiInsightError(error) {
+      $("aiInsightPanel").hidden = false;
+      $("aiInsightMeta").textContent = "Best-fit readout unavailable";
+      $("aiInsightStatus").textContent = "error";
+      $("aiInsightStatus").className = "chip error";
+      $("aiInsightBody").innerHTML = `<div class="muted-box">${escapeHtml(error.message || "AI insight failed.")}</div>`;
+    }
+
+    function renderAiInsight(data) {
+      $("aiInsightPanel").hidden = false;
+      const status = data.status || "error";
+      $("aiInsightStatus").textContent = status;
+      $("aiInsightStatus").className = `chip ${status === "ok" ? "ok" : status === "unavailable" ? "warn" : "error"}`;
+      $("aiInsightMeta").textContent = `${escapeHtml(data.provider || "llm")} / ${escapeHtml(data.model || "model")}`;
+
+      if (!(data.matrix || []).length) {
+        $("aiInsightBody").innerHTML = `
+          <div class="muted-box">${escapeHtml(data.summary || "AI insight is unavailable for this search.")}</div>
+        `;
+        return;
+      }
+
+      const rows = data.matrix || [];
+      const best = rows.find((row) => row.candidate_id === data.best_candidate_id) || rows[0];
+      const matrix = rows.map(renderAiMatrixRow).join("");
+      $("aiInsightBody").innerHTML = `
+        <div class="ai-best">
+          <h3>Best-fit readout</h3>
+          <strong>${escapeHtml(best.full_name || "Top candidate")}</strong>
+          <p>${escapeHtml(data.summary || best.recommendation || "")}</p>
+          ${data.comparative_reasoning ? `<p class="ai-comparative"><strong>Why better than others:</strong> ${escapeHtml(data.comparative_reasoning)}</p>` : ""}
+          <span class="tag">${escapeHtml(best.fit_score)} fit score</span>
+        </div>
+        <div class="ai-matrix">
+          ${matrix}
+        </div>
+      `;
+    }
+
+    function renderAiMatrixRow(row) {
+      return `
+        <article class="ai-row">
+          <div class="ai-row-head">
+            <div>
+              <strong>${escapeHtml(row.full_name || row.candidate_id)}</strong>
+              <div class="subtle">${escapeHtml(row.recommendation || "Review evidence")}</div>
+            </div>
+            <div class="ai-score">${escapeHtml(row.fit_score ?? 0)}</div>
+          </div>
+          <div class="ai-grid">
+            <div class="ai-cell">
+              <strong>Strengths</strong>
+              ${renderAiList(row.strengths, "No strengths returned.")}
+            </div>
+            <div class="ai-cell">
+              <strong>Evidence</strong>
+              ${renderAiList(row.evidence, "No cited evidence returned.")}
+            </div>
+            <div class="ai-cell">
+              <strong>Gaps</strong>
+              ${renderAiList(row.gaps, "No major gaps called out.")}
+            </div>
+            <div class="ai-cell">
+              <strong>Interview probe</strong>
+              <div class="ai-probe">${escapeHtml(row.interview_probe || "Ask for more evidence about the role-critical skills.")}</div>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderAiList(items, fallback) {
+      const values = Array.isArray(items) ? items.filter(Boolean) : [];
+      if (!values.length) return `<div class="subtle">${escapeHtml(fallback)}</div>`;
+      return `<ul>${values.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+    }
+
+    function renderRankingExplanation(explanation) {
+      if (!explanation) return "";
+      const score = Number(explanation.match_score ?? explanation.pipeline_confidence ?? 0);
+      const score100 = score <= 1 && score >= 0 ? score * 100 : score;
+      const breakdown = (explanation.score_breakdown || explanation.signals || [])
+        .map(renderRankingBreakdown)
+        .join("");
+      const confidence = explanation.confidence_label
+        ? rankClass(explanation.confidence_label, ["high", "medium", "low"], "medium")
+        : score100 >= 80 ? "high" : score100 >= 55 ? "medium" : "low";
+      const tier = explanation.match_tier || confidence;
+      const summary = explanation.summary_line || explanation.summary || "";
+      const scoreBasis = explanation.score_basis || "feature_score";
+      const checks = explanation.checks || {};
+      const requiredChecks = renderCheckList(checks.required, "Required", "No required checks returned.");
+      const preferredChecks = renderCheckList(checks.preferred, "Preferred", "No preferred checks returned.");
+      const retrievalPaths = renderRetrievalPaths(explanation.retrieval_paths || []);
+      const evidence = renderEvidenceBlock(explanation);
+
+      return `
+        <details class="rank-explanation">
+          <summary class="rank-toggle">
+            <div class="rank-toggle-left">
+              <span class="rank-chevron">›</span>
+              <div class="rank-title-text">
+                <strong>Why ranked here?</strong>
+                <span>${formatScore(score)} ${escapeHtml(tier)} · ${escapeHtml(scoreBasis)}</span>
+              </div>
+            </div>
+            <span class="rank-confidence ${confidence}">${confidence}</span>
+          </summary>
+          <div class="rank-body">
+            <div class="rank-columns">
+              <div class="rank-mini-panel">
+                <strong>Rank</strong>
+                <div>#${escapeHtml(explanation.rank_position || "-")} · ${escapeHtml(explanation.sort_basis || "feature_score desc")}</div>
+              </div>
+              <div class="rank-mini-panel">
+                <strong>Score used</strong>
+                <div>${formatScore(score)} from ${escapeHtml(scoreBasis)}</div>
+              </div>
+            </div>
+            ${retrievalPaths ? `<div class="rank-mini-panel"><strong>Retrieval paths</strong>${retrievalPaths}</div>` : ""}
+            <div class="rank-summary-note">${escapeHtml(summary)}</div>
+            <div class="rank-columns">
+              ${requiredChecks}
+              ${preferredChecks}
+            </div>
+            <strong class="subtle">Confidence breakdown</strong>
+            <div class="rank-breakdown">
+              ${breakdown || '<div class="muted-box">No weighted scoring signals were available for this result.</div>'}
+            </div>
+            ${evidence}
+          </div>
+        </details>
+      `;
+    }
+
+    function renderRankingBreakdown(signal) {
+      const rawScore = signal.score !== undefined
+        ? Number(signal.score)
+        : Number(signal.value || 0) * 100;
+      const contributionPercent = signal.contribution_percent !== undefined
+        ? Number(signal.contribution_percent)
+        : signal.contribution !== undefined
+          ? Number(signal.contribution) * 100
+        : rawScore;
+      const safeWidth = Math.max(0, Math.min(100, contributionPercent));
+      const weightPercent = Number(signal.weight_pct ?? signal.weight_percent ?? (Number(signal.weight || 0) * 100));
+      const applied = signal.applied === false ? " · not applied" : "";
+      const formula = signal.formula || `score ${formatScore(rawScore)} · weight ${formatPercent(weightPercent)}`;
+      return `
+        <div class="rank-contribution">
+          <div class="rank-contribution-head">
+            <strong>${escapeHtml(signal.name || signal.signal || "Signal")}</strong>
+            <span class="rank-contribution-points">${formatScore(contributionPercent)}</span>
+          </div>
+          <div class="rank-contribution-summary">
+            ${escapeHtml(formula)}${applied}
+            <br>${escapeHtml(signal.explanation || "")}
+          </div>
+          <div class="rank-bar" aria-hidden="true">
+            <span style="--rank-bar-width: ${safeWidth}%"></span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderCheckList(items, title, fallback) {
+      const checks = Array.isArray(items) ? items : [];
+      const body = checks.length
+        ? checks.map((check) => {
+            const matched = Boolean(check.matched);
+            return `
+              <div class="check-row">
+                <span class="check-dot ${matched ? "ok" : ""}">${matched ? "✓" : "!"}</span>
+                <span>${escapeHtml(check.label || "Check")}</span>
+              </div>
+            `;
+          }).join("")
+        : `<div class="subtle">${escapeHtml(fallback)}</div>`;
+      return `
+        <div class="rank-mini-panel">
+          <strong>${escapeHtml(title)}</strong>
+          <div class="check-list">${body}</div>
+        </div>
+      `;
+    }
+
+    function renderRetrievalPaths(paths) {
+      const values = Array.isArray(paths) ? paths.filter(Boolean) : [];
+      if (!values.length) return "";
+      return `
+        <div class="retrieval-paths">
+          ${values.map((path) => `<span class="tag">${escapeHtml(path)}</span>`).join("")}
+        </div>
+      `;
+    }
+
+    function renderEvidenceBlock(explanation) {
+      const supporting = Array.isArray(explanation.supporting_evidence)
+        ? explanation.supporting_evidence.filter(Boolean).slice(0, 2)
+        : [];
+      const best = explanation.best_evidence || "";
+      if (!best && !supporting.length) return "";
+      return `
+        <div class="rank-evidence">
+          <strong class="subtle">Evidence</strong>
+          ${best ? `<blockquote>${escapeHtml(best)}</blockquote>` : ""}
+          ${supporting.map((item) => `<blockquote>${escapeHtml(item)}</blockquote>`).join("")}
+        </div>
+      `;
+    }
+
+    function rankClass(value, allowed, fallback) {
+      const clean = String(value || "").toLowerCase();
+      return allowed.includes(clean) ? clean : fallback;
+    }
+
+    function renderLatencyDetails(data) {
+      const timings = data.timings_ms || {};
+      const phases  = data.phase_timings || {};
+
+      // ── Phase breakdown bars ──────────────────────────────────────────────
+      const phaseRows = [
+        { label: "1 · Query understanding", key: "query_understanding_ms",
+          note: "Route detect, sanitize, LLM planner, validate, normalize, confidence gate, intent router" },
+        { label: "2 · Retrieval",           key: "retrieval_ms",
+          note: "SQL hard-filter, dense embed + pgvector, BM25, skill exact match, RRF fusion, grouping" },
+        { label: "3 · Ranking & diversity", key: "ranking_ms",
+          note: "Auto-relax guard, cross-encoder rerank, feature ranker (7 signals), MMR diversity, explain" },
+      ];
+
+      const phaseTotal = phaseRows.reduce((s, r) => s + (phases[r.key] ?? 0), 0) || 1;
+
+      const phaseHtml = phaseRows.map((r) => {
+        const ms  = phases[r.key];
+        const val = ms === undefined ? "-" : `${ms} ms`;
+        const pct = ms === undefined ? 0 : Math.round((ms / phaseTotal) * 100);
+        return `
+          <div class="phase-row">
+            <div class="phase-label">${escapeHtml(r.label)}<small>${escapeHtml(r.note)}</small></div>
+            <div class="phase-bar-wrap">
+              <div class="phase-bar" style="width:${pct}%"></div>
+            </div>
+            <div class="phase-value">${escapeHtml(val)}</div>
+          </div>`;
+      }).join("");
+
+      // ── API-level rows ────────────────────────────────────────────────────
+      const pipelineMs = timings.search_pipeline ?? timings.filter_sql;
+      const rows = [
+        { label: "Total API",   value: `${data.latency_ms} ms`,
+          note: "End-to-end inside the FastAPI /search handler" },
+        { label: "Pipeline",    value: pipelineMs === undefined ? "-" : `${pipelineMs} ms`,
+          note: timings.filter_sql !== undefined ? "SQL filters only (no embedding)" : "Full hybrid pipeline" },
+        { label: "Formatting",  value: timings.result_formatting === undefined ? "-" : `${timings.result_formatting} ms`,
+          note: "Result serialisation + explanation assembly" },
+      ];
+
+      $("latencyDetails").innerHTML =
+        `<div class="phase-section">${phaseHtml}</div>` +
+        rows.map((row) => `
+          <div class="latency-item">
+            <strong>${escapeHtml(row.label)}</strong>
+            <div class="latency-value">${escapeHtml(row.value)}</div>
+            <small>${escapeHtml(row.note)}</small>
+          </div>`).join("");
+    }
+
+    function renderPlannerSpec(data) {
+      const panel = $("plannerSpecPanel");
+      if (!panel) return;
+      const spec = data.planner_spec;
+      if (!spec) { panel.hidden = true; return; }
+      panel.hidden = false;
+      $("plannerSpecBody").textContent = JSON.stringify(spec, null, 2);
+      applyLlmSpecToFilters(spec);
+    }
+
+    // After the LLM (or filter-only short-circuit) finalises the spec,
+    // mirror the structured filters it produced back into the UI inputs and
+    // skill chips. Lets users see exactly what the planner extracted from
+    // their free-text query / JD and tweak it for the next run.
+    //
+    // Only must.skills syncs into chips — chips re-submit as hard filters,
+    // so promoting should.skills here would silently change the LLM's
+    // soft-signal interpretation into a hard requirement on re-run.
+    function applyLlmSpecToFilters(spec) {
+      if (!spec || typeof spec !== "object") return;
+      const must = spec.must || {};
+
+      const setIfPresent = (id, value) => {
+        if (value === null || value === undefined || value === "") return;
+        const el = $(id);
+        if (el && document.activeElement !== el) el.value = value;
+      };
+      setIfPresent("searchCountry",    must.country);
+      setIfPresent("searchCity",       must.city);
+      setIfPresent("searchMinExp",     must.min_years_exp);
+      setIfPresent("searchMaxExp",     must.max_years_exp);
+      setIfPresent("searchMinSalary",  must.min_salary);
+      setIfPresent("searchMaxSalary",  must.max_salary);
+
+      const mustSkills = Array.isArray(must.skills) ? must.skills : [];
+      const specWeights = spec.skill_weights || {};
+      const existing = new Map(skillChips.items.map((s) => [s.name, s]));
+      for (const rawName of mustSkills) {
+        const name = String(rawName).trim().toLowerCase();
+        if (!name) continue;
+        const explicitWeight = specWeights[name];
+        const hasExplicit = typeof explicitWeight === "number";
+        const w = hasExplicit
+          ? Math.round((explicitWeight <= 1 ? explicitWeight * 100 : explicitWeight))
+          : 50;
+        if (existing.has(name)) {
+          if (hasExplicit) existing.get(name).weight = w;
+        } else {
+          skillChips.items.push({ name, weight: w });
+        }
+      }
+      renderSkillChips();
+    }
+
+    function renderSearchNotices(data) {
+      const notices = [];
+      if (data.clarify) {
+        notices.push(`
+          <div class="notice warn">
+            <strong>Clarify</strong>
+            <div>${escapeHtml(data.clarify)}</div>
+          </div>
+        `);
+      }
+
+      const relaxations = Array.isArray(data.relaxations_applied) ? data.relaxations_applied : [];
+      const relaxedFields = new Set(relaxations.map((r) => r.field));
+
+      // Active hard filters = the must-fields the LLM extracted that *survived*
+      // relaxation, plus explicit chip/input filters the user typed.
+      // Shown BEFORE the Relaxed panel so the reader sees what's actually
+      // gating the result set first, and what got dropped second.
+      const activeTags = collectActiveHardFilters(data, relaxedFields);
+      if (activeTags.length) {
+        notices.push(`
+          <div class="notice">
+            <strong>Active hard filters</strong>
+            <div class="tags">${activeTags.join("")}</div>
+          </div>
+        `);
+      }
+
+      if (relaxations.length) {
+        notices.push(`
+          <div class="notice info">
+            <strong>Relaxed filters</strong>
+            <div class="tags">
+              ${relaxations.map(renderRelaxationTag).join("")}
+            </div>
+          </div>
+        `);
+      }
+
+      // Things the validator threw out of the LLM's output — show grouped
+      // by section so the user knows what was filtered (hallucinated skills,
+      // forbidden fields, etc.).
+      const dropped = Array.isArray(data.dropped_items) ? data.dropped_items : [];
+      if (dropped.length) {
+        const bySection = {};
+        for (const item of dropped) {
+          const section = item.section || "other";
+          if (!bySection[section]) bySection[section] = [];
+          bySection[section].push(item);
+        }
+        const sectionBlocks = Object.entries(bySection).map(([section, items]) => `
+          <div class="dropped-section">
+            <span class="dropped-section-label">${escapeHtml(section)}</span>
+            <div class="tags">
+              ${items.map(renderDroppedTag).join("")}
+            </div>
+          </div>
+        `).join("");
+        notices.push(`
+          <div class="notice warn">
+            <strong>Dropped by validator</strong>
+            <div class="dropped-list">${sectionBlocks}</div>
+          </div>
+        `);
+      }
+
+      // Personalization offer — proactive "want me to remember this?" prompt.
+      // Shown above other notices so the user sees it first.
+      if (data.personalization_offer && data.personalization_offer.hint) {
+        const offer = data.personalization_offer;
+        const hintEsc = escapeHtml(offer.hint);
+        const qEsc    = escapeHtml(offer.question || "Want me to remember this?");
+        notices.unshift(`
+          <div class="notice info" id="personalizationOffer">
+            <div id="personalizationOfferView">
+              <strong>💡 ${hintEsc}</strong>
+              <div>${qEsc}</div>
+              <div style="margin-top:6px">
+                <button id="acceptPersonalizationBtn" class="primary" type="button">Yes, remember</button>
+                <button id="editPersonalizationBtn" type="button">Tell me more</button>
+                <button id="dismissPersonalizationBtn" type="button">Not now</button>
+              </div>
+            </div>
+            <div id="personalizationOfferEdit" hidden>
+              <strong>💡 Edit before saving</strong>
+              <textarea id="personalizationOfferTextarea"
+                        rows="3" maxlength="200"
+                        style="width:100%;margin-top:6px;font:inherit;padding:6px"></textarea>
+              <div class="muted" id="personalizationOfferCharCount" style="margin-top:4px"></div>
+              <div style="margin-top:6px">
+                <button id="saveEditedPersonalizationBtn" class="primary" type="button">Save</button>
+                <button id="cancelEditPersonalizationBtn" type="button">Cancel</button>
+              </div>
+            </div>
+          </div>
+        `);
+      }
+
+      $("searchNotices").hidden = notices.length === 0;
+      $("searchNotices").innerHTML = notices.join("");
+
+      const acceptBtn      = document.getElementById("acceptPersonalizationBtn");
+      const dismissBtn     = document.getElementById("dismissPersonalizationBtn");
+      const editBtn        = document.getElementById("editPersonalizationBtn");
+      const viewPane       = document.getElementById("personalizationOfferView");
+      const editPane       = document.getElementById("personalizationOfferEdit");
+      const textarea       = document.getElementById("personalizationOfferTextarea");
+      const charCount      = document.getElementById("personalizationOfferCharCount");
+      const saveEditedBtn  = document.getElementById("saveEditedPersonalizationBtn");
+      const cancelEditBtn  = document.getElementById("cancelEditPersonalizationBtn");
+
+      function updateCharCount() {
+        if (charCount && textarea) {
+          charCount.textContent = `${textarea.value.length}/200`;
+        }
+      }
+
+      async function savePersonalizationHint(text) {
+        const recId = $("searchRecruiterId")?.value?.trim();
+        if (!recId) {
+          alert("Set a recruiter ID first to save personalization hints.");
+          return false;
+        }
+        try {
+          await api(`/api/recruiter/${encodeURIComponent(recId)}/hints`, {
+            method: "POST",
+            body: JSON.stringify({ text, source: "suggested" }),
+          });
+          document.getElementById("personalizationOffer")?.remove();
+          loadAgentMemory().catch(console.error);
+          return true;
+        } catch (e) {
+          alert("Could not save hint: " + (e?.message || e));
+          return false;
+        }
+      }
+
+      if (acceptBtn) {
+        acceptBtn.addEventListener("click", () => {
+          savePersonalizationHint(data.personalization_offer.hint);
+        });
+      }
+      if (dismissBtn) {
+        dismissBtn.addEventListener("click", () => {
+          document.getElementById("personalizationOffer")?.remove();
+        });
+      }
+      if (editBtn) {
+        editBtn.addEventListener("click", () => {
+          if (textarea) {
+            textarea.value = data.personalization_offer.hint;
+            updateCharCount();
+          }
+          if (viewPane) viewPane.hidden = true;
+          if (editPane) editPane.hidden = false;
+          textarea?.focus();
+        });
+      }
+      if (textarea) {
+        textarea.addEventListener("input", updateCharCount);
+      }
+      if (cancelEditBtn) {
+        cancelEditBtn.addEventListener("click", () => {
+          if (editPane) editPane.hidden = true;
+          if (viewPane) viewPane.hidden = false;
+        });
+      }
+      if (saveEditedBtn) {
+        saveEditedBtn.addEventListener("click", () => {
+          const edited = (textarea?.value || "").trim();
+          if (!edited) {
+            alert("Hint text can't be empty.");
+            return;
+          }
+          if (edited.length > 200) {
+            alert("Hint must be 200 characters or fewer.");
+            return;
+          }
+          savePersonalizationHint(edited);
+        });
+      }
+    }
+
+    function renderDroppedTag(item) {
+      const value = item.value === null || item.value === undefined
+        ? "(unspecified)"
+        : (typeof item.value === "object" ? JSON.stringify(item.value) : String(item.value));
+      const reason = item.reason ? ` · ${item.reason}` : "";
+      const label = item.field ? `${item.field}: ${value}` : value;
+      return `<span class="tag">${escapeHtml(label)}${escapeHtml(reason)}</span>`;
+    }
+
+    function collectActiveHardFilters(data, relaxedFields) {
+      const tags = [];
+      const seen = new Set();
+      const pushTag = (key, value) => {
+        if (value === null || value === undefined || value === "") return;
+        if (Array.isArray(value) && !value.length) return;
+        const dedupe = `${key}=${Array.isArray(value) ? value.join(",") : value}`;
+        if (seen.has(dedupe)) return;
+        seen.add(dedupe);
+        const display = Array.isArray(value) ? value.join(", ") : value;
+        tags.push(`<span class="tag">${escapeHtml(key)}=${escapeHtml(display)}</span>`);
+      };
+
+      // 1. Surviving LLM-extracted must filters (dropped if the relax stage
+      //    nulled them out).
+      const must = data.planner_spec && data.planner_spec.must ? data.planner_spec.must : {};
+      const MUST_FIELDS = ["country", "city", "min_years_exp", "max_years_exp",
+                           "min_salary", "max_salary", "skills", "applied_role", "status"];
+      for (const field of MUST_FIELDS) {
+        if (relaxedFields.has(field)) continue;
+        pushTag(field, must[field]);
+      }
+
+      // 2. Explicit caller filters (chips / form inputs). These override LLM
+      //    values so they're effectively the hardest of the hard filters.
+      const explicit = data.filters_applied || {};
+      for (const [key, value] of Object.entries(explicit)) {
+        if (key === "skill_weights") continue;  // not a filter, just scoring
+        pushTag(key, value);
+      }
+      return tags;
+    }
+
+    function renderRelaxationTag(item) {
+      const field = item.field || "filter";
+      const fromValue = item.from ?? "set";
+      const toValue = item.to ?? "any";
+      const reason = item.reason ? ` · ${item.reason}` : "";
+      return `<span class="tag">${escapeHtml(field)}: ${escapeHtml(fromValue)} → ${escapeHtml(toValue)}${escapeHtml(reason)}</span>`;
+    }
+
+    function renderScoreStrip(item, explanation) {
+      const values = [
+        ["feature", item.rank_score],
+        ["rrf", item.rrf_score],
+        ["rerank", item.rerank_score],
+        ["semantic", item.similarity_score],
+      ].filter(([, value]) => value !== null && value !== undefined);
+      const paths = renderRetrievalPaths(explanation?.retrieval_paths || []);
+      if (!values.length && !paths) return "";
+      return `
+        <div class="score-strip">
+          ${values.map(([label, value]) => `<span class="score-pill">${escapeHtml(label)} ${formatDecimal(value)}</span>`).join("")}
+          ${paths}
+        </div>
+      `;
+    }
+
+    // Stack of prior result data snapshots so the user can step back out of
+    // "More like this" drill-downs. Cleared whenever a fresh /search runs.
+    const resultsHistory = [];
+    let currentResultsData = null;
+
+    function updateBackButton() {
+      const btn = $("resultsBackBtn");
+      if (!btn) return;
+      btn.hidden = resultsHistory.length === 0;
+    }
+
+    function renderResults(data, opts = {}) {
+      currentResultsData = data;
+      if (opts.resetHistory) {
+        resultsHistory.length = 0;
+      }
+      updateBackButton();
+
+      const queryLabel = data.query || ($("searchJd").value.trim() ? "job description" : "filters only");
+      const modeLabel = data.mode || selectedSearchMode();
+      const sourceKind = data.filters_applied && data.filters_applied.result_kind;
+      $("resultsMeta").textContent = sourceKind === "selected"
+        ? `${data.total_results} selected candidates · "${queryLabel}"`
+        : `${data.total_results} results · ${modeLabel} mode · "${queryLabel}"`;
+      $("latencyChip").textContent = `${data.latency_ms} ms`;
+      
+      const lfChip = $("langfuseChip");
+      if (data.langfuse_trace_url) {
+        lfChip.hidden = false;
+        lfChip.innerHTML = `<a href="${data.langfuse_trace_url}" target="_blank" style="color: inherit; text-decoration: underline;">🔍 Trace ${data.langfuse_trace_id.substring(0, 8)}</a>`;
+        lfChip.style.backgroundColor = "#e6f4ea";
+        lfChip.style.color = "#137333";
+      } else if (data.langfuse_trace_id) {
+        lfChip.hidden = false;
+        lfChip.innerHTML = `⚠️ Trace captured (no URL)`;
+        lfChip.style.backgroundColor = "#fef7e0";
+        lfChip.style.color = "#b06000";
+      } else {
+        lfChip.hidden = false;
+        lfChip.innerHTML = `⚠️ Tracing off/failed`;
+        lfChip.style.backgroundColor = "#fce8e6";
+        lfChip.style.color = "#c5221f";
+      }
+      
+      renderLatencyDetails(data);
+      renderPlannerSpec(data);
+      renderSearchNotices(data);
+
+      if (!data.results.length) {
+        $("resultsList").innerHTML = data.clarify
+          ? `<div class="muted-box">No results returned while the planner is asking for clarification.</div>`
+          : `<div class="muted-box">No matching candidates.</div>`;
+        return;
+      }
+
+      $("resultsList").innerHTML = data.results.map((item, index) => {
+        const skills = (item.skills || []).slice(0, 8)
+          .map((skill) => `<span class="tag">${escapeHtml(skill)}</span>`)
+          .join("");
+        const explanation = item.ranking_explanation;
+        const rawScore = explanation
+          ? (explanation.match_score ?? explanation.pipeline_confidence)
+          : (item.rerank_score ?? item.rank_score ?? (sourceKind === "selected" ? null : item.similarity_score));
+        const score = rawScore == null
+          ? "—"
+          : (explanation ? formatScore(rawScore) : Number(rawScore).toFixed(3));
+        const scoreKind = rawScore == null ? "selected" : (explanation ? (explanation.match_tier || "match") : "rank");
+        const salary = formatSalaryRange(item.salary_min, item.salary_max);
+        const isSource = !!item.is_source;
+        const sourceBadge = isSource ? `<span class="source-badge">Selected</span>` : "";
+        const moreLikeBtn = isSource
+          ? ""
+          : `<button type="button" class="more-like-btn" onclick="moreLikeThis('${escapeHtml(item.candidate_id)}')">More like this</button>`;
+        return `
+          <article class="result-row${isSource ? " source-candidate" : ""}">
+            <div class="result-head">
+              <div>
+                <strong>${sourceBadge}${escapeHtml(item.full_name)}</strong>
+                <div class="subtle">${escapeHtml([item.city, item.country, salary, item.years_exp ? `${item.years_exp} yrs` : ""].filter(Boolean).join(" / "))}</div>
+              </div>
+              <div class="score">
+                ${score}
+                <small>${scoreKind}</small>
+              </div>
+            </div>
+            ${renderScoreStrip(item, explanation)}
+            <div class="snippet">${escapeHtml(item.best_chunk)}</div>
+            ${renderRankingExplanation(explanation)}
+            <div class="tags">
+              <span class="tag">${escapeHtml(item.doc_type)}</span>
+              ${skills}
+            </div>
+            <div class="inline result-actions" style="margin-top: 8px;">
+              <button type="button" onclick="openCandidate('${escapeHtml(item.candidate_id)}')">Open Profile</button>
+              ${moreLikeBtn}
+              ${!isSource && item.impression_id ? `<span class="relevance-group" title="Was this a good match for your search? (retrieval quality)" style="display:inline-flex; gap:4px; align-items:center;">
+                <button type="button" class="thumb" onclick="logRelevance('${escapeHtml(item.impression_id)}', true, this)">👍</button>
+                <button type="button" class="thumb" onclick="logRelevance('${escapeHtml(item.impression_id)}', false, this)">👎</button>
+              </span>` : ""}
+              ${!isSource ? `<button type="button" style="background: var(--accent); color: white; border: none; margin-left: auto;" onclick="logOutcome('shortlisted', '${escapeHtml(item.impression_id)}', '${escapeHtml(item.candidate_id)}', '${escapeHtml(item.full_name)}', this)">✓ Accept</button>
+              <button type="button" style="background: var(--red); color: white; border: none;" onclick="logOutcome('rejected', '${escapeHtml(item.impression_id)}', '${escapeHtml(item.candidate_id)}', '${escapeHtml(item.full_name)}', this)">✕ Reject</button>` : ""}
+            </div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    async function moreLikeThis(candidateId) {
+      if (!candidateId) return;
+      // Snapshot the visible results so the back button can restore them.
+      const previous = currentResultsData;
+      // Pull the source candidate from what's already on screen — we already
+      // have all their profile data, no extra fetch needed.
+      const sourceCandidate = previous && previous.results
+        ? previous.results.find((r) => r.candidate_id === candidateId)
+        : null;
+
+      setStatus("Finding similar candidates", "warn");
+      try {
+        const topK = numberOrNull($("searchTopK").value) || 10;
+        const data = await api("/search/similar", {
+          method: "POST",
+          body: JSON.stringify({ candidate_id: candidateId, top_k: topK }),
+        });
+        // Pin the chosen candidate at the top, flagged so renderResults can
+        // highlight it green.
+        if (sourceCandidate) {
+          const pinned = { ...sourceCandidate, is_source: true };
+          data.results = [pinned, ...data.results.filter((r) => r.candidate_id !== candidateId)];
+          data.total_results = data.results.length;
+        }
+        if (previous) resultsHistory.push(previous);
+        renderResults(data);
+        const sourceLabel = sourceCandidate ? sourceCandidate.full_name : candidateId.slice(0, 8) + "…";
+        $("resultsMeta").textContent = `${data.total_results - (sourceCandidate ? 1 : 0)} similar to ${sourceLabel}`;
+        setStatus("Similar candidates ready", "ok");
+      } catch (error) {
+        setStatus("More-like-this failed", "error");
+        $("resultsList").innerHTML = `<div class="muted-box">${escapeHtml(error.message)}</div>`;
+      }
+    }
+    window.moreLikeThis = moreLikeThis;
+
+    function goBackInResults() {
+      if (!resultsHistory.length) return;
+      const previous = resultsHistory.pop();
+      renderResults(previous);
+      setStatus("Restored previous results", "ok");
+    }
+    window.goBackInResults = goBackInResults;
+
+    function currentTableOffset() {
+      return state.tablePage * state.tablePageSize;
+    }
+
+    function resetTablePage() {
+      state.tablePage = 0;
+    }
+
+    async function loadCandidates() {
+      const params = {
+        limit: state.tablePageSize,
+        offset: state.tablePage * state.tablePageSize,
+        name_email: $("candidateNameFilter").value.trim(),
+        city: $("candidateCityFilter").value.trim(),
+        country: $("candidateCountryFilter").value.trim(),
+        skills: $("candidateSkillFilter").value.trim(),
+        status: $("statusFilter").value,
+      };
+      const data = await api(`/admin/candidates${queryString(params)}`);
+      renderCandidateTable(data);
+      updateTablePager(data);
+      return data;
+    }
+
+    async function loadDocuments(candidateId = state.tableCandidateFilter) {
+      const params = {
+        limit: state.tablePageSize,
+        offset: state.tablePage * state.tablePageSize,
+        candidate_id: candidateId,
+        q: state.activeTable === "documents" ? $("tableFilter").value.trim() : "",
+      };
+      const data = await api(`/admin/documents${queryString(params)}`);
+      renderDocumentTable(data);
+      updateTablePager(data);
+      return data;
+    }
+
+    async function loadChunks(candidateId = state.tableCandidateFilter, documentId = state.tableDocumentFilter) {
+      const params = {
+        limit: state.tablePageSize,
+        offset: state.tablePage * state.tablePageSize,
+        candidate_id: candidateId,
+        document_id: documentId,
+        q: state.activeTable === "chunks" ? $("tableFilter").value.trim() : "",
+      };
+      const data = await api(`/admin/chunks${queryString(params)}`);
+      renderChunkTable(data);
+      updateTablePager(data);
+      return data;
+    }
+
+    async function loadActiveTable() {
+      if (state.activeTable === "candidates") return loadCandidates();
+      if (state.activeTable === "documents") return loadDocuments();
+      if (state.activeTable === "history") return loadHistory();
+      return loadChunks();
+    }
+
+    function updateTablePager(data) {
+      const total = Number(data.total || 0);
+      const limit = Number(data.limit || state.tablePageSize);
+      const offset = Number(data.offset || 0);
+      const shown = Number(data.items?.length || 0);
+      const first = shown ? offset + 1 : 0;
+      const last = offset + shown;
+      const page = limit ? Math.floor(offset / limit) + 1 : 1;
+      const pages = Math.max(1, Math.ceil(total / Math.max(limit, 1)));
+
+      $("tablePageMeta").textContent = total
+        ? `${first}-${last} of ${total} / page ${page} of ${pages}`
+        : "0 results";
+      $("tablePrevBtn").disabled = offset <= 0;
+      $("tableNextBtn").disabled = offset + shown >= total || shown === 0;
+    }
+
+    function renderCandidateTable(data) {
+      $("tableMeta").textContent = `${data.total} candidates`;
+      $("tableHead").innerHTML = `
+        <tr>
+          <th>Name</th><th>Location</th><th>Skills</th><th>Status</th>
+          <th>Docs</th><th>Chunks</th><th>Updated</th><th></th>
+        </tr>
+      `;
+      $("tableBody").innerHTML = data.items.map((item) => {
+        const selected = state.selectedCandidate?.id === item.id ? "selected" : "";
+        return `
+          <tr class="${selected}" onclick="selectCandidateById('${escapeHtml(item.id)}')">
+            <td><strong>${escapeHtml(item.full_name)}</strong><div class="subtle">${escapeHtml(item.email || "")}</div></td>
+            <td>${escapeHtml([item.city, item.country].filter(Boolean).join(", "))}</td>
+            <td>${escapeHtml((item.skills || []).slice(0, 5).join(", "))}</td>
+            <td><span class="tag">${escapeHtml(item.status)}</span></td>
+            <td>${item.document_count}</td>
+            <td>${item.chunk_count}</td>
+            <td class="mono">${escapeHtml(formatDate(item.updated_at))}</td>
+            <td><button type="button" onclick="event.stopPropagation(); selectCandidateById('${escapeHtml(item.id)}')">Open</button></td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function renderDocumentTable(data) {
+      $("tableMeta").textContent = `${data.total} documents`;
+      $("tableHead").innerHTML = `
+        <tr>
+          <th>Title</th><th>Candidate</th><th>Type</th><th>Size</th>
+          <th>Chunks</th><th>Preview</th><th></th>
+        </tr>
+      `;
+      $("tableBody").innerHTML = data.items.map((item) => `
+        <tr onclick="openDocument('${escapeHtml(item.id)}')">
+          <td><strong>${escapeHtml(item.title || "Untitled")}</strong><div class="mono">${escapeHtml(shortId(item.id))}</div></td>
+          <td>${escapeHtml(item.candidate_name)}</td>
+          <td><span class="tag">${escapeHtml(item.doc_type)}</span></td>
+          <td>${item.char_count}</td>
+          <td>${item.chunk_count}</td>
+          <td class="preview-cell">${escapeHtml(item.preview)}</td>
+          <td>
+            <button type="button" onclick="event.stopPropagation(); openDocument('${escapeHtml(item.id)}')">View</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function renderChunkTable(data) {
+      $("tableMeta").textContent = `${data.total} chunks`;
+      $("tableHead").innerHTML = `
+        <tr>
+          <th>Candidate</th><th>Document</th><th>Type</th><th>Index</th>
+          <th>Tokens</th><th>Preview</th>
+        </tr>
+      `;
+      $("tableBody").innerHTML = data.items.map((item) => `
+        <tr>
+          <td>${escapeHtml(item.candidate_name)}</td>
+          <td><button type="button" onclick="openDocument('${escapeHtml(item.document_id)}')">${escapeHtml(item.document_title || shortId(item.document_id))}</button></td>
+          <td><span class="tag">${escapeHtml(item.doc_type)}</span></td>
+          <td>${item.chunk_index}</td>
+          <td>${item.token_count ?? ""}</td>
+          <td class="preview-cell">${escapeHtml(item.preview)}</td>
+        </tr>
+      `).join("");
+    }
+
+    async function loadCandidateDocuments(candidateId) {
+      $("candidateDocumentsSection").hidden = false;
+      $("candidateDocumentsMeta").textContent = "Loading";
+      $("candidateDocumentsList").innerHTML = `<div class="muted-box">Loading document previews...</div>`;
+      const data = await api(`/admin/documents${queryString({
+        limit: 40,
+        candidate_id: candidateId,
+      })}`);
+      renderCandidateDocuments(data);
+      return data;
+    }
+
+    function renderCandidateDocuments(data) {
+      $("candidateDocumentsMeta").textContent = `${data.total} docs`;
+      if (!data.items.length) {
+        $("candidateDocumentsList").innerHTML = `<div class="muted-box">No documents attached yet.</div>`;
+        return;
+      }
+
+      $("candidateDocumentsList").innerHTML = data.items.map((item) => `
+        <article class="profile-doc-row">
+          <div>
+            <strong>${escapeHtml(item.title || "Untitled document")}</strong>
+            <div class="subtle">
+              ${escapeHtml(item.doc_type)} / ${item.char_count} chars / ${item.chunk_count} chunks
+            </div>
+          </div>
+          <p class="doc-preview">${escapeHtml(item.preview || "No preview available.")}</p>
+          <div class="inline">
+            <button type="button" onclick="openDocument('${escapeHtml(item.id)}')">View</button>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    async function selectCandidateById(candidateId) {
+      const candidate = await api(`/candidates/${candidateId}`);
+      selectCandidate(candidate);
+      try {
+        await loadCandidateDocuments(candidateId);
+      } catch (error) {
+        $("candidateDocumentsMeta").textContent = "Error";
+        $("candidateDocumentsList").innerHTML =
+          `<div class="muted-box">${escapeHtml(error.message)}</div>`;
+        setStatus("Document previews failed", "error");
+      }
+    }
+
+    async function openCandidate(candidateId) {
+      await selectCandidateById(candidateId);
+    }
+
+    function selectCandidate(candidate) {
+      state.selectedCandidate = candidate;
+      $("selectedCandidateId").textContent = candidate.id;
+      $("selectedCounts").textContent = `${candidate.document_count || 0} docs / ${candidate.chunk_count || 0} chunks`;
+      $("candidateEditorEmpty").hidden = true;
+      $("candidateEditor").hidden = false;
+      $("candidateDocumentsSection").hidden = false;
+
+      $("candidateName").value = candidate.full_name || "";
+      $("candidateEmail").value = candidate.email || "";
+      $("candidateStatus").value = candidate.status || "active";
+      $("candidateAge").value = candidate.age ?? "";
+      $("candidateYears").value = candidate.years_exp ?? 0;
+      $("candidateCity").value = candidate.city || "";
+      $("candidateCountry").value = candidate.country || "";
+      $("candidateLocation").value = candidate.location || "";
+      $("candidateSkills").value = joinList(candidate.skills);
+      $("candidateInterests").value = joinList(candidate.interests);
+    }
+
+    function clearSelection() {
+      state.selectedCandidate = null;
+      state.tableCandidateFilter = "";
+      state.tableDocumentFilter = "";
+      resetTablePage();
+      $("selectedCandidateId").textContent = "No selection";
+      $("selectedCounts").textContent = "-";
+      $("candidateEditorEmpty").hidden = false;
+      $("candidateEditor").hidden = true;
+      $("candidateDocumentsSection").hidden = true;
+      $("candidateDocumentsMeta").textContent = "-";
+      $("candidateDocumentsList").innerHTML = `<div class="muted-box">Open a candidate to load document previews.</div>`;
+      loadActiveTable().catch(showError);
+    }
+
+    async function saveCandidate(event) {
+      event.preventDefault();
+      if (!state.selectedCandidate) return;
+      const payload = {
+        full_name: $("candidateName").value.trim(),
+        email: $("candidateEmail").value.trim() || null,
+        status: $("candidateStatus").value,
+        age: numberOrNull($("candidateAge").value),
+        years_exp: numberOrNull($("candidateYears").value) || 0,
+        city: $("candidateCity").value.trim() || null,
+        country: $("candidateCountry").value.trim() || null,
+        location: $("candidateLocation").value.trim() || null,
+        skills: splitList($("candidateSkills").value),
+        interests: splitList($("candidateInterests").value),
+      };
+      const updated = await api(`/admin/candidates/${state.selectedCandidate.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+      selectCandidate(updated);
+      await refreshAfterWrite("Candidate saved");
+    }
+
+    async function deleteCandidate() {
+      if (!state.selectedCandidate) return;
+      const name = state.selectedCandidate.full_name;
+      if (!confirm(`Delete ${name} and all attached documents/chunks?`)) return;
+      await api(`/admin/candidates/${state.selectedCandidate.id}`, { method: "DELETE" });
+      clearSelection();
+      await refreshAfterWrite("Candidate deleted");
+    }
+
+    async function createCandidate(event) {
+      event.preventDefault();
+      const payload = compactPayload({
+        full_name: $("newName").value.trim(),
+        email: $("newEmail").value.trim(),
+        city: $("newCity").value.trim(),
+        country: $("newCountry").value.trim(),
+        years_exp: numberOrNull($("newYears").value) || 0,
+        skills: splitList($("newSkills").value),
+      });
+      if (!payload.full_name) {
+        setStatus("Candidate name required", "warn");
+        return;
+      }
+      const created = await api("/candidates", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      $("createCandidateForm").reset();
+      $("newYears").value = 0;
+      await refreshAfterWrite("Candidate added");
+      await selectCandidateById(created.id);
+    }
+
+    async function ingestDocument(event) {
+      event.preventDefault();
+      if (!state.selectedCandidate) {
+        setStatus("Select a candidate first", "warn");
+        return;
+      }
+      const payload = compactPayload({
+        candidate_id: state.selectedCandidate.id,
+        doc_type: $("docType").value,
+        title: $("docTitle").value.trim() || "Untitled document",
+        raw_text: $("docText").value.trim(),
+        chunk_strategy: $("chunkStrategy").value,
+      });
+      if (!payload.raw_text) {
+        setStatus("Document text required", "warn");
+        return;
+      }
+      const candidateId = state.selectedCandidate.id;
+      setStatus("Ingesting document", "warn");
+      await api("/ingest", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      $("ingestForm").reset();
+      await selectCandidateById(candidateId);
+      await refreshAfterWrite("Document ingested");
+    }
+
+    async function openDocument(documentId) {
+      const document = await api(`/admin/documents/${documentId}`);
+      state.selectedDocument = document;
+      $("dialogTitle").textContent = document.title || "Untitled document";
+      $("dialogMeta").textContent =
+        `${document.candidate_name} / ${document.doc_type} / ${document.char_count} chars / ${document.chunk_count} chunks`;
+      $("dialogRawText").textContent = document.raw_text;
+      $("documentDialog").showModal();
+    }
+
+    async function deleteSelectedDocument() {
+      if (!state.selectedDocument) return;
+      const title = state.selectedDocument.title || state.selectedDocument.id;
+      if (!confirm(`Delete document "${title}" and its chunks?`)) return;
+      const candidateId = state.selectedCandidate?.id;
+      await api(`/admin/documents/${state.selectedDocument.id}`, { method: "DELETE" });
+      $("documentDialog").close();
+      state.selectedDocument = null;
+      if (candidateId) {
+        await selectCandidateById(candidateId);
+      }
+      await refreshAfterWrite("Document deleted");
+    }
+
+    async function refreshAfterWrite(message) {
+      await refreshStats();
+      await loadFilterOptions();
+      await loadActiveTable();
+      setStatus(message, "ok");
+    }
+
+    function activateTable(table) {
+      state.activeTable = table;
+      resetTablePage();
+      $("tabCandidates").classList.toggle("active", table === "candidates");
+      $("tabDocuments").classList.toggle("active", table === "documents");
+      $("tabChunks").classList.toggle("active", table === "chunks");
+      $("tabHistory").classList.toggle("active", table === "history");
+      $("candidateTableFilters").hidden = table !== "candidates";
+      $("genericTableFilters").hidden = table === "candidates";
+      $("historyTableFilters").hidden = table !== "history";
+      const placeholders = {
+        documents: "candidate, title, or document text",
+        chunks: "candidate, document title, type, or chunk text",
+      };
+      if (placeholders[table]) {
+        $("tableFilter").placeholder = placeholders[table];
+      }
+      loadActiveTable().catch(showError);
+    }
+
+    function showAll() {
+      state.tableCandidateFilter = "";
+      state.tableDocumentFilter = "";
+      resetTablePage();
+      $("tableFilter").value = "";
+      $("candidateNameFilter").value = "";
+      $("candidateCountryFilter").value = "";
+      $("candidateCityFilter").value = "";
+      $("candidateSkillFilter").value = "";
+      $("statusFilter").value = "";
+      refreshCandidateCityOptions();
+      loadActiveTable().catch(showError);
+    }
+
+    function showError(error) {
+      console.error(error);
+      setStatus(error.message || "Request failed", "error");
+    }
+
+    function formatDate(value) {
+      if (!value) return "";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return date.toLocaleString(undefined, {
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+
+    function shortId(value) {
+      return String(value || "").slice(0, 8);
+    }
+
+    function clearSearch() {
+      $("searchQuery").value = "";
+      $("searchJd").value = "";
+      document.querySelector('input[name="searchMode"][value="no-llm"]').checked = true;
+      $("searchLocation").value = "";
+      $("searchCountry").value = "";
+      $("searchCity").value = "";
+      clearSkillChips();
+      $("searchMinExp").value = "";
+      $("searchMaxExp").value = "";
+      $("searchMinSalary").value = "";
+      $("searchMaxSalary").value = "";
+      $("searchTopK").value = 10;
+      $("searchRecruiterId").value = "";
+      $("searchRankExplanation").checked = true;
+      $("searchAiInsight").checked = false;
+
+      // Reset status filter to "All"
+      const allStatus = document.querySelector('input[name="searchStatus"][value=""]');
+      if (allStatus) allStatus.checked = true;
+
+      // Sync toggle panel to quality defaults
+      applyModeToUI("no-llm");
+
+      refreshCityOptions();
+      $("resultsMeta").textContent = "No search yet";
+      $("latencyChip").textContent = "-";
+      $("latencyDetails").textContent = "Run a search to see where time is spent.";
+      $("plannerSpecPanel").hidden = true;
+      $("plannerSpecBody").textContent = "";
+      $("searchNotices").hidden = true;
+      $("searchNotices").innerHTML = "";
+      $("sessionStatsPanel").hidden = true;
+      $("pipelineMetrics").innerHTML = "";
+      $("resultsList").innerHTML = `<div class="muted-box">Run a search to see ranked candidates.</div>`;
+      clearAiInsight();
+    }
+
+    function bindEvents() {
+      $("refreshAllBtn").addEventListener("click", () => init().catch(showError));
+      $("runSearchBtn").addEventListener("click", () => runSearch().catch(showError));
+      $("clearSearchBtn").addEventListener("click", clearSearch);
+      $("resultsBackBtn").addEventListener("click", goBackInResults);
+      $("agentMemoryRefreshBtn").addEventListener("click", () => loadAgentMemory().catch(showError));
+
+      // Sync pipeline override panel whenever mode changes
+      document.querySelectorAll('input[name="searchMode"]').forEach((radio) => {
+        radio.addEventListener("change", () => applyModeToUI(radio.value));
+      });
+      // Apply initial mode on load
+      applyModeToUI(selectedSearchMode());
+      $("searchLocation").addEventListener("input", syncLocationToCityCountry);
+      $("searchLocation").addEventListener("change", syncLocationToCityCountry);
+      $("searchCountry").addEventListener("input", syncCityCountryToLocation);
+      $("searchCountry").addEventListener("change", syncCityCountryToLocation);
+      $("searchCity").addEventListener("input", syncCityCountryToLocation);
+      $("searchCity").addEventListener("change", syncCityCountryToLocation);
+      $("candidateCountryFilter").addEventListener("change", refreshCandidateCityOptions);
+      bindSkillChipEvents();
+      $("clearSelectionBtn").addEventListener("click", clearSelection);
+      $("candidateEditor").addEventListener("submit", (event) => saveCandidate(event).catch(showError));
+      $("deleteCandidateBtn").addEventListener("click", () => deleteCandidate().catch(showError));
+      $("createCandidateForm").addEventListener("submit", (event) => createCandidate(event).catch(showError));
+      $("ingestForm").addEventListener("submit", (event) => ingestDocument(event).catch(showError));
+      $("closeDialogBtn").addEventListener("click", () => $("documentDialog").close());
+      $("deleteDialogDocumentBtn").addEventListener("click", () => deleteSelectedDocument().catch(showError));
+      $("applyTableFilterBtn").addEventListener("click", () => {
+        resetTablePage();
+        loadActiveTable().catch(showError);
+      });
+      $("showAllBtn").addEventListener("click", showAll);
+      $("tablePrevBtn").addEventListener("click", () => {
+        state.tablePage = Math.max(0, state.tablePage - 1);
+        loadActiveTable().catch(showError);
+      });
+      $("tableNextBtn").addEventListener("click", () => {
+        state.tablePage += 1;
+        loadActiveTable().catch(showError);
+      });
+      $("tablePageSize").addEventListener("change", (event) => {
+        state.tablePageSize = Number(event.target.value) || 80;
+        resetTablePage();
+        loadActiveTable().catch(showError);
+      });
+      $("tableFilter").addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          resetTablePage();
+          loadActiveTable().catch(showError);
+        }
+      });
+      ["candidateNameFilter", "candidateCountryFilter", "candidateCityFilter", "candidateSkillFilter"].forEach((id) => {
+        $(id).addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            resetTablePage();
+            loadCandidates().catch(showError);
+          }
+        });
+      });
+      $("statusFilter").addEventListener("change", () => {
+        if (state.activeTable === "candidates") {
+          resetTablePage();
+          loadCandidates().catch(showError);
+        }
+      });
+      $("tabCandidates").addEventListener("click", () => activateTable("candidates"));
+      $("tabDocuments").addEventListener("click", () => activateTable("documents"));
+      $("tabChunks").addEventListener("click", () => activateTable("chunks"));
+      $("tabHistory").addEventListener("click", () => activateTable("history"));
+      
+      $("searchQuery").addEventListener("keydown", (event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+          runSearch().catch(showError);
+        }
+      });
+      $("searchJd").addEventListener("keydown", (event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+          runSearch().catch(showError);
+        }
+      });
+      $("searchTopK").addEventListener("keydown", (event) => {
+        if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+          runSearch().catch(showError);
+        }
+      });
+      let savedRecruiterId = localStorage.getItem("recruiter_id");
+      if (!savedRecruiterId) {
+        savedRecruiterId = crypto.randomUUID();
+        localStorage.setItem("recruiter_id", savedRecruiterId);
+      }
+      if ($("searchRecruiterId")) {
+        $("searchRecruiterId").value = savedRecruiterId;
+      }
+      $("historyActionFilter").addEventListener("change", () => {
+        if (state.activeTable === "history") {
+          resetTablePage();
+          loadHistory().catch(showError);
+        }
+      });
+    }
+
+    window.openCandidate = openCandidate;
+    window.openDocument = openDocument;
+    window.selectCandidateById = selectCandidateById;
+
+    // Helpers used by agent-panel.js to read current search context
+    window._getActiveFilters = function () {
+      return {
+        location: $("searchLocation").value.trim(),
+        country:  $("searchCountry").value.trim(),
+        city:     $("searchCity").value.trim(),
+        skills:   (window.skillChips?.items || []).map(function (s) { return s.name; }),
+        mode:     selectedSearchMode(),
+      };
+    };
+    window._getCurrentResultIds = function () {
+      if (!currentResultsData || !currentResultsData.results) return [];
+      return currentResultsData.results
+        .map(function (r) { return r.candidate_id || r.id; })
+        .filter(Boolean);
+    };
+    // Show the EXACT candidates the agent retrieved in the main results panel.
+    // The agent can find people in ways the search bar can't (keyword-only
+    // matches, ad-hoc SQL), so we hydrate the precise candidate IDs it returned
+    // rather than re-running a search.
+    window._showAgentResults = async function (resultIds, query, scores) {
+      const ids = (resultIds || []).filter(Boolean);
+      if (!ids.length) return;
+      setStatus("Loading agent results", "warn");
+      try {
+        const data = await api("/agent/push-results", {
+          method: "POST",
+          body: JSON.stringify({ candidate_ids: ids, query: query || "", scores: scores || {} }),
+        });
+        renderResults(data, { resetHistory: true });
+        clearAiInsight();
+        setStatus(`Showing ${data.total_results} from agent`, "ok");
+      } catch (error) {
+        setStatus("Could not load agent results", "error");
+        $("resultsList").innerHTML = `<div class="muted-box">${escapeHtml(error.message)}</div>`;
+      }
+    };
+
+    async function init() {
+      setStatus("Loading", "warn");
+      await refreshStats();
+      await loadFilterOptions();
+      activateTable(state.activeTable);
+      await loadActiveTable();
+      const recruiterId = $("searchRecruiterId")?.value?.trim() || null;
+      AgentPanel.init(recruiterId);
+      await loadAgentMemory();
+    }
+
+    document.addEventListener("agent:push-to-main", function (e) {
+      var detail = e.detail || {};
+      window._showAgentResults(detail.resultIds || [], detail.query || "", detail.scores || {});
+    });
+
+    bindEvents();
+    init().catch(showError);
+  </script>
+
+</body>
+</html>

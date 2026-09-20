@@ -1,0 +1,13 @@
+{"id":"S01","title":"Samsung PRISM Y2026 GenAI Hackathon 3rd Edition","type":"official_brief","locator":"../reference/Samsung_PRISM_Y2026_Hackathon_Brief.pdf","accessed":"2026-09-21"}
+{"id":"S02","title":"Theme 4 Guide: Streaming Live RAG","type":"official_guide","locator":"../reference/Theme_4_Streaming_Live_RAG_Guide.pdf","accessed":"2026-09-21"}
+{"id":"S03","title":"Question Decomposition for Retrieval-Augmented Generation","type":"paper","url":"https://arxiv.org/abs/2507.00355","accessed":"2026-09-21"}
+{"id":"S04","title":"Scaling RAG with RAG Fusion: Lessons from Industry Deployment","type":"paper","url":"https://arxiv.org/abs/2603.02153","accessed":"2026-09-21"}
+{"id":"S05","title":"RAGAS: Automated Evaluation of Retrieval Augmented Generation","type":"paper","url":"https://aclanthology.org/2024.eacl-demo.16/","accessed":"2026-09-21"}
+{"id":"S06","title":"GroUSE: A Benchmark to Evaluate Evaluators in Grounded Question Answering","type":"paper","url":"https://aclanthology.org/2025.coling-main.304/","accessed":"2026-09-21"}
+{"id":"S07","title":"A Fine-Grained Evaluation Framework for RAG Citations","type":"paper","url":"https://aclanthology.org/2024.inlg-main.35/","accessed":"2026-09-21"}
+{"id":"S08","title":"ReClaim: Grounded Text Generation with Sentence-Level Citations","type":"paper","url":"https://aclanthology.org/2025.findings-naacl.55/","accessed":"2026-09-21"}
+{"id":"S09","title":"SIGDIAL 2026 Proceedings: Ping-Ponder","type":"paper","url":"https://aclanthology.org/volumes/2026.sigdial-1/","accessed":"2026-09-21"}
+{"id":"S10","title":"Predictive Prefetching for Retrieval-Augmented Generation","type":"paper","url":"https://arxiv.org/abs/2605.17989","accessed":"2026-09-21"}
+{"id":"S11","title":"PydanticAI Function Tools and Toolsets","type":"official_docs","url":"https://pydantic.dev/docs/ai/tools-toolsets/tools/","accessed":"2026-09-21"}
+{"id":"S12","title":"Langfuse Observability Data Model","type":"official_docs","url":"https://langfuse.com/docs/observability/data-model","accessed":"2026-09-21"}
+{"id":"S13","title":"NIST AI Risk Management Framework","type":"official_standard","url":"https://www.nist.gov/itl/ai-risk-management-framework","accessed":"2026-09-21"}

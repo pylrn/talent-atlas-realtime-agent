@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Environment
+.env
+.env.production
+
+# IDE
+.vscode/
+.idea/
+
+# Local runtime/test artifacts
+.playwright-cli/
+.playwright-mcp/
+server.log
+repomix-output.xml
+
+# Docker
+pgdata/
+
+# OS
+.DS_Store
+Thumbs.db

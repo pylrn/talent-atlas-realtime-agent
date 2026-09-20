@@ -1,0 +1,1250 @@
+{
+  "sample_size": 3,
+  "seed": "candidate-mode-benchmark-v1",
+  "candidate_source": "curated",
+  "top_k": 10,
+  "modes": [
+    "no-llm",
+    "quality"
+  ],
+  "candidates": [
+    {
+      "candidate_id": "0a1acde0-7ddc-4de2-85df-6d7977fa9b5b",
+      "name": "React Developer Candidate 12328",
+      "role": "Full-stack React developer",
+      "city": "San Francisco",
+      "country": "USA",
+      "years_exp": 0,
+      "skills": [
+        "javascript",
+        "typescript",
+        "react",
+        "html",
+        "python",
+        "docker",
+        "mongodb",
+        "postgresql",
+        "mysql",
+        "git",
+        "django",
+        "css",
+        "aws",
+        "rest-api",
+        "azure",
+        "gcp"
+      ],
+      "resume_excerpt": "jessica claire 100 montgomery st 10th floor 555 4321000 resumesampleexamplecom professional summary experienced fullstack developer demonstrated history working information technology services industry strong engineering professional currently seeking fulltime job opportunities skilled javascript typescript react nodejs html csscss3 python programming language goal expand knowledge extent able provide architectural solutions software development skills reactjsreduxfluxmobx reactrouter reactbootstrap semanticui materialui pythondjangodjango rest frameworkflask es67 typescriptjavascript html5 css3 bootstrap sass less nodeexpresskoahapi cicd pipeline gitlab jenkins npm webpack babel yarn gulpgrunt docker mongodb postgresql mysql awsec2 lambda dynamodb s3 etc heroku firebase work history freelancer 062022 current jpmorgan chase co helena mt full stack engineer 032022 052022 cognizant technol"
+    },
+    {
+      "candidate_id": "7195f027-8df8-436b-91ae-7b8bfddc5a9a",
+      "name": "Java Developer Candidate 10757",
+      "role": "Java J2EE web application developer",
+      "city": "Bangalore",
+      "country": "India",
+      "years_exp": 6,
+      "skills": [
+        "java",
+        "html",
+        "javascript",
+        "linux",
+        "css",
+        "mysql",
+        "aws",
+        "rest-api",
+        "git",
+        "spring-boot",
+        "communication",
+        "node",
+        "sql"
+      ],
+      "resume_excerpt": "jessica claire 100 montgomery st 10th floor 555 4321000 resumesampleexamplecom professional summary skilled professional 6 years experience design development maintenance webbased applications using javaj2ee technologies experienced phases sdlc including analysis design coding testing expertise integration using j2ee architecture experienced designing developing multitier scalable applications using java jee design patterns expertise using ides like eclipsemy eclipse experienced development deployment 3tier ntier architectures extensive experience application servers including websphere 61 web servers like apache tomcat etc expertise developing internetintranet applications web services wsdl ant java jsp servlet jdbc struts hibernate junit xml log4j html javascript experience developing user interface screens presentation using java jsp html java script ajax experience struts mvc spring "
+    },
+    {
+      "candidate_id": "58de6a7e-5e61-439f-a757-e67a5d01260c",
+      "name": "Sql Developer Candidate 12961",
+      "role": "Microsoft SQL Server data warehouse developer",
+      "city": "Hyderabad",
+      "country": "India",
+      "years_exp": 8,
+      "skills": [
+        "sql",
+        "data-analysis",
+        "git",
+        "mysql",
+        "linux",
+        "risk-management"
+      ],
+      "resume_excerpt": "jessica claire resumesampleexamplecom 555 4321000 100 montgomery st 10th floor summary 8 years experience data design development microsoft sql server 2019201620122008r22005 tsql performance tuning troubleshooting ssisdts packages ssrs datawarehousing experience using business intelligence tools ssis ssrs ssas ms sql server 2019 201620122008 extensive experience tsql constructing triggers tables implementing stored procedures functions views user profiles data dictionaries data integrity extensive knowledge normalization relational database management systems good understanding database data warehousing concepts oltp olap hands experience various sql server services like integration services ssis reporting services ssrs analysis services ssas great ability create manage various database objects like tables views excellent tsql development skills write complex queries involving multiple t"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "c01-obvious",
+      "category": "obvious",
+      "candidate": {
+        "candidate_id": "0a1acde0-7ddc-4de2-85df-6d7977fa9b5b",
+        "name": "React Developer Candidate 12328",
+        "role": "Full-stack React developer",
+        "city": "San Francisco",
+        "country": "USA",
+        "years_exp": 0,
+        "skills": [
+          "javascript",
+          "typescript",
+          "react",
+          "html",
+          "python",
+          "docker",
+          "mongodb",
+          "postgresql",
+          "mysql",
+          "git",
+          "django",
+          "css",
+          "aws",
+          "rest-api",
+          "azure",
+          "gcp"
+        ],
+        "resume_excerpt": "jessica claire 100 montgomery st 10th floor 555 4321000 resumesampleexamplecom professional summary experienced fullstack developer demonstrated history working information technology services industry strong engineering professional currently seeking fulltime job opportunities skilled javascript typescript react nodejs html csscss3 python programming language goal expand knowledge extent able provide architectural solutions software development skills reactjsreduxfluxmobx reactrouter reactbootstrap semanticui materialui pythondjangodjango rest frameworkflask es67 typescriptjavascript html5 css3 bootstrap sass less nodeexpresskoahapi cicd pipeline gitlab jenkins npm webpack babel yarn gulpgrunt docker mongodb postgresql mysql awsec2 lambda dynamodb s3 etc heroku firebase work history freelancer 062022 current jpmorgan chase co helena mt full stack engineer 032022 052022 cognizant technol"
+      },
+      "query": "full-stack React TypeScript developer with Docker PostgreSQL web apps",
+      "filters": {
+        "city": "San Francisco",
+        "country": "USA",
+        "skills": [
+          "react"
+        ]
+      },
+      "rationale": "Hand-built precise role/skill/location query from the candidate resume.",
+      "runs": {
+        "no-llm": {
+          "mode": "no-llm",
+          "elapsed_ms": 1426.88,
+          "phase_timings": {
+            "query_understanding_ms": 0.32,
+            "retrieval_ms": 1419.11,
+            "ranking_ms": 7.12
+          },
+          "total_candidates_scanned": 75,
+          "result_count": 10,
+          "clarify": null,
+          "rank": null,
+          "top1": 0,
+          "hit5": 0,
+          "hit10": 0,
+          "mrr10": 0.0,
+          "top_names": [
+            "Software Developer Candidate 19406",
+            "Java Developer Candidate 5792",
+            "Software Developer Candidate 18975",
+            ".NET Developer Candidate 9174",
+            "Software Developer Candidate 19669"
+          ],
+          "planner": {
+            "used_fallback": true,
+            "confidence": 0.5,
+            "semantic_query": "full-stack developer with web apps",
+            "lexical_terms": [
+              "react",
+              "typescript",
+              "docker",
+              "postgresql"
+            ],
+            "must_skills": [
+              "react"
+            ],
+            "should_skills": [],
+            "should_themes": []
+          }
+        },
+        "quality": {
+          "mode": "quality",
+          "elapsed_ms": 14206.52,
+          "phase_timings": {
+            "query_understanding_ms": 3266.18,
+            "retrieval_ms": 676.76,
+            "ranking_ms": 10263.3
+          },
+          "total_candidates_scanned": 75,
+          "result_count": 10,
+          "clarify": null,
+          "rank": 2,
+          "top1": 0,
+          "hit5": 1,
+          "hit10": 1,
+          "mrr10": 0.5,
+          "top_names": [
+            "Software Developer Candidate 19503",
+            "React Developer Candidate 12328",
+            "Software Developer Candidate 18883",
+            "Software Developer Candidate 19727",
+            "Software Developer Candidate 19616"
+          ],
+          "planner": {
+            "used_fallback": false,
+            "confidence": 0.88,
+            "semantic_query": "full-stack developer with react typescript docker postgresql building web applications",
+            "lexical_terms": [
+              "react",
+              "typescript",
+              "docker",
+              "postgresql",
+              "full-stack"
+            ],
+            "must_skills": [
+              "react"
+            ],
+            "should_skills": [
+              "node",
+              "express",
+              "nextjs",
+              "graphql",
+              "aws"
+            ],
+            "should_themes": [
+              "full-stack",
+              "web-apps"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "c01-less-obvious",
+      "category": "less_obvious",
+      "candidate": {
+        "candidate_id": "0a1acde0-7ddc-4de2-85df-6d7977fa9b5b",
+        "name": "React Developer Candidate 12328",
+        "role": "Full-stack React developer",
+        "city": "San Francisco",
+        "country": "USA",
+        "years_exp": 0,
+        "skills": [
+          "javascript",
+          "typescript",
+          "react",
+          "html",
+          "python",
+          "docker",
+          "mongodb",
+          "postgresql",
+          "mysql",
+          "git",
+          "django",
+          "css",
+          "aws",
+          "rest-api",
+          "azure",
+          "gcp"
+        ],
+        "resume_excerpt": "jessica claire 100 montgomery st 10th floor 555 4321000 resumesampleexamplecom professional summary experienced fullstack developer demonstrated history working information technology services industry strong engineering professional currently seeking fulltime job opportunities skilled javascript typescript react nodejs html csscss3 python programming language goal expand knowledge extent able provide architectural solutions software development skills reactjsreduxfluxmobx reactrouter reactbootstrap semanticui materialui pythondjangodjango rest frameworkflask es67 typescriptjavascript html5 css3 bootstrap sass less nodeexpresskoahapi cicd pipeline gitlab jenkins npm webpack babel yarn gulpgrunt docker mongodb postgresql mysql awsec2 lambda dynamodb s3 etc heroku firebase work history freelancer 062022 current jpmorgan chase co helena mt full stack engineer 032022 052022 cognizant technol"
+      },
+      "query": "developer with information technology services background building full-time web applications",
+      "filters": {
+        "country": "USA"
+      },
+      "rationale": "Hand-built query from distinctive resume evidence, with only light filtering.",
+      "runs": {
+        "no-llm": {
+          "mode": "no-llm",
+          "elapsed_ms": 924.61,
+          "phase_timings": {
+            "query_understanding_ms": 0.39,
+            "retrieval_ms": 919.68,
+            "ranking_ms": 4.16
+          },
+          "total_candidates_scanned": 9555,
+          "result_count": 10,
+          "clarify": null,
+          "rank": null,
+          "top1": 0,
+          "hit5": 0,
+          "hit10": 0,
+          "mrr10": 0.0,
+          "top_names": [
+            "Software Developer Candidate 19014",
+            "Systems Administrator Candidate 25119",
+            "Java Developer Candidate 6142",
+            "Java Developer Candidate 6443",
+            "Network Administrator Candidate 8045"
+          ],
+          "planner": {
+            "used_fallback": true,
+            "confidence": 0.5,
+            "semantic_query": "developer with information technology services background building full-time web applications",
+            "lexical_terms": [],
+            "must_skills": [],
+            "should_skills": [],
+            "should_themes": []
+          }
+        },
+        "quality": {
+          "mode": "quality",
+          "elapsed_ms": 3396.19,
+          "phase_timings": {
+            "query_understanding_ms": 2550.45,
+            "retrieval_ms": 548.16,
+            "ranking_ms": 297.37
+          },
+          "total_candidates_scanned": 9555,
+          "result_count": 10,
+          "clarify": null,
+          "rank": null,
+          "top1": 0,
+          "hit5": 0,
+          "hit10": 0,
+          "mrr10": 0.0,
+          "top_names": [
+            "Software Developer Candidate 19581",
+            "Python Developer Candidate 14532",
+            "Project Manager Candidate 10515",
+            "Web Developer Candidate 29070",
+            "Java Developer Candidate 6142"
+          ],
+          "planner": {
+            "used_fallback": false,
+            "confidence": 0.65,
+            "semantic_query": "developer with information technology services background building full-time web applications",
+            "lexical_terms": [
+              "developer",
+              "information",
+              "technology",
+              "services",
+              "web",
+              "applications"
+            ],
+            "must_skills": [],
+            "should_skills": [],
+            "should_themes": [
+              "information-technology-services",
+              "full-time",
+              "web-applications"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "c01-vague",
+      "category": "vague",
+      "candidate": {
+        "candidate_id": "0a1acde0-7ddc-4de2-85df-6d7977fa9b5b",
+        "name": "React Developer Candidate 12328",
+        "role": "Full-stack React developer",
+        "city": "San Francisco",
+        "country": "USA",
+        "years_exp": 0,
+        "skills": [
+          "javascript",
+          "typescript",
+          "react",
+          "html",
+          "python",
+          "docker",
+          "mongodb",
+          "postgresql",
+          "mysql",
+          "git",
+          "django",
+          "css",
+          "aws",
+          "rest-api",
+          "azure",
+          "gcp"
+        ],
+        "resume_excerpt": "jessica claire 100 montgomery st 10th floor 555 4321000 resumesampleexamplecom professional summary experienced fullstack developer demonstrated history working information technology services industry strong engineering professional currently seeking fulltime job opportunities skilled javascript typescript react nodejs html csscss3 python programming language goal expand knowledge extent able provide architectural solutions software development skills reactjsreduxfluxmobx reactrouter reactbootstrap semanticui materialui pythondjangodjango rest frameworkflask es67 typescriptjavascript html5 css3 bootstrap sass less nodeexpresskoahapi cicd pipeline gitlab jenkins npm webpack babel yarn gulpgrunt docker mongodb postgresql mysql awsec2 lambda dynamodb s3 etc heroku firebase work history freelancer 062022 current jpmorgan chase co helena mt full stack engineer 032022 052022 cognizant technol"
+      },
+      "query": "someone who can build modern frontend product screens and connect them to backend data",
+      "filters": {},
+      "rationale": "Intent-level query where LLM planning has the best chance to add value.",
+      "runs": {
+        "no-llm": {
+          "mode": "no-llm",
+          "elapsed_ms": 563.17,
+          "phase_timings": {
+            "query_understanding_ms": 0.16,
+            "retrieval_ms": 560.53,
+            "ranking_ms": 2.29
+          },
+          "total_candidates_scanned": 14987,
+          "result_count": 10,
+          "clarify": null,
+          "rank": null,
+          "top1": 0,
+          "hit5": 0,
+          "hit10": 0,
+          "mrr10": 0.0,
+          "top_names": [
+            "Systems Administrator Candidate 24725",
+            "DevOps Engineer Candidate 4011",
+            "HR Candidate 5040",
+            "Sales Candidate 5490",
+            "Sap Developer Candidate 12779"
+          ],
+          "planner": {
+            "used_fallback": true,
+            "confidence": 0.5,
+            "semantic_query": "someone who can build modern frontend product screens and connect them backend",
+            "lexical_terms": [],
+            "must_skills": [],
+            "should_skills": [],
+            "should_themes": []
+          }
+        },
+        "quality": {
+          "mode": "quality",
+          "elapsed_ms": 4685.97,
+          "phase_timings": {
+            "query_understanding_ms": 2630.38,
+            "retrieval_ms": 1829.14,
+            "ranking_ms": 226.25
+          },
+          "total_candidates_scanned": 14987,
+          "result_count": 10,
+          "clarify": null,
+          "rank": 10,
+          "top1": 0,
+          "hit5": 0,
+          "hit10": 1,
+          "mrr10": 0.1,
+          "top_names": [
+            "Java Developer Candidate 6036",
+            "Banking Candidate 862",
+            "Java Developer Candidate 10770",
+            "Python Developer Candidate 14130",
+            "Web Developer Candidate 29291"
+          ],
+          "planner": {
+            "used_fallback": false,
+            "confidence": 0.65,
+            "semantic_query": "frontend engineer who builds product screens and connects them to backend data",
+            "lexical_terms": [
+              "frontend",
+              "product",
+              "backend",
+              "api"
+            ],
+            "must_skills": [],
+            "should_skills": [
+              "react",
+              "javascript",
+              "rest-api"
+            ],
+            "should_themes": [
+              "frontend",
+              "fullstack",
+              "product-engineering"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "c02-obvious",
+      "category": "obvious",
+      "candidate": {
+        "candidate_id": "7195f027-8df8-436b-91ae-7b8bfddc5a9a",
+        "name": "Java Developer Candidate 10757",
+        "role": "Java J2EE web application developer",
+        "city": "Bangalore",
+        "country": "India",
+        "years_exp": 6,
+        "skills": [
+          "java",
+          "html",
+          "javascript",
+          "linux",
+          "css",
+          "mysql",
+          "aws",
+          "rest-api",
+          "git",
+          "spring-boot",
+          "communication",
+          "node",
+          "sql"
+        ],
+        "resume_excerpt": "jessica claire 100 montgomery st 10th floor 555 4321000 resumesampleexamplecom professional summary skilled professional 6 years experience design development maintenance webbased applications using javaj2ee technologies experienced phases sdlc including analysis design coding testing expertise integration using j2ee architecture experienced designing developing multitier scalable applications using java jee design patterns expertise using ides like eclipsemy eclipse experienced development deployment 3tier ntier architectures extensive experience application servers including websphere 61 web servers like apache tomcat etc expertise developing internetintranet applications web services wsdl ant java jsp servlet jdbc struts hibernate junit xml log4j html javascript experience developing user interface screens presentation using java jsp html java script ajax experience struts mvc spring "
+      },
+      "query": "Java J2EE Spring Boot web application developer with REST APIs",
+      "filters": {
+        "city": "Bangalore",
+        "country": "India",
+        "skills": [
+          "java"
+        ],
+        "min_years_exp": 5
+      },
+      "rationale": "Hand-built precise role/skill/location query from the candidate resume.",
+      "runs": {
+        "no-llm": {
+          "mode": "no-llm",
+          "elapsed_ms": 914.24,
+          "phase_timings": {
+            "query_understanding_ms": 0.17,
+            "retrieval_ms": 911.26,
+            "ranking_ms": 2.53
+          },
+          "total_candidates_scanned": 448,
+          "result_count": 10,
+          "clarify": null,
+          "rank": null,
+          "top1": 0,
+          "hit5": 0,
+          "hit10": 0,
+          "mrr10": 0.0,
+          "top_names": [
+            "Java Developer Candidate 6414",
+            "Web Developer Candidate 29465",
+            "Java Developer Candidate 1847",
+            "Java Developer Candidate 4869",
+            "Web Developer Candidate 29130"
+          ],
+          "planner": {
+            "used_fallback": true,
+            "confidence": 0.5,
+            "semantic_query": "j2ee spring boot web application developer with rest apis",
+            "lexical_terms": [
+              "java",
+              "rest-api",
+              "spring-boot"
+            ],
+            "must_skills": [
+              "java"
+            ],
+            "should_skills": [],
+            "should_themes": []
+          }
+        },
+        "quality": {
+          "mode": "quality",
+          "elapsed_ms": 3420.7,
+          "phase_timings": {
+            "query_understanding_ms": 2643.3,
+            "retrieval_ms": 549.71,
+            "ranking_ms": 227.42
+          },
+          "total_candidates_scanned": 448,
+          "result_count": 10,
+          "clarify": null,
+          "rank": null,
+          "top1": 0,
+          "hit5": 0,
+          "hit10": 0,
+          "mrr10": 0.0,
+          "top_names": [
+            "Database Administrator Candidate 2460",
+            "Python Developer Candidate 14912",
+            "Web Developer Candidate 29465",
+            "Java Developer Candidate 10787",
+            "Java Developer Candidate 10825"
+          ],
+          "planner": {
+            "used_fallback": false,
+            "confidence": 0.88,
+            "semantic_query": "java spring boot developer building web applications with rest apis",
+            "lexical_terms": [
+              "java",
+              "spring",
+              "boot",
+              "rest",
+              "api",
+              "rest-api",
+              "spring-boot"
+            ],
+            "must_skills": [
+              "java"
+            ],
+            "should_skills": [
+              "j2ee",
+              "rest-api"
+            ],
+            "should_themes": [
+              "web-application"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "c02-less-obvious",
+      "category": "less_obvious",
+      "candidate": {
+        "candidate_id": "7195f027-8df8-436b-91ae-7b8bfddc5a9a",
+        "name": "Java Developer Candidate 10757",
+        "role": "Java J2EE web application developer",
+        "city": "Bangalore",
+        "country": "India",
+        "years_exp": 6,
+        "skills": [
+          "java",
+          "html",
+          "javascript",
+          "linux",
+          "css",
+          "mysql",
+          "aws",
+          "rest-api",
+          "git",
+          "spring-boot",
+          "communication",
+          "node",
+          "sql"
+        ],
+        "resume_excerpt": "jessica claire 100 montgomery st 10th floor 555 4321000 resumesampleexamplecom professional summary skilled professional 6 years experience design development maintenance webbased applications using javaj2ee technologies experienced phases sdlc including analysis design coding testing expertise integration using j2ee architecture experienced designing developing multitier scalable applications using java jee design patterns expertise using ides like eclipsemy eclipse experienced development deployment 3tier ntier architectures extensive experience application servers including websphere 61 web servers like apache tomcat etc expertise developing internetintranet applications web services wsdl ant java jsp servlet jdbc struts hibernate junit xml log4j html javascript experience developing user interface screens presentation using java jsp html java script ajax experience struts mvc spring "
+      },
+      "query": "engineer experienced across SDLC design development and maintenance of web based applications",
+      "filters": {
+        "country": "India"
+      },
+      "rationale": "Hand-built query from distinctive resume evidence, with only light filtering.",
+      "runs": {
+        "no-llm": {
+          "mode": "no-llm",
+          "elapsed_ms": 636.59,
+          "phase_timings": {
+            "query_understanding_ms": 0.19,
+            "retrieval_ms": 629.96,
+            "ranking_ms": 6.23
+          },
+          "total_candidates_scanned": 3359,
+          "result_count": 10,
+          "clarify": null,
+          "rank": null,
+          "top1": 0,
+          "hit5": 0,
+          "hit10": 0,
+          "mrr10": 0.0,
+          "top_names": [
+            "Security Analyst Candidate 17135",
+            "Project Manager Candidate 11187",
+            "Network Administrator Candidate 8805",
+            "Security Analyst Candidate 17454",
+            "Software Developer Candidate 19543"
+          ],
+          "planner": {
+            "used_fallback": true,
+            "confidence": 0.5,
+            "semantic_query": "engineer experienced across sdlc design development and maintenance web based applications",
+            "lexical_terms": [],
+            "must_skills": [],
+            "should_skills": [],
+            "should_themes": []
+          }
+        },
+        "quality": {
+          "mode": "quality",
+          "elapsed_ms": 3578.34,
+          "phase_timings": {
+            "query_understanding_ms": 2657.98,
+            "retrieval_ms": 669.22,
+            "ranking_ms": 250.87
+          },
+          "total_candidates_scanned": 3359,
+          "result_count": 10,
+          "clarify": null,
+          "rank": null,
+          "top1": 0,
+          "hit5": 0,
+          "hit10": 0,
+          "mrr10": 0.0,
+          "top_names": [
+            "Web Developer Candidate 29811",
+            "Security Analyst Candidate 17135",
+            "Web Developer Candidate 29113",
+            "Web Developer Candidate 29936",
+            ".NET Developer Candidate 9282"
+          ],
+          "planner": {
+            "used_fallback": false,
+            "confidence": 0.65,
+            "semantic_query": "engineer experienced across full SDLC from design to development and maintenance of web applications",
+            "lexical_terms": [
+              "sdlc",
+              "design",
+              "development",
+              "maintenance",
+              "web",
+              "applications"
+            ],
+            "must_skills": [],
+            "should_skills": [],
+            "should_themes": [
+              "sdlc",
+              "design",
+              "development",
+              "maintenance",
+              "web-applications"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "c02-vague",
+      "category": "vague",
+      "candidate": {
+        "candidate_id": "7195f027-8df8-436b-91ae-7b8bfddc5a9a",
+        "name": "Java Developer Candidate 10757",
+        "role": "Java J2EE web application developer",
+        "city": "Bangalore",
+        "country": "India",
+        "years_exp": 6,
+        "skills": [
+          "java",
+          "html",
+          "javascript",
+          "linux",
+          "css",
+          "mysql",
+          "aws",
+          "rest-api",
+          "git",
+          "spring-boot",
+          "communication",
+          "node",
+          "sql"
+        ],
+        "resume_excerpt": "jessica claire 100 montgomery st 10th floor 555 4321000 resumesampleexamplecom professional summary skilled professional 6 years experience design development maintenance webbased applications using javaj2ee technologies experienced phases sdlc including analysis design coding testing expertise integration using j2ee architecture experienced designing developing multitier scalable applications using java jee design patterns expertise using ides like eclipsemy eclipse experienced development deployment 3tier ntier architectures extensive experience application servers including websphere 61 web servers like apache tomcat etc expertise developing internetintranet applications web services wsdl ant java jsp servlet jdbc struts hibernate junit xml log4j html javascript experience developing user interface screens presentation using java jsp html java script ajax experience struts mvc spring "
+      },
+      "query": "backend engineer for enterprise web applications with APIs and database work",
+      "filters": {},
+      "rationale": "Intent-level query where LLM planning has the best chance to add value.",
+      "runs": {
+        "no-llm": {
+          "mode": "no-llm",
+          "elapsed_ms": 1338.87,
+          "phase_timings": {
+            "query_understanding_ms": 0.43,
+            "retrieval_ms": 1332.29,
+            "ranking_ms": 5.89
+          },
+          "total_candidates_scanned": 14987,
+          "result_count": 10,
+          "clarify": null,
+          "rank": null,
+          "top1": 0,
+          "hit5": 0,
+          "hit10": 0,
+          "mrr10": 0.0,
+          "top_names": [
+            "Systems Administrator Candidate 25593",
+            "Software Developer Candidate 19607",
+            "Java Developer Candidate 5946",
+            "Security Analyst Candidate 16805",
+            "Project Manager Candidate 10622"
+          ],
+          "planner": {
+            "used_fallback": true,
+            "confidence": 0.5,
+            "semantic_query": "backend engineer for enterprise web applications with apis and database work",
+            "lexical_terms": [],
+            "must_skills": [],
+            "should_skills": [],
+            "should_themes": []
+          }
+        },
+        "quality": {
+          "mode": "quality",
+          "elapsed_ms": 3980.34,
+          "phase_timings": {
+            "query_understanding_ms": 2397.59,
+            "retrieval_ms": 1334.02,
+            "ranking_ms": 248.49
+          },
+          "total_candidates_scanned": 14987,
+          "result_count": 10,
+          "clarify": null,
+          "rank": null,
+          "top1": 0,
+          "hit5": 0,
+          "hit10": 0,
+          "mrr10": 0.0,
+          "top_names": [
+            "Network Administrator Candidate 8510",
+            "Software Developer Candidate 19088",
+            "Network Administrator Candidate 8185",
+            "Systems Administrator Candidate 25391",
+            "Java Developer Candidate 6144"
+          ],
+          "planner": {
+            "used_fallback": false,
+            "confidence": 0.65,
+            "semantic_query": "backend engineer building enterprise web applications with APIs and database work",
+            "lexical_terms": [
+              "backend",
+              "enterprise",
+              "api",
+              "database"
+            ],
+            "must_skills": [],
+            "should_skills": [],
+            "should_themes": [
+              "backend",
+              "enterprise",
+              "web-applications",
+              "api",
+              "database"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "c03-obvious",
+      "category": "obvious",
+      "candidate": {
+        "candidate_id": "58de6a7e-5e61-439f-a757-e67a5d01260c",
+        "name": "Sql Developer Candidate 12961",
+        "role": "Microsoft SQL Server data warehouse developer",
+        "city": "Hyderabad",
+        "country": "India",
+        "years_exp": 8,
+        "skills": [
+          "sql",
+          "data-analysis",
+          "git",
+          "mysql",
+          "linux",
+          "risk-management"
+        ],
+        "resume_excerpt": "jessica claire resumesampleexamplecom 555 4321000 100 montgomery st 10th floor summary 8 years experience data design development microsoft sql server 2019201620122008r22005 tsql performance tuning troubleshooting ssisdts packages ssrs datawarehousing experience using business intelligence tools ssis ssrs ssas ms sql server 2019 201620122008 extensive experience tsql constructing triggers tables implementing stored procedures functions views user profiles data dictionaries data integrity extensive knowledge normalization relational database management systems good understanding database data warehousing concepts oltp olap hands experience various sql server services like integration services ssis reporting services ssrs analysis services ssas great ability create manage various database objects like tables views excellent tsql development skills write complex queries involving multiple t"
+      },
+      "query": "Microsoft SQL Server TSQL SSIS SSRS data warehousing developer",
+      "filters": {
+        "city": "Hyderabad",
+        "country": "India",
+        "skills": [
+          "sql"
+        ],
+        "min_years_exp": 6
+      },
+      "rationale": "Hand-built precise role/skill/location query from the candidate resume.",
+      "runs": {
+        "no-llm": {
+          "mode": "no-llm",
+          "elapsed_ms": 853.37,
+          "phase_timings": {
+            "query_understanding_ms": 0.21,
+            "retrieval_ms": 849.24,
+            "ranking_ms": 3.59
+          },
+          "total_candidates_scanned": 211,
+          "result_count": 10,
+          "clarify": null,
+          "rank": 5,
+          "top1": 0,
+          "hit5": 1,
+          "hit10": 1,
+          "mrr10": 0.2,
+          "top_names": [
+            "Network Administrator Candidate 8398",
+            "Database Administrator Candidate 1837",
+            "Software Developer Candidate 19424",
+            "Database Administrator Candidate 2287",
+            "Sql Developer Candidate 12961"
+          ],
+          "planner": {
+            "used_fallback": true,
+            "confidence": 0.5,
+            "semantic_query": "microsoft server tsql ssis ssrs data warehousing developer",
+            "lexical_terms": [
+              "sql"
+            ],
+            "must_skills": [
+              "sql"
+            ],
+            "should_skills": [],
+            "should_themes": []
+          }
+        },
+        "quality": {
+          "mode": "quality",
+          "elapsed_ms": 3891.24,
+          "phase_timings": {
+            "query_understanding_ms": 2868.08,
+            "retrieval_ms": 798.53,
+            "ranking_ms": 224.39
+          },
+          "total_candidates_scanned": 211,
+          "result_count": 10,
+          "clarify": null,
+          "rank": 4,
+          "top1": 0,
+          "hit5": 1,
+          "hit10": 1,
+          "mrr10": 0.25,
+          "top_names": [
+            "Etl Developer Candidate 9893",
+            "Etl Developer Candidate 9772",
+            "Software Developer Candidate 19659",
+            "Sql Developer Candidate 12961",
+            "Database Administrator Candidate 1837"
+          ],
+          "planner": {
+            "used_fallback": false,
+            "confidence": 0.85,
+            "semantic_query": "tsql ssrs ssrs data warehousing developer with sql server and etl experience",
+            "lexical_terms": [
+              "tsql",
+              "ssis",
+              "ssrs",
+              "sql",
+              "server",
+              "data",
+              "warehousing"
+            ],
+            "must_skills": [
+              "sql"
+            ],
+            "should_skills": [
+              "sql-server",
+              "data-warehousing",
+              "etl"
+            ],
+            "should_themes": []
+          }
+        }
+      }
+    },
+    {
+      "case_id": "c03-less-obvious",
+      "category": "less_obvious",
+      "candidate": {
+        "candidate_id": "58de6a7e-5e61-439f-a757-e67a5d01260c",
+        "name": "Sql Developer Candidate 12961",
+        "role": "Microsoft SQL Server data warehouse developer",
+        "city": "Hyderabad",
+        "country": "India",
+        "years_exp": 8,
+        "skills": [
+          "sql",
+          "data-analysis",
+          "git",
+          "mysql",
+          "linux",
+          "risk-management"
+        ],
+        "resume_excerpt": "jessica claire resumesampleexamplecom 555 4321000 100 montgomery st 10th floor summary 8 years experience data design development microsoft sql server 2019201620122008r22005 tsql performance tuning troubleshooting ssisdts packages ssrs datawarehousing experience using business intelligence tools ssis ssrs ssas ms sql server 2019 201620122008 extensive experience tsql constructing triggers tables implementing stored procedures functions views user profiles data dictionaries data integrity extensive knowledge normalization relational database management systems good understanding database data warehousing concepts oltp olap hands experience various sql server services like integration services ssis reporting services ssrs analysis services ssas great ability create manage various database objects like tables views excellent tsql development skills write complex queries involving multiple t"
+      },
+      "query": "database developer doing performance tuning troubleshooting packages reports and stored procedures",
+      "filters": {
+        "country": "India"
+      },
+      "rationale": "Hand-built query from distinctive resume evidence, with only light filtering.",
+      "runs": {
+        "no-llm": {
+          "mode": "no-llm",
+          "elapsed_ms": 478.0,
+          "phase_timings": {
+            "query_understanding_ms": 0.19,
+            "retrieval_ms": 477.24,
+            "ranking_ms": 0.37
+          },
+          "total_candidates_scanned": 5,
+          "result_count": 5,
+          "clarify": null,
+          "rank": null,
+          "top1": 0,
+          "hit5": 0,
+          "hit10": 0,
+          "mrr10": 0.0,
+          "top_names": [
+            "Kamari Carter - Application 124",
+            "Hazel Lee - Application 3382",
+            "Shoji Fujii - Application 4665",
+            "Charlotte Green - Application 1247",
+            "Timothy Harris - Application 1616"
+          ],
+          "planner": {
+            "used_fallback": true,
+            "confidence": 0.5,
+            "semantic_query": "database developer doing performance tuning packages reports and stored procedures",
+            "lexical_terms": [
+              "troubleshooting"
+            ],
+            "must_skills": [
+              "troubleshooting"
+            ],
+            "should_skills": [],
+            "should_themes": []
+          }
+        },
+        "quality": {
+          "mode": "quality",
+          "elapsed_ms": 3442.28,
+          "phase_timings": {
+            "query_understanding_ms": 2786.45,
+            "retrieval_ms": 537.13,
+            "ranking_ms": 118.45
+          },
+          "total_candidates_scanned": 5,
+          "result_count": 5,
+          "clarify": null,
+          "rank": null,
+          "top1": 0,
+          "hit5": 0,
+          "hit10": 0,
+          "mrr10": 0.0,
+          "top_names": [
+            "Hazel Lee - Application 3382",
+            "Shoji Fujii - Application 4665",
+            "Kamari Carter - Application 124",
+            "Charlotte Green - Application 1247",
+            "Timothy Harris - Application 1616"
+          ],
+          "planner": {
+            "used_fallback": false,
+            "confidence": 0.75,
+            "semantic_query": "database developer experienced in performance tuning, troubleshooting, packages, reports, and stored procedures",
+            "lexical_terms": [
+              "database",
+              "developer",
+              "performance",
+              "tuning",
+              "troubleshooting",
+              "stored",
+              "procedures"
+            ],
+            "must_skills": [
+              "troubleshooting"
+            ],
+            "should_skills": [
+              "performance-tuning",
+              "troubleshooting",
+              "stored-procedures",
+              "packages",
+              "reports"
+            ],
+            "should_themes": [
+              "database-development"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "case_id": "c03-vague",
+      "category": "vague",
+      "candidate": {
+        "candidate_id": "58de6a7e-5e61-439f-a757-e67a5d01260c",
+        "name": "Sql Developer Candidate 12961",
+        "role": "Microsoft SQL Server data warehouse developer",
+        "city": "Hyderabad",
+        "country": "India",
+        "years_exp": 8,
+        "skills": [
+          "sql",
+          "data-analysis",
+          "git",
+          "mysql",
+          "linux",
+          "risk-management"
+        ],
+        "resume_excerpt": "jessica claire resumesampleexamplecom 555 4321000 100 montgomery st 10th floor summary 8 years experience data design development microsoft sql server 2019201620122008r22005 tsql performance tuning troubleshooting ssisdts packages ssrs datawarehousing experience using business intelligence tools ssis ssrs ssas ms sql server 2019 201620122008 extensive experience tsql constructing triggers tables implementing stored procedures functions views user profiles data dictionaries data integrity extensive knowledge normalization relational database management systems good understanding database data warehousing concepts oltp olap hands experience various sql server services like integration services ssis reporting services ssrs analysis services ssas great ability create manage various database objects like tables views excellent tsql development skills write complex queries involving multiple t"
+      },
+      "query": "person who can make databases faster and build reporting pipelines",
+      "filters": {},
+      "rationale": "Intent-level query where LLM planning has the best chance to add value.",
+      "runs": {
+        "no-llm": {
+          "mode": "no-llm",
+          "elapsed_ms": 538.49,
+          "phase_timings": {
+            "query_understanding_ms": 0.12,
+            "retrieval_ms": 535.98,
+            "ranking_ms": 2.18
+          },
+          "total_candidates_scanned": 14987,
+          "result_count": 10,
+          "clarify": null,
+          "rank": null,
+          "top1": 0,
+          "hit5": 0,
+          "hit10": 0,
+          "mrr10": 0.0,
+          "top_names": [
+            "Project Manager Candidate 10801",
+            "Sql Developer Candidate 12988",
+            "Database Administrator Candidate 2017",
+            "Network Administrator Candidate 8428",
+            "Web Developer Candidate 29333"
+          ],
+          "planner": {
+            "used_fallback": true,
+            "confidence": 0.5,
+            "semantic_query": "person who can make databases faster and build reporting pipelines",
+            "lexical_terms": [],
+            "must_skills": [],
+            "should_skills": [],
+            "should_themes": []
+          }
+        },
+        "quality": {
+          "mode": "quality",
+          "elapsed_ms": 3598.37,
+          "phase_timings": {
+            "query_understanding_ms": 2680.32,
+            "retrieval_ms": 747.92,
+            "ranking_ms": 169.86
+          },
+          "total_candidates_scanned": 14987,
+          "result_count": 10,
+          "clarify": null,
+          "rank": null,
+          "top1": 0,
+          "hit5": 0,
+          "hit10": 0,
+          "mrr10": 0.0,
+          "top_names": [
+            "Sql Developer Candidate 12953",
+            "Python Developer Candidate 12212",
+            "Project Manager Candidate 10801",
+            "Systems Administrator Candidate 25495",
+            "Systems Administrator Candidate 25281"
+          ],
+          "planner": {
+            "used_fallback": false,
+            "confidence": 0.65,
+            "semantic_query": "data engineer who optimizes database performance and builds reporting pipelines",
+            "lexical_terms": [
+              "database",
+              "performance",
+              "reporting",
+              "pipeline"
+            ],
+            "must_skills": [],
+            "should_skills": [
+              "database-performance",
+              "reporting",
+              "etl"
+            ],
+            "should_themes": [
+              "data-engineering",
+              "database-optimization"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "summary": {
+    "overall": {
+      "no-llm": {
+        "top1": 0.0,
+        "hit5": 0.111,
+        "hit10": 0.111,
+        "mrr10": 0.022,
+        "median_rank_or_999": 999,
+        "p50_ms": 853.37,
+        "avg_ms": 852.69
+      },
+      "quality": {
+        "top1": 0.0,
+        "hit5": 0.222,
+        "hit10": 0.333,
+        "mrr10": 0.094,
+        "median_rank_or_999": 999,
+        "p50_ms": 3598.37,
+        "avg_ms": 4911.11
+      }
+    },
+    "by_category": {
+      "less_obvious": {
+        "no-llm": {
+          "top1": 0.0,
+          "hit5": 0.0,
+          "hit10": 0.0,
+          "mrr10": 0.0,
+          "avg_ms": 679.73
+        },
+        "quality": {
+          "top1": 0.0,
+          "hit5": 0.0,
+          "hit10": 0.0,
+          "mrr10": 0.0,
+          "avg_ms": 3472.27
+        }
+      },
+      "obvious": {
+        "no-llm": {
+          "top1": 0.0,
+          "hit5": 0.333,
+          "hit10": 0.333,
+          "mrr10": 0.067,
+          "avg_ms": 1064.83
+        },
+        "quality": {
+          "top1": 0.0,
+          "hit5": 0.667,
+          "hit10": 0.667,
+          "mrr10": 0.25,
+          "avg_ms": 7172.82
+        }
+      },
+      "vague": {
+        "no-llm": {
+          "top1": 0.0,
+          "hit5": 0.0,
+          "hit10": 0.0,
+          "mrr10": 0.0,
+          "avg_ms": 813.51
+        },
+        "quality": {
+          "top1": 0.0,
+          "hit5": 0.0,
+          "hit10": 0.333,
+          "mrr10": 0.033,
+          "avg_ms": 4088.23
+        }
+      }
+    },
+    "mode_deltas": [
+      {
+        "case_id": "c01-obvious",
+        "category": "obvious",
+        "candidate": "React Developer Candidate 12328",
+        "query": "full-stack React TypeScript developer with Docker PostgreSQL web apps",
+        "no_llm_rank": null,
+        "quality_rank": 2,
+        "delta": 997,
+        "quality_added_skills": [
+          "aws",
+          "express",
+          "graphql",
+          "nextjs",
+          "node"
+        ]
+      },
+      {
+        "case_id": "c01-vague",
+        "category": "vague",
+        "candidate": "React Developer Candidate 12328",
+        "query": "someone who can build modern frontend product screens and connect them to backend data",
+        "no_llm_rank": null,
+        "quality_rank": 10,
+        "delta": 989,
+        "quality_added_skills": [
+          "javascript",
+          "react",
+          "rest-api"
+        ]
+      },
+      {
+        "case_id": "c03-obvious",
+        "category": "obvious",
+        "candidate": "Sql Developer Candidate 12961",
+        "query": "Microsoft SQL Server TSQL SSIS SSRS data warehousing developer",
+        "no_llm_rank": 5,
+        "quality_rank": 4,
+        "delta": 1,
+        "quality_added_skills": [
+          "data-warehousing",
+          "etl",
+          "sql-server"
+        ]
+      }
+    ]
+  }
+}

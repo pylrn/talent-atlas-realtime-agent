@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Model Settings</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7fb;
+      --surface: #ffffff;
+      --surface-2: #eef3f7;
+      --line: #cfd9e3;
+      --line-strong: #a8b6c5;
+      --text: #15202b;
+      --muted: #637384;
+      --accent: #0f766e;
+      --accent-dark: #115e59;
+      --amber: #b45309;
+      --red: #b42318;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button,
+    .chip {
+      min-height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      padding: 7px 11px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    input,
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--text);
+      padding: 8px 9px;
+      outline: none;
+    }
+
+    input::placeholder {
+      color: var(--muted);
+      opacity: 0.45;
+      font-weight: 500;
+    }
+
+    label {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(244, 247, 251, 0.94);
+      backdrop-filter: blur(10px);
+    }
+
+    h1,
+    h2 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h1 { font-size: 18px; }
+    h2 { font-size: 15px; }
+
+    .subtle {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .layout {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 16px 18px 28px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      overflow: hidden;
+    }
+
+    .panel-header {
+      min-height: 46px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+      padding: 10px 12px;
+      background: #fbfcfe;
+    }
+
+    .panel-body {
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .key-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .key-label-text {
+      margin-right: 6px;
+    }
+
+    .key-status {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 10px;
+      vertical-align: middle;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .key-status--ok {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .key-status--missing {
+      background: #f3f4f6;
+      color: #9ca3af;
+    }
+
+    .notice {
+      border: 1px solid #f2c98f;
+      border-radius: 8px;
+      background: #fff7ed;
+      color: var(--amber);
+      padding: 10px;
+      line-height: 1.4;
+    }
+
+    .status {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+      padding: 10px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .llm-row {
+      display: grid;
+      grid-template-columns: minmax(160px, 200px) 1fr;
+      gap: 14px;
+      align-items: start;
+      padding: 8px 0;
+      border-top: 1px dashed var(--line);
+    }
+    .llm-row:first-of-type { border-top: none; padding-top: 0; }
+
+    .llm-row-label {
+      color: var(--text);
+      font-size: 12px;
+      display: grid;
+      gap: 3px;
+    }
+    .llm-row-label strong { font-weight: 700; }
+
+    .llm-pair {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 0.9fr) auto;
+      gap: 10px;
+      align-items: end;
+    }
+    .llm-test-button { min-height: 38px; }
+
+    @media (max-width: 820px) {
+      .grid,
+      .key-grid {
+        grid-template-columns: 1fr;
+      }
+      .llm-row,
+      .llm-pair {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>Model Settings</h1>
+      <div class="subtle" id="currentSummary">Loading model configuration...</div>
+    </div>
+    <div class="actions">
+      <a class="chip" href="/ui">Search admin</a>
+      <a class="chip" href="/docs" target="_blank" rel="noreferrer">API docs</a>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Embedding Model</h2>
+          <div class="subtle">Saved as pending. Existing vectors must be rebuilt before this becomes active.</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="notice" id="embeddingWarning">Rebuild required before pending embedding changes can affect search.</div>
+        <div class="grid">
+          <label>Provider
+            <select id="embeddingProvider"></select>
+          </label>
+          <label>Model
+            <select id="embeddingModel"></select>
+          </label>
+          <label>Dimensions
+            <input id="embeddingDimensions" type="number" min="1" inputmode="numeric">
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>LLM Models</h2>
+          <div class="subtle">Fast prioritises latency. Quality prioritises planning depth. AI Insights drives the post-search summary call. Leave Fast / Quality / Insights set to use the global fallback.</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="llm-row">
+          <div class="llm-row-label"><strong>Global fallback</strong><div class="subtle">Used whenever a mode-specific row is blank.</div></div>
+          <div class="llm-pair">
+            <label>Provider
+              <select id="llmProvider">
+                <option value="deepseek">DeepSeek</option>
+                <option value="groq">Groq (fastest)</option>
+                <option value="gemini">Gemini</option>
+                <option value="openai">OpenAI</option>
+              </select>
+            </label>
+            <label>Model<select id="llmModel"></select></label>
+            <button id="testGlobalLlmBtn" class="llm-test-button" type="button">Test</button>
+          </div>
+        </div>
+        <div class="notice" id="llmNotice" style="display:none"></div>
+        <div class="status" id="llmTestStatus">No LLM test run yet.</div>
+
+        <div class="llm-row">
+          <div class="llm-row-label"><strong>Fast mode</strong><div class="subtle">Default: DeepSeek deepseek-chat.</div></div>
+          <div class="llm-pair">
+            <label>Provider
+              <select id="fastLlmProvider">
+                <option value="">(use global)</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="groq">Groq</option>
+                <option value="gemini">Gemini</option>
+                <option value="openai">OpenAI</option>
+              </select>
+            </label>
+            <label>Model<select id="fastLlmModel"></select></label>
+            <label>Thinking<select id="fastThinkingLevel" class="thinking-select">
+              <option value="low">low</option>
+              <option value="medium">medium</option>
+              <option value="high">high</option>
+            </select></label>
+            <button id="testFastLlmBtn" class="llm-test-button" type="button">Test</button>
+          </div>
+        </div>
+
+        <div class="llm-row">
+          <div class="llm-row-label"><strong>Quality mode</strong><div class="subtle">Default: DeepSeek deepseek-chat (planner).</div></div>
+          <div class="llm-pair">
+            <label>Provider
+              <select id="qualityLlmProvider">
+                <option value="">(use global)</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="groq">Groq</option>
+                <option value="gemini">Gemini</option>
+                <option value="openai">OpenAI</option>
+              </select>
+            </label>
+            <label>Model<select id="qualityLlmModel"></select></label>
+            <label>Thinking<select id="qualityThinkingLevel" class="thinking-select">
+              <option value="low">low</option>
+              <option value="medium">medium</option>
+              <option value="high">high</option>
+            </select></label>
+            <button id="testQualityLlmBtn" class="llm-test-button" type="button">Test</button>
+          </div>
+        </div>
+
+        <div class="llm-row">
+          <div class="llm-row-label"><strong>AI Insights</strong><div class="subtle">Post-search summary &amp; matrix.</div></div>
+          <div class="llm-pair">
+            <label>Provider
+              <select id="insightsLlmProvider">
+                <option value="">(use global)</option>
+                <option value="deepseek">DeepSeek</option>
+                <option value="groq">Groq</option>
+                <option value="gemini">Gemini</option>
+                <option value="openai">OpenAI</option>
+              </select>
+            </label>
+            <label>Model<select id="insightsLlmModel"></select></label>
+            <label>Thinking<select id="insightsThinkingLevel" class="thinking-select">
+              <option value="low">low</option>
+              <option value="medium">medium</option>
+              <option value="high">high</option>
+            </select></label>
+            <button id="testInsightsLlmBtn" class="llm-test-button" type="button">Test</button>
+          </div>
+        </div>
+        <div class="subtle" style="font-size:11px; padding-left:4px;">
+          Thinking is available only when the selected Gemini model supports it. <strong>low</strong> = fastest (good for structured JSON). <strong>medium</strong> = balanced. <strong>high</strong> = slower + costlier.
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Search Features</h2>
+          <div class="subtle">Enable or disable specific features of the search pipeline.</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="grid">
+          <label style="display: flex; align-items: center; gap: 8px; flex-direction: row;">
+            <input type="checkbox" id="usePersonalization" style="width: auto;">
+            <span style="font-size: 14px; font-weight: 500; color: var(--text);">Enable implicit outcome-history ranking</span>
+          </label>
+          <div class="subtle" style="margin-top: 4px;">
+            Off by default. Confirmed memory hints are controlled separately below.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Reranker Model</h2>
+          <div class="subtle">Saved for future re-rank experiments. Current search uses regular semantic/RRF retrieval only.</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="grid">
+          <label>Reranker
+            <select id="rerankerModel"></select>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>API Keys</h2>
+          <div class="subtle">Existing keys are shown only as masked status. Enter a value only when replacing it.</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="key-grid">
+          <label><span class="key-label-text">Groq API key</span><span id="groqApiKeyStatus" class="key-status"></span>
+            <input id="groqApiKey" type="password" autocomplete="off" placeholder="Not configured">
+          </label>
+          <label><span class="key-label-text">Gemini / Google API key</span><span id="googleApiKeyStatus" class="key-status"></span>
+            <input id="googleApiKey" type="password" autocomplete="off" placeholder="Not configured">
+          </label>
+          <label><span class="key-label-text">OpenAI API key</span><span id="openaiApiKeyStatus" class="key-status"></span>
+            <input id="openaiApiKey" type="password" autocomplete="off" placeholder="Not configured">
+          </label>
+          <label><span class="key-label-text">Cohere API key</span><span id="cohereApiKeyStatus" class="key-status"></span>
+            <input id="cohereApiKey" type="password" autocomplete="off" placeholder="Not configured">
+          </label>
+          <label><span class="key-label-text">Voyage API key</span><span id="voyageApiKeyStatus" class="key-status"></span>
+            <input id="voyageApiKey" type="password" autocomplete="off" placeholder="Not configured">
+          </label>
+          <label><span class="key-label-text">Jina API key</span><span id="jinaApiKeyStatus" class="key-status"></span>
+            <input id="jinaApiKey" type="password" autocomplete="off" placeholder="Not configured">
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Warmup Diagnostics</h2>
+          <div class="subtle">Warm local models to remove first-run loading time during experiments.</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="actions">
+          <button id="saveSettingsBtn" class="primary" type="button">Save settings</button>
+          <button id="warmupModelsBtn" type="button">Warm up models</button>
+          <span class="subtle" id="saveStatus">No changes saved yet</span>
+        </div>
+        <div class="status" id="warmupStatus">No warmup run yet.</div>
+      </div>
+    </section>
+
+    <section class="card" id="personalizationCard" style="margin-top:20px">
+      <h2>Personalization</h2>
+      <p class="muted">
+        Soft hints the planner uses to bias future searches toward
+        candidates like the ones you tend to pick.
+        Hints never become hard filters.
+      </p>
+      <input id="recruiterIdSetting" type="hidden" />
+      <div style="margin-top:10px">
+        <label>
+          <input type="checkbox" id="personalizationEnabledToggle" />
+          Use my personalization hints
+        </label>
+      </div>
+      <div id="hintsList" style="margin-top:14px"></div>
+      <div style="margin-top:18px">
+        <strong style="font-size:13px">Learned observations</strong>
+        <div class="muted" style="font-size:12px;margin:2px 0 8px">
+          Patterns noticed from your search behavior. The agent may ask to
+          confirm one — confirmed observations become saved preferences.
+          They never affect searches until confirmed.
+        </div>
+        <div id="observationsList"></div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:6px">
+        <input id="newHintInput" type="text" placeholder="Add a hint (≤200 chars)" style="flex:1" />
+        <button id="addHintBtn" type="button" class="primary">Add</button>
+      </div>
+      <div id="hintsStatus" class="muted" style="margin-top:6px"></div>
+    </section>
+
+    <section class="panel" style="margin-top:20px">
+      <div class="panel-header">
+        <div><h2>Agent Model</h2></div>
+        <button id="saveAgentModelBtn" class="primary" type="button">Save</button>
+      </div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <label>Model
+            <select id="agentModelSelect">
+              <optgroup label="DeepSeek">
+                <option value="deepseek:deepseek-chat">deepseek-chat (recommended)</option>
+                <option value="deepseek:deepseek-reasoner">deepseek-reasoner</option>
+              </optgroup>
+              <optgroup label="Groq">
+                <option value="groq:llama-3.3-70b-versatile">llama-3.3-70b-versatile</option>
+                <option value="groq:llama-3.1-8b-instant">llama-3.1-8b-instant (fast)</option>
+                <option value="groq:gemma2-9b-it">gemma2-9b-it</option>
+              </optgroup>
+              <optgroup label="Google Gemini">
+                <option value="google:gemini-2.0-flash">gemini-2.0-flash</option>
+                <option value="google:gemini-1.5-flash">gemini-1.5-flash</option>
+                <option value="google:gemini-1.5-pro">gemini-1.5-pro</option>
+              </optgroup>
+            </select>
+          </label>
+        </div>
+        <div id="agentModelStatus" class="muted" style="margin-top:8px"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let state = { settings: null };
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, {
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+        ...options,
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || response.statusText);
+      }
+      return response.json();
+    }
+
+    function option(value, label = value) {
+      const el = document.createElement("option");
+      el.value = value;
+      el.textContent = label;
+      return el;
+    }
+
+    function replaceOptions(select, values) {
+      select.innerHTML = "";
+      values.forEach((value) => select.append(option(value)));
+    }
+
+    function updateEmbeddingModels() {
+      const provider = $("embeddingProvider").value;
+      const models = state.settings.catalogs.embeddings[provider] || {};
+      replaceOptions($("embeddingModel"), Object.keys(models));
+      const firstModel = $("embeddingModel").value;
+      if (firstModel && models[firstModel]) {
+        $("embeddingDimensions").value = models[firstModel].dims;
+      }
+    }
+
+    function updateLlmModelOptions(providerSelectId, modelSelectId, allowEmpty) {
+      const provider = $(providerSelectId).value;
+      const catalog  = state.settings?.catalogs?.llm_models || {};
+      const models   = Object.keys(catalog[provider] || {});
+      if (allowEmpty && !provider) {
+        // Per-mode row set to "(use global)" — show empty model dropdown.
+        replaceOptions($(modelSelectId), [""]);
+      } else {
+        replaceOptions($(modelSelectId), models.length ? models : [""]);
+      }
+    }
+
+    function updateLlmModels() {
+      // Global fallback pair (no "(use global)" option) + notice for missing key.
+      updateLlmModelOptions("llmProvider", "llmModel", false);
+      const provider  = $("llmProvider").value;
+      const keyNeeded = { openai: "openai_api_key", gemini: "google_api_key", groq: "groq_api_key" };
+      const keyName   = keyNeeded[provider];
+      const keyInfo   = state.settings?.api_keys?.[keyName];
+      const notice    = $("llmNotice");
+      if (keyName && keyInfo && !keyInfo.configured) {
+        notice.textContent = `⚠ ${provider} API key is not configured — add it in API Keys below then save.`;
+        notice.style.display = "block";
+      } else {
+        notice.style.display = "none";
+      }
+      updateThinkingControls();
+    }
+
+    const LLM_ROWS = [
+      { providerId: "fastLlmProvider",     modelId: "fastLlmModel",     thinkingId: "fastThinkingLevel",     dataProv: "fast_provider",     dataModel: "fast_model",     dataThink: "fast_thinking" },
+      { providerId: "qualityLlmProvider",  modelId: "qualityLlmModel",  thinkingId: "qualityThinkingLevel",  dataProv: "quality_provider",  dataModel: "quality_model",  dataThink: "quality_thinking" },
+      { providerId: "insightsLlmProvider", modelId: "insightsLlmModel", thinkingId: "insightsThinkingLevel", dataProv: "insights_provider", dataModel: "insights_model", dataThink: "insights_thinking" },
+    ];
+
+    function selectedLlmForRow(providerId, modelId) {
+      const rowProvider = $(providerId).value;
+      const provider = rowProvider || $("llmProvider").value;
+      const model = $(modelId).value || (rowProvider ? "" : $("llmModel").value);
+      return { provider, model };
+    }
+
+    function llmModelInfo(provider, model) {
+      return state.settings?.catalogs?.llm_models?.[provider]?.[model] || {};
+    }
+
+    function modelSupportsThinking(provider, model) {
+      const info = llmModelInfo(provider, model);
+      return provider === "gemini" && info.supports_thinking === true;
+    }
+
+    function updateThinkingControl(row) {
+      const select = $(row.thinkingId);
+      const current = select.value || "";
+      const { provider, model } = selectedLlmForRow(row.providerId, row.modelId);
+      const supported = modelSupportsThinking(provider, model);
+
+      select.innerHTML = "";
+      if (!supported) {
+        select.append(option("", "not supported"));
+        select.value = "";
+        select.disabled = true;
+        return;
+      }
+
+      select.append(option("", "default / off"));
+      ["low", "medium", "high"].forEach((level) => select.append(option(level)));
+      select.value = ["", "low", "medium", "high"].includes(current) ? current : "";
+      select.disabled = false;
+    }
+
+    function updateThinkingControls() {
+      if (!state.settings) return;
+      LLM_ROWS.forEach(updateThinkingControl);
+    }
+
+    function renderSettings(data) {
+      state.settings = data;
+
+      // ── Embedding ─────────────────────────────────────────────────────────
+      const embeddingProviders = Object.keys(data.catalogs.embeddings);
+      replaceOptions($("embeddingProvider"), embeddingProviders);
+      $("embeddingProvider").value = data.embedding.pending?.provider || data.embedding.active.provider;
+      updateEmbeddingModels();
+      $("embeddingModel").value = data.embedding.pending?.model || data.embedding.active.model;
+      $("embeddingDimensions").value = data.embedding.pending?.dimensions || data.embedding.active.dimensions;
+
+      replaceOptions($("rerankerModel"), Object.keys(data.catalogs.rerankers));
+      $("rerankerModel").value = data.reranker.model;
+      
+      if ($("usePersonalization")) {
+        $("usePersonalization").checked = data.features?.use_personalization ?? false;
+      }
+
+      $("currentSummary").textContent =
+        `Active embedding: ${data.embedding.active.provider} / ${data.embedding.active.model} / ${data.embedding.active.dimensions}d`;
+      $("embeddingWarning").textContent = data.embedding.pending?.requires_rebuild
+        ? "Rebuild required: search will keep using the active embedding model until vectors are rebuilt."
+        : "No pending embedding change.";
+
+      // ── LLM models (global + per-mode + insights) ─────────────────────────
+      $("llmProvider").value = data.llm?.provider || "gemini";
+      updateLlmModels();
+      if (data.llm?.model) $("llmModel").value = data.llm.model;
+
+      LLM_ROWS.forEach(({ providerId, modelId, thinkingId, dataProv, dataModel, dataThink }) => {
+        $(providerId).value = data.llm?.[dataProv] || "";
+        updateLlmModelOptions(providerId, modelId, true);
+        const m = data.llm?.[dataModel];
+        if (m) $(modelId).value = m;
+        const t = data.llm?.[dataThink];
+        if (t) $(thinkingId).value = t;
+      });
+      updateThinkingControls();
+
+      // ── API Keys ──────────────────────────────────────────────────────────
+      const keyInputMap = {
+        google_api_key: "googleApiKey",
+        openai_api_key: "openaiApiKey",
+        groq_api_key:   "groqApiKey",
+        cohere_api_key: "cohereApiKey",
+        voyage_api_key: "voyageApiKey",
+        jina_api_key:   "jinaApiKey",
+      };
+      Object.entries(data.api_keys).forEach(([name, info]) => {
+        const inputId = keyInputMap[name];
+        if (!inputId) return;
+        const input  = $(inputId);
+        const badge  = $(inputId + "Status");
+        if (info.configured) {
+          input.placeholder = info.masked || "●●●●...●●●●";
+          if (badge) { badge.textContent = "configured"; badge.className = "key-status key-status--ok"; }
+        } else {
+          input.placeholder = "Not configured";
+          if (badge) { badge.textContent = "not set"; badge.className = "key-status key-status--missing"; }
+        }
+      });
+
+      $("warmupStatus").textContent = JSON.stringify(data.warmups || {}, null, 2) || "No warmup run yet.";
+    }
+
+    async function loadSettings() {
+      renderSettings(await api("/admin/model-settings"));
+    }
+
+    async function saveSettings() {
+      $("saveSettingsBtn").disabled = true;
+      $("saveStatus").textContent = "Saving...";
+      const apiKeys = {};
+      const keyMap = {
+        groq_api_key:   $("groqApiKey").value.trim(),
+        google_api_key: $("googleApiKey").value.trim(),
+        openai_api_key: $("openaiApiKey").value.trim(),
+        cohere_api_key: $("cohereApiKey").value.trim(),
+        voyage_api_key: $("voyageApiKey").value.trim(),
+        jina_api_key:   $("jinaApiKey").value.trim(),
+      };
+      Object.entries(keyMap).forEach(([key, value]) => {
+        if (value) apiKeys[key] = value;
+      });
+      try {
+        const data = await api("/admin/model-settings", {
+          method: "POST",
+          body: JSON.stringify({
+            pending_embedding_provider: $("embeddingProvider").value,
+            pending_embedding_model: $("embeddingModel").value,
+            pending_embedding_dimensions: Number($("embeddingDimensions").value) || null,
+            reranker_model: $("rerankerModel").value,
+            llm_provider: $("llmProvider").value,
+            llm_model: $("llmModel").value,
+            fast_llm_provider:        $("fastLlmProvider").value,
+            fast_llm_model:           $("fastLlmModel").value,
+            fast_thinking_level:      $("fastThinkingLevel").disabled ? "" : $("fastThinkingLevel").value,
+            quality_llm_provider:     $("qualityLlmProvider").value,
+            quality_llm_model:        $("qualityLlmModel").value,
+            quality_thinking_level:   $("qualityThinkingLevel").disabled ? "" : $("qualityThinkingLevel").value,
+            insights_llm_provider:    $("insightsLlmProvider").value,
+            insights_llm_model:       $("insightsLlmModel").value,
+            insights_thinking_level:  $("insightsThinkingLevel").disabled ? "" : $("insightsThinkingLevel").value,
+            use_personalization:      $("usePersonalization").checked,
+            api_keys: apiKeys,
+          }),
+        });
+        ["groqApiKey", "googleApiKey", "openaiApiKey", "cohereApiKey", "voyageApiKey", "jinaApiKey"].forEach((id) => $(id).value = "");
+        renderSettings(data);
+        $("saveStatus").textContent = "Settings saved";
+      } catch (error) {
+        $("saveStatus").textContent = error.message;
+      } finally {
+        $("saveSettingsBtn").disabled = false;
+      }
+    }
+
+    async function warmupModels() {
+      $("warmupModelsBtn").disabled = true;
+      $("warmupStatus").textContent = "Running warmup...";
+      try {
+        const data = await api("/admin/model-settings/warmup", { method: "POST", body: "{}" });
+        $("warmupStatus").textContent = JSON.stringify(data.warmups, null, 2);
+        await loadSettings();
+      } catch (error) {
+        $("warmupStatus").textContent = error.message;
+      } finally {
+        $("warmupModelsBtn").disabled = false;
+      }
+    }
+
+    function llmRowPayload(providerId, modelId, thinkingId) {
+      const rawProvider = $(providerId).value;
+      const provider = rawProvider || $("llmProvider").value;
+      const model = $(modelId).value || $("llmModel").value;
+      return {
+        provider,
+        model,
+        thinking_level: thinkingId && !$(thinkingId).disabled ? $(thinkingId).value : undefined,
+      };
+    }
+
+    async function testLlmRow(label, providerId, modelId, thinkingId, buttonId) {
+      const button = $(buttonId);
+      button.disabled = true;
+      $("llmTestStatus").textContent = `Testing ${label} LLM...`;
+      try {
+        const data = await api("/admin/model-settings/validate-llm", {
+          method: "POST",
+          body: JSON.stringify(llmRowPayload(providerId, modelId, thinkingId)),
+        });
+        const prefix = data.status === "ok" ? "OK" : "Failed";
+        const detail = data.error ? `: ${data.error}` : "";
+        $("llmTestStatus").textContent =
+          `${prefix} ${label}: ${data.provider} / ${data.model} (${data.latency_ms} ms)${detail}`;
+      } catch (error) {
+        $("llmTestStatus").textContent = `Failed ${label}: ${error.message}`;
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    $("embeddingProvider").addEventListener("change", updateEmbeddingModels);
+    $("llmProvider").addEventListener("change", updateLlmModels);
+    LLM_ROWS.forEach(({ providerId, modelId }) => {
+      $(providerId).addEventListener("change", () => {
+        updateLlmModelOptions(providerId, modelId, true);
+        updateThinkingControls();
+      });
+      $(modelId).addEventListener("change", updateThinkingControls);
+    });
+    $("llmModel").addEventListener("change", updateThinkingControls);
+    $("embeddingModel").addEventListener("change", () => {
+      const provider = $("embeddingProvider").value;
+      const model = $("embeddingModel").value;
+      const info = state.settings.catalogs.embeddings[provider]?.[model];
+      if (info) $("embeddingDimensions").value = info.dims;
+    });
+    $("saveSettingsBtn").addEventListener("click", saveSettings);
+    $("warmupModelsBtn").addEventListener("click", warmupModels);
+    $("testGlobalLlmBtn").addEventListener("click", () =>
+      testLlmRow("Global", "llmProvider", "llmModel", null, "testGlobalLlmBtn"));
+    $("testFastLlmBtn").addEventListener("click", () =>
+      testLlmRow("Fast", "fastLlmProvider", "fastLlmModel", "fastThinkingLevel", "testFastLlmBtn"));
+    $("testQualityLlmBtn").addEventListener("click", () =>
+      testLlmRow("Quality", "qualityLlmProvider", "qualityLlmModel", "qualityThinkingLevel", "testQualityLlmBtn"));
+    $("testInsightsLlmBtn").addEventListener("click", () =>
+      testLlmRow("AI Insights", "insightsLlmProvider", "insightsLlmModel", "insightsThinkingLevel", "testInsightsLlmBtn"));
+    loadSettings().catch((error) => {
+      $("currentSummary").textContent = error.message;
+    });
+
+    // ── Personalization card controller ─────────────────────────────────
+    // Local escape helper — settings.html doesn't have one defined.
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+      }[c]));
+    }
+    function pState() {
+      return state.__personalization ||
+        (state.__personalization = { recId: "", hints: [], enabled: false });
+    }
+
+    function renderHints() {
+      const list = document.getElementById("hintsList");
+      const s = pState();
+      if (!s.hints.length) {
+        list.innerHTML = '<div class="muted">No hints yet.</div>';
+        return;
+      }
+      list.innerHTML = s.hints.map((h) => {
+        const icon = h.source === "suggested" ? "💡" : "✏️";
+        return `<div class="row" style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">
+          <span>${icon} ${escapeHtml(h.text)}</span>
+          <button data-mid="${h.id}" type="button">×</button>
+        </div>`;
+      }).join("");
+      list.querySelectorAll("button[data-mid]").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          await api(`/api/recruiter/${encodeURIComponent(pState().recId)}/memory/${btn.dataset.mid}`, { method: "DELETE" });
+          await loadHints();
+        });
+      });
+    }
+
+    async function loadHints() {
+      const s = pState();
+      if (!s.recId) return;
+      const data = await api(`/api/recruiter/${encodeURIComponent(s.recId)}/personalization`);
+      s.enabled = !!data.enabled;
+      s.hints   = data.hints || [];
+      document.getElementById("personalizationEnabledToggle").checked = s.enabled;
+      renderHints();
+    }
+
+    async function loadObservations() {
+      const s = pState();
+      if (!s.recId) return;
+      const data = await api(`/api/recruiter/${encodeURIComponent(s.recId)}/memory`);
+      const list = document.getElementById("observationsList");
+      const obs = data.observations || [];
+      if (!obs.length) {
+        list.innerHTML = '<div class="muted">Nothing learned yet.</div>';
+        return;
+      }
+      list.innerHTML = obs.map(o => `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line,#eee)">
+          <span style="flex:1;font-size:13px">${escapeHtml(o.content)}</span>
+          <span class="muted" style="font-size:11px">${Math.round(o.confidence * 100)}%</span>
+          <button type="button" data-mid="${o.id}" class="obs-dismiss" style="font-size:11px">Dismiss</button>
+        </div>`).join("");
+      list.querySelectorAll(".obs-dismiss").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          await api(`/api/recruiter/${encodeURIComponent(s.recId)}/memory/${btn.dataset.mid}`, { method: "DELETE" });
+          loadObservations();
+        });
+      });
+    }
+
+    (function initRecruiterId() {
+      let saved = localStorage.getItem("recruiter_id");
+      if (!saved) {
+        saved = crypto.randomUUID();
+        localStorage.setItem("recruiter_id", saved);
+      }
+      pState().recId = saved;
+      document.getElementById("recruiterIdSetting").value = saved;
+      loadHints().catch(() => {});
+      loadObservations().catch(() => {});
+    })();
+
+    document.getElementById("personalizationEnabledToggle").addEventListener("change", async (e) => {
+      const s = pState();
+      if (!s.recId) return;
+      await api(`/api/recruiter/${encodeURIComponent(s.recId)}/personalization`, {
+        method: "PATCH",
+        body: JSON.stringify({ enabled: e.target.checked }),
+      });
+    });
+
+    document.getElementById("addHintBtn").addEventListener("click", async () => {
+      const s = pState();
+      const text = document.getElementById("newHintInput").value.trim();
+      if (!s.recId) { document.getElementById("hintsStatus").textContent = "Set a recruiter ID first."; return; }
+      if (!text)    { document.getElementById("hintsStatus").textContent = "Enter some text.";       return; }
+      try {
+        await api(`/api/recruiter/${encodeURIComponent(s.recId)}/hints`, {
+          method: "POST",
+          body: JSON.stringify({ text, source: "manual" }),
+        });
+        document.getElementById("newHintInput").value = "";
+        document.getElementById("hintsStatus").textContent = "";
+        await loadHints();
+      } catch (e) {
+        document.getElementById("hintsStatus").textContent = "Error: " + (e?.message || e);
+      }
+    });
+    // ── Agent model ──────────────────────────────────────────────────────────
+    (async function () {
+      const sel = document.getElementById("agentModelSelect");
+      const status = document.getElementById("agentModelStatus");
+      try {
+        const r = await fetch("/agent/model");
+        const d = await r.json();
+        sel.value = d.model;
+        if (!sel.value) sel.value = "deepseek:deepseek-chat";
+      } catch (e) { status.textContent = "Could not load current model."; }
+
+      document.getElementById("saveAgentModelBtn").addEventListener("click", async () => {
+        status.textContent = "Saving…";
+        try {
+          const r = await fetch("/agent/model", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model: sel.value }),
+          });
+          const d = await r.json();
+          status.textContent = "Saved: " + d.model;
+          setTimeout(() => { status.textContent = ""; }, 3000);
+        } catch (e) {
+          status.textContent = "Error: " + (e?.message || e);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

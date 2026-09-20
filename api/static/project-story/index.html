@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="How Talent Atlas evolved from a PostgreSQL candidate search endpoint into a configurable, observable recruiting agent.">
+  <meta name="theme-color" content="#081726">
+  <title>Building Talent Atlas | Project Journey</title>
+  <link rel="icon" type="image/png" href="/static/project-story/assets/straatix-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/project-story/story.css">
+  <script defer src="/static/project-story/data.js"></script>
+  <script defer src="/static/project-story/story.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#story">Skip to the story</a>
+  <div class="reading-progress" aria-hidden="true"><span id="readingProgress"></span></div>
+
+  <header class="site-header">
+    <a class="wordmark" href="#top" aria-label="Talent Atlas journey home">
+      <span class="wordmark-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span>Talent Atlas</span>
+    </a>
+    <nav aria-label="Page navigation">
+      <a href="#rag-checklist">RAG checklist</a>
+      <a href="#search-endpoint">The /search endpoint</a>
+      <a href="#evolution">The build</a>
+      <button class="source-button" id="openSources" type="button">Sources</button>
+      <a class="talent-link" href="/talent">Try the Live Demo <span aria-hidden="true">↗</span></a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="story-hero" aria-labelledby="hero-title">
+      <div class="hero-media" aria-hidden="true"></div>
+      <div class="hero-shade" aria-hidden="true"></div>
+      <div class="hero-copy">
+        <p class="hero-label">A hybrid RAG search system for recruiting</p>
+        <h1 id="hero-title">Building<br>Talent Atlas</h1>
+        <p class="hero-deck">Talent Atlas combines search by meaning, exact keyword and skill matching, reranking, and source-grounded AI explanations to turn a hiring request into an auditable shortlist.</p>
+        <div class="hero-actions">
+          <a class="hero-demo-link" href="/talent">Try the RAG Search Demo <span aria-hidden="true">↗</span></a>
+          <a class="hero-story-link" href="#brief">Read how it works <span aria-hidden="true">↓</span></a>
+        </div>
+      </div>
+      <a class="scroll-cue" href="#brief">See the project overview <span aria-hidden="true">↓</span></a>
+    </section>
+
+    <section class="project-brief" id="brief" aria-labelledby="brief-title">
+      <div class="section-inner">
+        <div class="brief-with-checklist">
+          <div class="brief-main">
+            <div class="brief-grid">
+              <header>
+                <p class="section-number">The project in one minute</p>
+                <h2 id="brief-title">Turn a hiring request into an evidence-backed shortlist.</h2>
+              </header>
+              <div class="brief-copy">
+                <p class="brief-summary">Talent Atlas is a hybrid RAG search system. A recruiter describes the person they need in ordinary language; the system searches the meaning inside resumes, protects exact requirements such as skills and location, and returns one ranked list with the source evidence behind every match.</p>
+                <p>The AI copilot makes that search conversational, but it does not invent candidates or decide scores. It turns the recruiter’s request into a validated search, calls the same deterministic engine, and explains only what the returned evidence supports. <button class="cite" type="button" data-source="current-pipeline-code">Source 05</button></p>
+                <p class="technology-line"><strong>Built with</strong><span>FastAPI</span><span>PostgreSQL</span><span>pgvector</span><span>MiniLM embeddings</span><span>cross-encoder reranking</span><span>PydanticAI</span><span>Langfuse</span></p>
+              </div>
+            </div>
+
+            <div class="brief-steps" aria-label="Talent Atlas in four simple steps">
+              <p><span>01</span><strong>Ask</strong><small>Describe the role in plain language or provide structured requirements.</small></p>
+              <p><span>02</span><strong>Search</strong><small>Find meaning, exact words, verified skills and matching facts together.</small></p>
+              <p><span>03</span><strong>Rank</strong><small>Combine independent signals and carefully judge the strongest matches.</small></p>
+              <p><span>04</span><strong>Explain</strong><small>Return the people, matching resume lines and reasons behind the order.</small></p>
+            </div>
+          </div>
+
+          <aside class="rag-checklist" id="rag-checklist" aria-labelledby="rag-checklist-title">
+            <header>
+              <p class="section-number">System checklist</p>
+              <h2 id="rag-checklist-title">What makes it a complete RAG workflow</h2>
+              <p>Jump to any feature or open the evidence that supports it.</p>
+            </header>
+            <ol>
+              <li><a class="feature-jump" href="#feature-vector"><span aria-hidden="true">✓</span><strong>Vector retrieval</strong><i aria-hidden="true">↓</i></a><button class="cite feature-source" type="button" data-source="pgvector-docs">Source 12</button></li>
+              <li><a class="feature-jump" href="#feature-keyword"><span aria-hidden="true">✓</span><strong>Keyword retrieval</strong><i aria-hidden="true">↓</i></a><button class="cite feature-source" type="button" data-source="current-pipeline-code">Source 05</button></li>
+              <li><a class="feature-jump" href="#feature-structured"><span aria-hidden="true">✓</span><strong>Structured + skill filters</strong><i aria-hidden="true">↓</i></a><button class="cite feature-source" type="button" data-source="current-pipeline-code">Source 05</button></li>
+              <li><a class="feature-jump" href="#feature-evidence"><span aria-hidden="true">✓</span><strong>Source-grounded evidence</strong><i aria-hidden="true">↓</i></a><button class="cite feature-source" type="button" data-source="current-pipeline-code">Source 05</button></li>
+              <li><a class="feature-jump" href="#feature-fusion"><span aria-hidden="true">✓</span><strong>RRF rank fusion</strong><i aria-hidden="true">↓</i></a><button class="cite feature-source" type="button" data-source="current-pipeline-code">Source 05</button></li>
+              <li><a class="feature-jump" href="#feature-rerank"><span aria-hidden="true">✓</span><strong>Cross-encoder reranking</strong><i aria-hidden="true">↓</i></a><button class="cite feature-source" type="button" data-source="cross-encoder-model">Source 06</button></li>
+              <li><a class="feature-jump" href="#feature-explain"><span aria-hidden="true">✓</span><strong>Explainable ranking</strong><i aria-hidden="true">↓</i></a><button class="cite feature-source" type="button" data-source="current-pipeline-code">Source 05</button></li>
+              <li><a class="feature-jump" href="#configurable"><span aria-hidden="true">✓</span><strong>Typed JSON controls</strong><i aria-hidden="true">↓</i></a><button class="cite feature-source" type="button" data-source="pipeline-guide">Source 08</button></li>
+              <li><a class="feature-jump" href="#agent"><span aria-hidden="true">✓</span><strong>Agent tool calling</strong><i aria-hidden="true">↓</i></a><button class="cite feature-source" type="button" data-source="agent-prompt-code">Source 14</button></li>
+              <li><a class="feature-jump" href="#observability-title"><span aria-hidden="true">✓</span><strong>Langfuse observability</strong><i aria-hidden="true">↓</i></a><button class="cite feature-source" type="button" data-source="langfuse-docs">Source 10</button></li>
+              <li><a class="feature-jump" href="#learning"><span aria-hidden="true">✓</span><strong>Guarded memory loop</strong><i aria-hidden="true">↓</i></a><button class="cite feature-source" type="button" data-source="memory-series">Source 11</button></li>
+            </ol>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="rag-fundamentals" id="rag-fundamentals" aria-labelledby="rag-fundamentals-title">
+      <div class="section-inner">
+        <header class="fundamentals-heading">
+          <p class="section-number">Before the implementation</p>
+          <h2 id="rag-fundamentals-title">What “hybrid RAG” means here</h2>
+          <p>RAG stands for retrieval-augmented generation: find relevant information first, then let an AI answer using that information. Talent Atlas makes the retrieval stage hybrid because no single search method is reliable enough for resumes.</p>
+        </header>
+
+        <div class="fundamentals-flow" aria-label="Hybrid RAG explained in four stages">
+          <article>
+            <span>01 / Retrieve</span>
+            <h3>Search meaning and exact facts</h3>
+            <p>Vector search finds similar ideas even when the wording differs. Keyword, skill and SQL search protect names, technologies, locations and hard requirements.</p>
+          </article>
+          <article>
+            <span>02 / Fuse</span>
+            <h3>Combine independent evidence</h3>
+            <p>Each search method produces a different kind of score. Reciprocal Rank Fusion compares their positions instead, rewarding candidates supported by several methods.</p>
+          </article>
+          <article>
+            <span>03 / Rerank</span>
+            <h3>Give the best matches a second review</h3>
+            <p>A cross-encoder reads the request and the strongest resume passages together. It is slower, so it judges only the small pool retrieved in the earlier stages.</p>
+          </article>
+          <article>
+            <span>04 / Ground</span>
+            <h3>Answer from the retrieved source</h3>
+            <p>The API returns candidate facts, matching resume text and score details. The copilot uses that evidence to explain results instead of relying on what the LLM remembers.</p>
+          </article>
+        </div>
+
+        <div class="fundamentals-callout">
+          <p><strong>In one sentence:</strong> hybrid search reduces what the system misses, reranking improves what reaches the top, and grounding keeps the AI explanation tied to the underlying resume evidence. <button class="cite" type="button" data-source="ubuntu-reference">Source 13</button></p>
+          <div class="fundamentals-actions">
+            <a class="demo-cta" href="/talent">Try the Live Hybrid RAG Demo <span aria-hidden="true">↗</span></a>
+            <a class="more-about-link" href="https://ubuntu.com/blog/hybrid-search-and-reranking-a-deeper-look-at-rag" target="_blank" rel="noopener">
+              <span>More about this</span>
+              <strong>Hybrid search and reranking: a deeper look at RAG</strong>
+              <i aria-hidden="true">↗</i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pipeline-section" id="pipeline" aria-labelledby="pipeline-title">
+      <div class="section-inner">
+        <header class="section-heading">
+          <p class="section-number">01 / How it works</p>
+          <h2 id="pipeline-title">How the hybrid RAG pipeline works</h2>
+          <p>The search engine is the center. The API makes it configurable, the agent turns conversation into typed calls, and the learning layer supplies guarded preferences and outcome signals. The pipeline separates <strong>recall</strong> from <strong>judgment</strong>: retrieve a broad pool, combine independent evidence, then spend more computation only on the strongest candidates.</p>
+        </header>
+
+        <div class="pipeline-primer" aria-label="Plain-language search overview">
+          <p><strong>Search</strong><span>Turn the request into explicit requirements.</span></p>
+          <p><strong>Retrieve</strong><span>Find meaning, exact text, and exact skills in parallel.</span></p>
+          <p><strong>Rank</strong><span>Fuse agreement, score candidate evidence, and remove near-duplicates.</span></p>
+          <p><strong>Explain</strong><span>Return the source text and score components with every person.</span></p>
+        </div>
+        <p class="primer-note">Unlike a basic document chatbot, the retrieval result here is already a structured, ranked candidate response. Generation happens afterward: the copilot consumes those records and their source evidence to answer or explain. <button class="cite" type="button" data-source="ubuntu-reference">Source 13</button></p>
+
+        <section class="endpoint-deep-dive" id="search-endpoint" aria-labelledby="search-endpoint-title">
+          <header class="endpoint-heading">
+            <div>
+              <p class="section-number">The system’s stable spine</p>
+              <p class="endpoint-route"><span>POST</span><code>/search</code></p>
+            </div>
+            <div>
+              <h3 id="search-endpoint-title">One endpoint, twenty deliberate steps</h3>
+              <p>The Search UI, recruiting agent and benchmark scripts all use the same typed contract. FastAPI first validates the JSON, combines the selected mode with any safe overrides, and hands one request to the search engine. The engine then runs the sequence below and returns candidates, evidence, ranking details, timings and retrieval diagnostics in one response.</p>
+              <p class="endpoint-note">Not every request pays for every stage. A name lookup or filter-only request exits early; <code>fast</code> mode skips the cross-encoder; <code>no-llm</code> uses the deterministic planner; and every optional stage has a defined fallback. <button class="cite" type="button" data-source="pipeline-guide">Source 08</button></p>
+            </div>
+          </header>
+
+          <div class="endpoint-phases" aria-label="The twenty steps behind the search endpoint">
+            <section>
+              <header><span>01–05</span><h4>Understand safely</h4></header>
+              <ol start="1">
+                <li><strong>Detect the route</strong><p>Recognize a normal query, pasted job description, name lookup or filter-only request.</p></li>
+                <li><strong>Sanitize the input</strong><p>Bound its length, remove control characters and isolate user text before prompting.</p></li>
+                <li><strong>Check the caches</strong><p>Reuse matching planner, HyDE and embedding work when model and prompt versions agree.</p></li>
+                <li><strong>Plan the request</strong><p>Use the LLM for nuanced language or the deterministic fallback when disabled or unavailable.</p></li>
+                <li><strong>Validate the plan</strong><p>Drop unsupported fields, forbidden criteria and skills that were not grounded in the request.</p></li>
+              </ol>
+            </section>
+
+            <section>
+              <header><span>06–10</span><h4>Compile the search</h4></header>
+              <ol start="6">
+                <li><strong>Normalize aliases</strong><p>Map terms such as “JS,” “K8s” and “Bengaluru” to the values stored in PostgreSQL.</p></li>
+                <li><strong>Apply the confidence gate</strong><p>Ask a focused question when the request is too ambiguous to search responsibly.</p></li>
+                <li><strong>Route the intent</strong><p>Send lookups and filter-only requests down cheaper paths; reserve retrieval for candidate search.</p></li>
+                <li><strong>Weight search targets</strong><p>Prefer requested sources such as resumes or projects without deleting useful evidence elsewhere.</p></li>
+                <li><strong>Build the SQL filter</strong><p>Turn mandatory status, location, salary, experience and skill rules into the eligible pool.</p></li>
+              </ol>
+            </section>
+
+            <section>
+              <header><span>11–15</span><h4>Retrieve and combine</h4></header>
+              <ol start="11">
+                <li><strong>Run dense retrieval</strong><p>Embed the semantic query or HyDE profile and search resume chunks through pgvector HNSW.</p></li>
+                <li><strong>Run keyword retrieval</strong><p>Protect rare tools and exact phrases with PostgreSQL full-text search or optional BM25.</p></li>
+                <li><strong>Run exact-skill retrieval</strong><p>Score canonical candidate skills directly instead of hoping they appear prominently in prose.</p></li>
+                <li><strong>Fuse with RRF</strong><p>Combine branch positions with <code>Σ 1 / (60 + rank)</code>, rewarding agreement across methods.</p></li>
+                <li><strong>Group by candidate</strong><p>Hydrate the strongest chunks, collapse duplicates and retain supporting passages as evidence.</p></li>
+              </ol>
+            </section>
+
+            <section>
+              <header><span>16–20</span><h4>Judge, explain and learn</h4></header>
+              <ol start="16">
+                <li><strong>Guard empty results</strong><p>Make at most one bounded relaxation, record it, and rerun rather than silently broadening forever.</p></li>
+                <li><strong>Rerank the prefix</strong><p>Optionally let the cross-encoder read each query and evidence pair for the strongest small pool.</p></li>
+                <li><strong>Compute the feature score</strong><p>Combine retrieval, skills, preferences, experience, recency and completeness with tested weights.</p></li>
+                <li><strong>Apply MMR and explain</strong><p>Balance relevance with duplicate reduction, then attach checks, score components and best evidence.</p></li>
+                <li><strong>Return and observe</strong><p>Serialize <code>SearchResponse</code>, timings and trace metadata; log impressions and history asynchronously.</p></li>
+              </ol>
+            </section>
+          </div>
+
+          <p class="endpoint-summary"><strong>The important boundary:</strong> the LLM may interpret language, but PostgreSQL decides eligibility, the retrieval and ranking stages decide order, and the returned source text is what the UI and agent are allowed to explain. <button class="cite" type="button" data-source="current-pipeline-code">Source 05</button></p>
+
+          <div class="endpoint-visuals" aria-label="The search endpoint in the interface, results and observability trace">
+            <figure>
+              <button class="image-button" type="button" data-lightbox-src="/static/project-story/assets/admin-before.png" data-lightbox-alt="Original hybrid search administration interface used to submit and inspect search requests">
+                <span class="endpoint-image-crop"><img src="/static/project-story/assets/admin-before.png" alt="Original search interface with query controls and pipeline settings" width="1200" height="890" loading="lazy"></span>
+                <span>Open the original search bench</span>
+              </button>
+              <figcaption><strong>Request.</strong> The first interface exposed the endpoint controls directly so filters, modes and scores could be debugged before product polish.</figcaption>
+            </figure>
+            <figure>
+              <button class="image-button" type="button" data-lightbox-src="/static/project-story/assets/talent-results.png" data-lightbox-alt="Talent Atlas Search UI showing the generated search specification, ranked candidates, evidence and ranking explanation">
+                <span class="endpoint-image-crop results-crop"><img src="/static/project-story/assets/talent-results.png" alt="Talent Atlas ranked search results with evidence and explanation controls" width="1200" height="3182" loading="lazy"></span>
+                <span>Open the returned results</span>
+              </button>
+              <figcaption><strong>Response.</strong> The UI turns the returned JSON into candidate cards, retrieval-path badges, source excerpts and “Why this ranking.”</figcaption>
+            </figure>
+            <figure>
+              <button class="image-button" type="button" data-lightbox-src="/static/project-story/assets/langfuse-search-spans.png" data-lightbox-alt="Public-safe Langfuse view of nested search spans across planning, retrieval and ranking">
+                <span class="endpoint-image-crop trace-crop"><img src="/static/project-story/assets/langfuse-search-spans.png" alt="Langfuse search trace with nested planner, retrieval and ranking spans" width="2200" height="900" loading="lazy"></span>
+                <span>Open the search trace</span>
+              </button>
+              <figcaption><strong>Trace.</strong> Langfuse records the same request as nested planning, database, retrieval and ranking work so latency and failures can be located.</figcaption>
+            </figure>
+          </div>
+        </section>
+
+        <div class="pipeline-map-heading">
+          <p class="section-number">Interactive implementation map</p>
+          <h3>Zoom back out, or follow the agent and learning loop</h3>
+        </div>
+
+        <div class="pipeline-switcher" role="tablist" aria-label="Pipeline view">
+          <button id="tab-search" type="button" role="tab" aria-selected="true" aria-controls="panel-search" data-pipeline-tab="search">Search endpoint</button>
+          <button id="tab-agent" type="button" role="tab" aria-selected="false" aria-controls="panel-agent" data-pipeline-tab="agent">Agent call</button>
+          <button id="tab-learning" type="button" role="tab" aria-selected="false" aria-controls="panel-learning" data-pipeline-tab="learning">Learning loop</button>
+        </div>
+
+        <div class="pipeline-canvas">
+          <div class="pipeline-panel is-active" id="panel-search" role="tabpanel" aria-labelledby="tab-search" data-pipeline-panel="search">
+            <div class="full-pipeline" aria-label="Complete search endpoint pipeline">
+              <section class="flow-phase">
+                <header><span>01</span><div><h3>Understand the request</h3><p>Compile natural language and explicit JSON into one safe search specification.</p></div></header>
+                <div class="phase-track five">
+                  <article class="stage input"><strong>SearchRequest</strong><small>query · JD · filters · mode · overrides</small></article>
+                  <i aria-hidden="true">→</i>
+                  <article class="stage"><strong>Route detector</strong><small>lookup · query · JD · filters-only</small></article>
+                  <i aria-hidden="true">→</i>
+                  <article class="stage split"><strong>Planner gate</strong><small>LLM for complex input<br>deterministic fallback for simple/failure</small></article>
+                  <i aria-hidden="true">→</i>
+                  <article class="stage"><strong>Validate + merge</strong><small>normalize aliases · explicit fields win · unsafe guesses soften</small></article>
+                  <i aria-hidden="true">→</i>
+                  <article class="stage accent"><strong>CanonicalSearchSpec</strong><small>must · should · lexical terms · semantic query</small></article>
+                </div>
+              </section>
+
+              <section class="flow-phase">
+                <header><span>02</span><div><h3>Establish the eligible pool</h3><p>Boolean requirements stay in PostgreSQL; semantic work only runs when there is text to compare.</p></div></header>
+                <div class="phase-track three">
+                  <article class="stage" id="feature-structured"><strong>SQL hard filters</strong><small>status · city · country · salary overlap · years · must-skills</small></article>
+                  <i aria-hidden="true">+</i>
+                  <article class="stage"><strong>Candidate count</strong><small>sets retrieval windows and keyword policy</small></article>
+                  <i aria-hidden="true">+</i>
+                  <article class="stage"><strong>Query embedding</strong><small>HyDE profile or semantic query · cached by model + dimensions</small></article>
+                </div>
+              </section>
+
+              <section class="flow-phase retrieval-phase">
+                <header><span>03</span><div><h3>Retrieve in parallel</h3><p>The branches deliberately disagree: each protects a different kind of recall failure.</p></div></header>
+                <div class="fanout-label" aria-hidden="true">fan out</div>
+                <div class="retrieval-fanout">
+                  <article class="stage dense" id="feature-vector"><span>Dense</span><strong>Semantic chunks</strong><small>cosine distance · pgvector HNSW · meaning and paraphrase</small></article>
+                  <article class="stage keyword" id="feature-keyword"><span>Keyword</span><strong>Exact text</strong><small>auto/skip/force policy · PostgreSQL FTS or optional BM25</small></article>
+                  <article class="stage skill"><span>Skill</span><strong>Canonical facts</strong><small>exact normalized skills · optional per-skill weights</small></article>
+                </div>
+                <div class="fanout-label merge" aria-hidden="true">merge ranked lists</div>
+              </section>
+
+              <section class="flow-phase">
+                <header><span>04</span><div><h3>Turn chunks into ranked people</h3><p>Cheap recall comes first. More expensive judgment is restricted to a small candidate prefix.</p></div></header>
+                <div class="phase-track six">
+                  <article class="stage accent" id="feature-fusion"><strong>RRF</strong><small>Σ 1 / (60 + branch rank)</small></article>
+                  <i aria-hidden="true">→</i>
+                  <article class="stage"><strong>Group</strong><small>one candidate · best chunk + supporting chunks</small></article>
+                  <i aria-hidden="true">→</i>
+                  <article class="stage"><strong>Hydrate</strong><small>profile facts · documents · skill recency</small></article>
+                  <i aria-hidden="true">→</i>
+                  <article class="stage split" id="feature-rerank"><strong>Cross-encoder</strong><small>optional query/evidence pair score on top-N only</small></article>
+                  <i aria-hidden="true">→</i>
+                  <article class="stage"><strong>Feature score</strong><small>retrieval · skills · preferences · experience · completeness</small></article>
+                  <i aria-hidden="true">→</i>
+                  <article class="stage"><strong>MMR</strong><small>70% relevance · 30% duplicate penalty</small></article>
+                </div>
+              </section>
+
+              <section class="flow-phase final-phase">
+                <header><span>05</span><div><h3>Make the answer inspectable</h3><p>The endpoint returns enough state for the UI, agent, benchmarks, and traces to agree on what happened.</p></div></header>
+                <div class="phase-track five">
+                  <article class="stage guard"><strong>Empty?</strong><small>one bounded relaxation, then rerun; never silently broaden forever</small></article>
+                  <i aria-hidden="true">→</i>
+                  <article class="stage" id="feature-explain"><strong>Explanation</strong><small>required checks · score breakdown · best evidence · real sort basis</small></article>
+                  <i aria-hidden="true">+</i>
+                  <article class="stage"><strong>Cache</strong><small>request · planner · embedding · retrieval · enrichment</small></article>
+                  <i aria-hidden="true">+</i>
+                  <article class="stage"><strong>Trace</strong><small>planner · SQL · branches · ranking · latency</small></article>
+                  <i aria-hidden="true">→</i>
+                  <article class="stage output"><strong>SearchResponse JSON</strong><small>ordered candidates · evidence · policy · timings · explanations</small></article>
+                </div>
+              </section>
+            </div>
+            <p class="pipeline-caption"><strong>The endpoint is a compiled search plan.</strong> Hard constraints stay in SQL; independent retrieval systems compete for recall; RRF rewards agreement; the final score and MMR order people; the response preserves the evidence needed to audit that order.</p>
+          </div>
+
+          <div class="pipeline-panel" id="panel-agent" role="tabpanel" aria-labelledby="tab-agent" data-pipeline-panel="agent" hidden>
+            <div class="flow agent-flow" aria-label="Recruiter conversation flows through agent intent and a typed search tool into the same search endpoint, then streams results back to the interface">
+              <article class="flow-node input"><span>01</span><strong>Recruiter message</strong><small>natural language + session context</small></article>
+              <div class="flow-arrow" aria-hidden="true">→</div>
+              <article class="flow-node"><span>02</span><strong>PydanticAI agent</strong><small>choose only from registered tools</small></article>
+              <div class="flow-arrow" aria-hidden="true">→</div>
+              <article class="flow-node accent"><span>03</span><strong>Validated JSON</strong><small>arguments match the selected function schema</small></article>
+              <div class="flow-arrow" aria-hidden="true">→</div>
+              <article class="flow-node engine"><span>04</span><strong>Predefined function</strong><small>search · inspect · refine · update workflow</small></article>
+              <div class="flow-arrow" aria-hidden="true">→</div>
+              <article class="flow-node output"><span>05</span><strong>JSON result to UI</strong><small>SSE status · candidate cards · grounded answer</small></article>
+            </div>
+            <p class="pipeline-caption"><strong>The agent does not invent candidates or ranking scores.</strong> It formats a request, calls a typed tool, reads the returned evidence, and narrates what the search engine actually did.</p>
+          </div>
+
+          <div class="pipeline-panel" id="panel-learning" role="tabpanel" aria-labelledby="tab-learning" data-pipeline-panel="learning" hidden>
+            <div class="flow learning-flow" aria-label="Recruiter actions become outcomes and observations; confirmed preferences may softly influence later search while unconfirmed observations remain inactive">
+              <article class="flow-node input"><span>01</span><strong>Recruiter actions</strong><small>shortlist · reject · refine · confirm</small></article>
+              <div class="flow-arrow" aria-hidden="true">→</div>
+              <article class="flow-node"><span>02</span><strong>Auditable memory</strong><small>facts separate from observations</small></article>
+              <div class="flow-arrow" aria-hidden="true">→</div>
+              <article class="flow-node guard"><span>03</span><strong>Confirmation gate</strong><small>unconfirmed behavior cannot rank</small></article>
+              <div class="flow-arrow" aria-hidden="true">→</div>
+              <article class="flow-node accent"><span>04</span><strong>Bounded preferences</strong><small>soft context · normalized weights</small></article>
+              <div class="flow-arrow" aria-hidden="true">↺</div>
+              <article class="flow-node output"><span>05</span><strong>Next search</strong><small>personalized, but never silently filtered</small></article>
+            </div>
+            <p class="pipeline-caption"><strong>Learning is deliberately slower than interaction.</strong> The system can notice patterns immediately, but only declared or confirmed preferences are allowed to influence a later request.</p>
+          </div>
+        </div>
+
+        <section class="worked-example" id="feature-evidence" aria-labelledby="worked-example-title">
+          <header>
+            <p class="section-number">A recorded request, end to end</p>
+            <h3 id="worked-example-title">One query, three views of the same answer</h3>
+            <p>The recruiter sees a natural-language brief. The API sees validated JSON. The results UI renders the same returned fields as scores, evidence, retrieval badges, and a ranking explanation.</p>
+          </header>
+
+          <div class="example-layout">
+            <div class="json-exchange">
+              <section>
+                <div class="code-heading"><span>POST</span><code>/search</code></div>
+                <pre><code>{
+  "query": "Senior Python engineer with
+    machine learning expertise",
+  "city": "Bangalore",
+  "skills": ["python", "machine-learning"],
+  "min_years_exp": 5,
+  "mode": "quality",
+  "top_k": 10
+}</code></pre>
+              </section>
+
+              <section>
+                <div class="code-heading"><span>200</span><code>application/json</code></div>
+                <pre><code>{
+  "mode": "quality",
+  "total_results": 10,
+  "results": [{
+    "full_name": "Python Developer Candidate 12160",
+    "city": "Bangalore",
+    "years_exp": 6,
+    "skills": ["python", "machine-learning"],
+    "rank_score": 88,
+    "best_chunk": "Applied Role: Python Developer",
+    "ranking_explanation": {
+      "match_tier": "Strong match",
+      "retrieval_paths": ["dense", "bm25", "skill"],
+      "score_breakdown": [
+        {"name": "retrieval", "score": 100,
+          "weight_pct": 20},
+        {"name": "skill_match", "score": 100,
+          "weight_pct": 12}
+      ],
+      "best_evidence": "Applied Role: Python Developer"
+    }
+  }],
+  "phase_timings": {
+    "query_understanding_ms": "...",
+    "retrieval_ms": "...",
+    "ranking_ms": "..."
+  }
+}</code></pre>
+              </section>
+            </div>
+
+            <figure class="result-screenshot">
+              <button class="image-button" type="button" data-lightbox-src="/static/project-story/assets/talent-results.png" data-lightbox-alt="Recorded Talent Atlas search for a senior Python machine-learning engineer in Bangalore, showing the live spec, ranked candidates, evidence, retrieval paths, and ranking explanations">
+                <span class="screenshot-viewport">
+                  <img src="/static/project-story/assets/talent-results.png" alt="Talent Atlas query and ranked result with evidence and Why this ranking explanation" width="1200" height="3182" loading="lazy">
+                </span>
+                <span class="expand-label">Open full recorded search</span>
+              </button>
+              <figcaption>The captured UI shows the same query, a generated live search spec, and the first ranked result. Its <strong>Dense</strong>, <strong>BM25</strong>, and <strong>Skill</strong> badges identify which retrieval branches found it; “Why this ranking” exposes the actual sorting basis.</figcaption>
+            </figure>
+          </div>
+
+          <div class="explanation-map" aria-label="How returned JSON becomes a result explanation">
+            <p><code>rank_score: 88</code><span>The deterministic final score used for ordering.</span></p>
+            <p><code>retrieval_paths</code><span>Which independent search branches supplied evidence.</span></p>
+            <p><code>best_chunk</code><span>The source excerpt that best supports the match.</span></p>
+            <p><code>ranking_explanation</code><span>Required checks, score contributions, confidence tier, and sort basis.</span></p>
+          </div>
+          <p class="example-disclaimer">The JSON is a compact, public-safe excerpt reconstructed from the recorded UI and the current <code>SearchResponse</code> schema; omitted IDs, contact fields, supporting chunks, policy metadata, and exact timings keep the example readable.</p>
+        </section>
+
+        <details class="architecture-detail">
+          <summary>Open the full implementation map</summary>
+          <button class="image-button" type="button" data-lightbox-src="/static/project-story/assets/search-agent-architecture.png" data-lightbox-alt="Full Talent Atlas search and agent architecture">
+            <img src="/static/project-story/assets/search-agent-architecture.png" alt="Full Talent Atlas search and agent architecture" width="2500" height="4300" loading="lazy">
+            <span>Expand diagram</span>
+          </button>
+        </details>
+      </div>
+    </section>
+
+    <div class="article-shell" id="story">
+      <aside class="chapter-nav" aria-label="Story chapters">
+        <p>In this story</p>
+        <a href="#evolution">The first search</a>
+        <a href="#hybrid">Why hybrid</a>
+        <a href="#configurable">JSON as the contract</a>
+        <a href="#agent">Making it agent-callable</a>
+        <a href="#learning">Learning without bias</a>
+        <a href="#lessons">What held up</a>
+      </aside>
+
+      <article class="story-article">
+        <section class="chapter" id="evolution" aria-labelledby="evolution-title">
+          <header class="chapter-heading">
+            <p class="section-number">02 / The first search</p>
+            <h2 id="evolution-title">I built the search engine before I built the copilot</h2>
+          </header>
+
+          <p class="lead">The first useful version was intentionally plain: one FastAPI endpoint, PostgreSQL, pgvector, a small admin interface, and enough synthetic candidates to inspect every join and score.</p>
+
+          <div class="prose">
+            <p>The project began as a scalable rewrite of an earlier smart-search prototype. A recruiter query had to reach two kinds of truth at once: structured candidate facts such as status, location, salary and years of experience, and unstructured evidence inside resumes, notes and uploads. Keeping both in PostgreSQL meant filters, full-text search, vector distance and source joins could share one transactional model. <button class="cite" type="button" data-source="chat-origin">Source 01</button></p>
+            <p>The data model became the first important boundary. A <strong>candidate</strong> holds operational facts. A <strong>document</strong> preserves the source and its provenance. A <strong>chunk</strong> is the searchable unit with text, a full-text representation and an embedding. That separation made it possible to return a person once while still showing the exact resume fragments that caused the match.</p>
+          </div>
+
+          <figure class="pull-quote">
+            <blockquote>“The first interface was not the product. It was how I learned whether the search was telling the truth.”</blockquote>
+            <figcaption>Why the admin search bench came before Talent Atlas</figcaption>
+          </figure>
+
+          <figure class="wide-figure">
+            <button class="image-button" type="button" data-lightbox-src="/static/project-story/assets/admin-before.png" data-lightbox-alt="The first Hybrid Search admin interface">
+              <img src="/static/project-story/assets/admin-before.png" alt="The first Hybrid Search admin interface used to inspect candidates, documents, filters and search scores" width="1200" height="890" loading="lazy">
+              <span>Open the first search interface</span>
+            </button>
+            <figcaption>The early UI exposed records, filter values, chunks, scores and latency. It made pipeline failures visible before product polish made them harder to notice. <button class="cite" type="button" data-source="chat-first-ui">Source 02</button></figcaption>
+          </figure>
+
+          <div class="prose">
+            <h3>The hard part was not finding a large CSV</h3>
+            <p>One hundred generated profiles proved persistence and request mechanics, but they were useless as a serious relevance test. I then moved to a real public Kaggle recruitment dataset and inspected its rows against the application schema. Public does not automatically mean usable: a large file can still be a poor fit if it lacks resume text, role context or evidence that can support a result.</p>
+            <p>The first real import transformed 5,000 Kaggle recruitment rows into candidates, resume documents and evaluation cases while preserving the source names, roles, resumes and job descriptions. Only missing demonstration fields such as location and salary were generated deterministically, and emails were replaced with placeholders. Later resume-first corpora required deduplication, template cleanup, role normalization, canonical skills, stable source IDs and caps on overrepresented jobs. The local corpus eventually reached 30,767 candidates, 28,610 documents and 65,211 chunks. <button class="cite" type="button" data-source="chat-dataset-hunt">Source 03</button></p>
+          </div>
+        </section>
+
+        <section class="chapter" id="hybrid" aria-labelledby="hybrid-title">
+          <header class="chapter-heading">
+            <p class="section-number">03 / The retrieval pipeline</p>
+            <h2 id="hybrid-title">Semantic similarity was a useful scout, not a final judge</h2>
+          </header>
+
+          <p class="lead">Dense retrieval found related language, but it could miss exact skills, accept a conceptually similar resume that failed a hard constraint, or return several chunks from the same person.</p>
+
+          <div class="prose">
+            <p>I used <strong><code>all-MiniLM-L6-v2</code></strong> as the local baseline because it was designed for sentence and short-paragraph similarity, was trained on more than a billion sentence pairs, produced compact 384-dimensional vectors, and ran locally at zero request cost. That was a practical match for searching resume chunks. It was not selected because “smaller is always more accurate”; the repository keeps adapters for larger local and hosted models because changing the embedding model is a corpus migration, not a dropdown-only change. <button class="cite" type="button" data-source="minilm-model">Source 04</button></p>
+            <p>Dense search therefore became one of three parallel branches. PostgreSQL full-text search protects exact phrases, acronyms and unusual terms. The skill branch searches normalized candidate facts. Reciprocal Rank Fusion then combines positions instead of incompatible raw scores:</p>
+          </div>
+
+          <div class="formula" aria-label="Reciprocal Rank Fusion formula">
+            <span>RRF(d) =</span>
+            <strong>Σ 1 / (60 + rank<sub>branch</sub>(d))</strong>
+          </div>
+
+          <div class="prose">
+            <p>The constant 60 smooths the advantage of a single first-place result. A candidate found near the top by dense, keyword and skill retrieval receives more evidence than one found by only one branch. Results are then grouped by candidate ID so repeated chunks become supporting evidence instead of repeated people. <button class="cite" type="button" data-source="current-pipeline-code">Source 05</button></p>
+
+            <h3>Why the cross-encoder stayed optional</h3>
+            <p>The local reranker uses <strong><code>cross-encoder/ms-marco-MiniLM-L-6-v2</code></strong>. Its training task is passage ranking: it reads the query and candidate evidence together and emits one relevance score. That makes it a much closer fit for second-stage ranking than a bi-encoder, which must encode each side independently so documents can be indexed in advance. The cost is that every query-document pair must run through the model at request time, so only a retrieved prefix is reranked. <button class="cite" type="button" data-source="cross-encoder-model">Source 06</button></p>
+            <p>Architectural fit still did not guarantee better project results. On the recorded 80-query evaluation, enabling reranking reduced Top-1 from 35% to 28.75% and raised median latency from roughly 60 ms to 244 ms. I kept the stage toggleable and let the feature ranker redistribute its weights when it is absent. That negative result mattered more than the model’s reputation. <button class="cite" type="button" data-source="strategy-benchmark">Source 07</button></p>
+          </div>
+
+          <details class="technical-detail">
+            <summary>See the final score and diversity formulas</summary>
+            <div class="technical-body">
+              <p>With the cross-encoder enabled, the current score weights cross-encoder relevance at 45%, retrieval at 20%, exact skills at 12%, soft preferences at 10%, experience fit at 5%, skill recency at 3%, completeness at 2%, and confirmed personalization at 3%.</p>
+              <pre><code>feature_score = 100 × Σ(signal_i × normalized_weight_i)
+
+MMR(candidate) =
+  0.7 × relevance
+  − 0.3 × max_similarity_to_already_selected</code></pre>
+              <p>Without cross-encoder scores, retrieval and deterministic candidate facts receive the missing weight. MMR runs last so diversity can remove near-duplicates without rescuing irrelevant candidates.</p>
+            </div>
+          </details>
+        </section>
+
+        <section class="chapter" id="configurable" aria-labelledby="configurable-title">
+          <header class="chapter-heading">
+            <p class="section-number">04 / JSON as the contract</p>
+            <h2 id="configurable-title">One JSON contract connected the endpoint, tools and UI</h2>
+          </header>
+
+          <p class="lead">Once the basic pipeline worked, I stopped treating the request as only a sentence. JSON became the stable language for configuring search directly and for passing validated arguments and results through the chatbot’s predefined tools.</p>
+
+          <div class="prose">
+            <p><strong>Direct endpoint calls:</strong> <code>POST /search</code> accepts free text or a job description alongside structured filters, soft preferences, weights, mode, result count, keyword policy and pipeline toggles. Pydantic validates the body, and the search service compiles it into a canonical specification containing <strong>must</strong> constraints, <strong>should</strong> preferences, lexical terms and a semantic query. This JSON configures known pipeline behavior; it is not executable code.</p>
+          </div>
+
+          <div class="code-split">
+            <div>
+              <p class="code-label">A direct API request</p>
+              <pre><code>{
+  "query": "backend engineer for payment systems",
+  "jd": null,
+  "mode": "agent-quality",
+
+  "country": "India",
+  "city": "Bengaluru",
+  "skills": ["python", "postgresql"],
+  "skills_match": "and",
+  "min_years_exp": 4,
+  "max_salary": 3500000,
+  "status": ["active"],
+
+  "should": {
+    "skills": ["kubernetes", "aws"],
+    "themes": ["payment systems", "distributed systems"],
+    "roles": ["backend engineer"]
+  },
+  "skill_weights": {
+    "python": 1.0,
+    "postgresql": 0.9,
+    "kubernetes": 0.5
+  },
+
+  "keyword_policy": "auto",
+  "keyword_timeout_ms": 800,
+  "use_rrf": true,
+  "enable_reranking": true,
+  "reranker": "local-fast",
+
+  "top_k": 10,
+  "max_chunks_per_candidate": 3,
+  "include_rank_explanation": true,
+  "include_ai_insights": false,
+
+  "config_overrides": {
+    "use_dense": true,
+    "use_bm25": true,
+    "use_skill_exact": true,
+    "use_cross_encoder": true,
+    "use_feature_ranker": true,
+    "use_mmr": true,
+    "use_auto_relax": true,
+    "use_cache": true
+  }
+}</code></pre>
+            </div>
+            <div class="contract-copy">
+              <p><strong><code>must</code></strong> becomes SQL eligibility. It may remove a candidate.</p>
+              <p><strong><code>should</code></strong> contributes evidence and score without silently excluding anyone.</p>
+              <p><strong><code>mode</code></strong> selects a tested preset rather than exposing model names as product behavior.</p>
+              <p><strong><code>config_overrides</code></strong> makes experiments reproducible without forking the endpoint.</p>
+            </div>
+          </div>
+
+          <details class="technical-detail request-surface">
+            <summary>Explore the full request surface</summary>
+            <div class="technical-body">
+              <p>The API deliberately separates stable product controls from lower-level experiment knobs. Most clients use the first layer; benchmarks and debugging can selectively override the second.</p>
+              <div class="request-groups">
+                <article>
+                  <h3>Input and context</h3>
+                  <p><code>query</code>, <code>jd</code>, <code>mode</code>, <code>session_id</code>, <code>recruiter_id</code>, <code>llm_provider</code>, <code>llm_model</code></p>
+                </article>
+                <article>
+                  <h3>Hard eligibility</h3>
+                  <p><code>location</code>, <code>country</code>, <code>city</code>, <code>min_age</code>, <code>max_age</code>, <code>skills</code>, <code>interests</code>, experience and salary ranges, and <code>status</code></p>
+                </article>
+                <article>
+                  <h3>Preference semantics</h3>
+                  <p><code>should</code>, <code>skill_weights</code>, <code>skills_match</code>, <code>interests_match</code>. These distinguish optional evidence and relative importance from hard exclusion.</p>
+                </article>
+                <article>
+                  <h3>Retrieval and ranking</h3>
+                  <p><code>keyword_policy</code>, <code>keyword_timeout_ms</code>, <code>use_rrf</code>, <code>enable_reranking</code>, <code>reranker</code>, <code>top_k</code>, and <code>max_chunks_per_candidate</code></p>
+                </article>
+                <article>
+                  <h3>Returned analysis</h3>
+                  <p><code>include_rank_explanation</code> and <code>include_ai_insights</code>. The deprecated <code>include_fit_analysis</code> remains only as a compatibility alias.</p>
+                </article>
+                <article>
+                  <h3>Pipeline experiments</h3>
+                  <p><code>config_overrides</code> can change individual stages, retrieval breadth, fusion constants, diversity, caching and guardrail thresholds for one request.</p>
+                </article>
+              </div>
+
+              <p class="code-label">Advanced per-request overrides</p>
+              <pre><code>{
+  "use_route_detector": true,
+  "use_sanitizer": true,
+  "use_cache": true,
+  "use_llm_planner": true,
+  "use_planner_fallback": true,
+  "use_fallback_repair": true,
+  "use_validator": true,
+  "use_normalizer": true,
+  "use_confidence_gate": true,
+  "use_intent_router": true,
+  "use_search_target_weighting": true,
+  "use_sql_filter": true,
+  "use_dense": true,
+  "use_bm25": true,
+  "use_skill_exact": true,
+  "use_rrf": true,
+  "use_cross_encoder": true,
+  "use_personalization": false,
+  "use_feature_ranker": true,
+  "use_mmr": true,
+  "use_impression_logging": true,
+  "use_dynamic_retrieval_limits": true,
+  "use_auto_relax": true,
+  "defer_chunk_content": true,
+  "use_retrieval_cache": false,
+
+  "dense_top_k": 200,
+  "bm25_top_k": 200,
+  "skill_top_k": 100,
+  "cross_encoder_top_k": 7,
+  "chunk_hydration_top_k": 120,
+  "candidate_enrichment_top_k": 80,
+
+  "confidence_threshold": 0.6,
+  "mmr_lambda": 0.7,
+  "rrf_k": 60,
+  "bm25_backend": "fts",
+  "bm25_overfetch_factor": 4
+}</code></pre>
+              <p>Named modes establish sensible combinations of these values. Explicit request fields take priority where appropriate, so experiments remain reproducible without forcing normal UI users to understand every internal stage.</p>
+            </div>
+          </details>
+
+          <div class="prose">
+            <p><strong>Chatbot tool calls:</strong> PydanticAI turns a fixed set of registered Python functions into schemas the model can see. The model can select <code>run_search</code>, <code>modify_and_search</code>, <code>view_current_results</code>, <code>list_skills</code>, <code>keyword_search</code>, <code>get_candidate_details</code>, <code>update_shortlist</code> and other predefined operations, then provide JSON arguments that match the chosen function. It cannot invent a function or bypass the validation layer. <button class="cite" type="button" data-source="agent-prompt-code">Source 14</button></p>
+            <p>Each function delegates to deterministic <code>do_*</code> helpers. Search functions call the shared engine; inspection functions query candidate evidence; workflow functions update explicit session state. Their JSON return values carry results, diagnostics, scores and evidence. The chat endpoint observes those tool events and translates them into server-sent status updates and candidate cards before the model writes a grounded summary.</p>
+            <p>This is also where flexibility became safe. Search modes merge base configuration, a named preset, provider settings and request overrides without changing the result shape. The planner prompt extracts only grounded requirements and separates mandatory from preferred criteria, but code still normalizes aliases, rejects unsupported fields and enforces database policy. <button class="cite" type="button" data-source="pipeline-guide">Source 08</button></p>
+          </div>
+        </section>
+
+        <section class="chapter" id="agent" aria-labelledby="agent-title">
+          <header class="chapter-heading">
+            <p class="section-number">05 / Making it agent-callable</p>
+            <h2 id="agent-title">The agent learned the endpoint’s language instead of replacing it</h2>
+          </header>
+
+          <p class="lead">By the time the recruiting copilot arrived, the difficult search logic already had a stable JSON boundary and a set of deterministic helpers. The agent became a router across those capabilities, not a second ranking implementation.</p>
+
+          <figure class="wide-figure landscape">
+            <button class="image-button" type="button" data-lightbox-src="/static/project-story/assets/talent-agent.png" data-lightbox-alt="Talent Atlas recruiter agent interface">
+              <img src="/static/project-story/assets/talent-agent.png" alt="Talent Atlas recruiter agent interface showing a conversation and search tools" width="1200" height="886" loading="lazy">
+              <span>Open the agent interface</span>
+            </button>
+          </figure>
+
+          <div class="prose">
+            <p>PydanticAI provides typed dependencies, generated tool schemas, message history and node-level streaming. Search tools include <code>run_search</code> and <code>modify_and_search</code>; inspection tools include <code>view_current_results</code>, <code>list_skills</code>, <code>keyword_search</code> and batched candidate detail lookup; workflow tools include shortlist, working-spec, saved-search and export operations. Every one is a predefined Python function with validated arguments and a JSON result. <button class="cite" type="button" data-source="pydantic-docs">Source 09</button></p>
+            <p>The system prompt is an operating contract, not a personality paragraph. It maps recruiter intents to the appropriate registered tool, explains which fields belong in hard filters versus soft preferences, and requires candidate claims to come from returned evidence. Provider SDKs are still used directly for planner and embedding adapters; PydanticAI owns the conversational tool loop, not every model call.</p>
+          </div>
+
+          <div class="prompt-explainer" aria-labelledby="prompt-title">
+            <div class="prompt-copy">
+              <p class="code-label">Public-safe excerpt from the agent system prompt</p>
+              <h3 id="prompt-title">The instructions narrow the model’s job</h3>
+              <p>The prompt first explains the platform and its ranking fields. It then injects the current query, active filters, result count, confirmed recruiter facts and unconfirmed observations. Candidate profiles are deliberately not placed in the prompt; the agent must fetch evidence through a tool when it needs it.</p>
+              <p>Specific requests run immediately. Broad requests become a compact requirements draft with one or two focused questions. Explicit must-haves go into <code>filters</code>; optional or inferred preferences go into <code>should</code>. When the agent has already built the JSON itself, it chooses <code>no-llm</code> so the backend does not pay another model to reinterpret it.</p>
+              <p>Finally, the prompt defines recovery rules: inspect the returned diagnostics, relax the smallest constraint first, explain rankings from <code>best_evidence</code> and score data, never invent a candidate, and ask before saving a lasting preference. <button class="cite" type="button" data-source="agent-prompt-code">Source 14</button></p>
+            </div>
+            <pre class="prompt-sample" aria-label="Condensed agent prompt excerpt"><code>You are an expert AI recruiting copilot.
+
+SPECIFIC request → act immediately.
+BROAD request → draft requirements,
+then ask 1–2 focused questions.
+
+Only explicit must-haves belong in filters.
+Optional criteria belong in should.
+Prefer no-llm after structuring the request.
+
+Read best_evidence before explaining a rank.
+Never invent candidates or numbers.
+Confirm before saving persistent preferences.</code></pre>
+          </div>
+
+          <div class="agent-boundary">
+            <div>
+              <span>Probabilistic</span>
+              <h3>The agent decides</h3>
+              <p>Whether to clarify, which tool to call, how to structure the brief, and how to explain returned evidence.</p>
+            </div>
+            <div>
+              <span>Deterministic</span>
+              <h3>The engine decides</h3>
+              <p>Eligibility, retrieval, fusion, scoring, diversification, state mutation and the result JSON.</p>
+            </div>
+          </div>
+
+          <div class="prose">
+            <p>The chat endpoint observes the PydanticAI run and translates model and tool nodes into server-sent events. The UI can therefore show “searching,” tool arguments, result cards and the final answer without putting display concerns inside the tools. Langfuse traces the request, model generations, tool calls and search spans as one nested path, which made slow model calls and database waits distinguishable. <button class="cite" type="button" data-source="langfuse-docs">Source 10</button></p>
+          </div>
+
+          <section class="observability-story" aria-labelledby="observability-title">
+            <header>
+              <p class="section-number">Following one request</p>
+              <h3 id="observability-title">Langfuse turned “the agent feels slow” into a path I could inspect</h3>
+            </header>
+
+            <div class="prose">
+              <p>At first I only had a few endpoint timers. They could tell me that a request took a long time, but not whether the delay came from the model thinking, a tool call, waiting for a database connection, one retrieval branch, or the cross-encoder. I changed that to one root trace for each recruiter turn. Under it, the model generations, tool calls and search operation become nested observations with their own inputs, outputs and timings.</p>
+              <p>The first image is the actual order reconstructed from a recorded Langfuse trace. The agent checked canonical skills twice, then called the candidate-search tool. That search occupied most of the turn. The second image opens that tool call: count, dense, exact-skill and keyword retrieval start together; RRF waits for the slowest branch; candidate rows are hydrated; then the cross-encoder reranks the final window. This showed that the apparent “agent delay” was mostly retrieval and database waiting, with another measurable cost in reranking.</p>
+              <p>That separation matters because each problem has a different fix. A slow generation suggests a smaller model or tighter prompt. A pool wait suggests connection or concurrency work. A weak keyword branch suggests query or index work. A slow reranker can be warmed, applied to fewer candidates, or disabled in a faster mode. The trace records the decision path without changing the deterministic search result, and production tracing can sample requests and redact prompt or candidate content. <button class="cite" type="button" data-source="langfuse-docs">Source 10</button></p>
+            </div>
+
+            <div class="trace-gallery">
+              <figure>
+                <button class="image-button" type="button" data-lightbox-src="/static/project-story/assets/langfuse-agent-loop.png" data-lightbox-alt="Recorded Langfuse agent trace showing model generations and tool calls in order">
+                  <img src="/static/project-story/assets/langfuse-agent-loop.png" alt="Recorded Langfuse agent trace showing four model generations, two skill checks and one candidate search call with timings" width="2200" height="520" loading="lazy">
+                  <span>Open the agent trace</span>
+                </button>
+                <figcaption><strong>The agent loop.</strong> Langfuse preserves the order and duration of each generation and tool call, so a long turn can be attributed instead of guessed at.</figcaption>
+              </figure>
+
+              <figure>
+                <button class="image-button" type="button" data-lightbox-src="/static/project-story/assets/langfuse-search-spans.png" data-lightbox-alt="Langfuse search trace expanded into parallel retrieval, fusion, hydration and reranking spans">
+                  <img src="/static/project-story/assets/langfuse-search-spans.png" alt="Search trace expanded into parallel count, dense, skill and keyword retrieval followed by RRF, hydration and cross-encoder reranking" width="2200" height="900" loading="lazy">
+                  <span>Open the search spans</span>
+                </button>
+                <figcaption><strong>Inside <code>search_candidates</code>.</strong> The nested spans reveal parallel work, the database wait hidden inside each branch, and the separate cross-encoder cost.</figcaption>
+              </figure>
+            </div>
+
+            <p class="trace-note">These are public-safe crops from a project trace analysis. The private trace identifier and candidate payloads are intentionally omitted; timings describe that recorded run, not a universal latency guarantee.</p>
+          </section>
+        </section>
+
+        <section class="chapter" id="learning" aria-labelledby="learning-title">
+          <header class="chapter-heading">
+            <p class="section-number">06 / Learning and flexibility</p>
+            <h2 id="learning-title">Memory could help only after it stopped being invisible</h2>
+          </header>
+
+          <p class="lead">A recruiting assistant should remember useful context, but clicks are not consent and repeated behavior is not automatically a hiring rule.</p>
+
+          <div class="prose">
+            <p>The memory design separates recruiter-declared facts from machine observations. Facts are editable and may softly influence planning. Observations keep confidence, evidence and expiry, but cannot affect ranking until they are confirmed. Even active personalization is a bounded score component, not a hidden SQL filter, and it is disabled by default in the current configuration. <button class="cite" type="button" data-source="memory-series">Source 11</button></p>
+            <p>This same principle shaped the product UI. Search sessions restore the working spec and results; tool calls stay visible; candidate cards preserve supporting evidence; shortlist and outcome actions carry reasons; uploads become documents rather than pasted prompt context. The interface can learn from work because the underlying state is explicit.</p>
+          </div>
+
+          <figure class="wide-figure">
+            <button class="image-button" type="button" data-lightbox-src="/static/project-story/assets/talent-results.png" data-lightbox-alt="Talent Atlas ranked candidate workspace">
+              <img src="/static/project-story/assets/talent-results.png" alt="Talent Atlas recruiter workspace showing ranked candidate results and evidence" width="1200" height="3182" loading="lazy">
+              <span>Open the recruiter workspace</span>
+            </button>
+            <figcaption>The final UI did not replace the endpoint. It made the endpoint’s structure, tools and evidence usable across a long-running recruiting session.</figcaption>
+          </figure>
+        </section>
+
+        <section class="chapter final-chapter" id="lessons" aria-labelledby="lessons-title">
+          <header class="chapter-heading">
+            <p class="section-number">07 / What held up</p>
+            <h2 id="lessons-title">The architecture improved when each intelligent part had a smaller job</h2>
+          </header>
+
+          <div class="lesson-list">
+            <article><span>01</span><h3>Data quality beat model novelty</h3><p>A stronger model could not repair absent evidence, duplicate resumes or invented schema fields.</p></article>
+            <article><span>02</span><h3>JSON made intelligence composable</h3><p>The same validated contract serves the UI, benchmarks, direct API clients and agent tools.</p></article>
+            <article><span>03</span><h3>Models needed task-shaped roles</h3><p>A bi-encoder retrieves cheaply; a cross-encoder judges a small prefix; an LLM interprets language and chooses actions.</p></article>
+            <article><span>04</span><h3>Extra sophistication needed evidence</h3><p>The reranker stayed optional because the measured project result was worse, despite a convincing theoretical fit.</p></article>
+            <article><span>05</span><h3>Observability came before optimization</h3><p>Nested traces separated planner, queue, SQL, retrieval, ranking and tool time before performance work began.</p></article>
+            <article><span>06</span><h3>Learning needed a permission boundary</h3><p>Observed behavior remains evidence until a recruiter confirms it as a preference.</p></article>
+            <article><span>07</span><h3>Scale was tested; production fit is the next proof</h3><p>The system was benchmarked and exercised with concurrent HTTP batches up to 500 requests, exposing its database-pool limits. The remaining validation is against a real company production dataset, recruiter-labelled relevance and representative live traffic. The current corpus is transformed from real Kaggle recruitment data, with generated fields kept explicitly synthetic.</p></article>
+          </div>
+
+          <footer class="story-footer">
+            <img src="/static/project-story/assets/straatix-logo.png" alt="Straatix Talent" width="920" height="260" loading="lazy">
+            <div>
+              <h3>The current system is hybrid by responsibility.</h3>
+              <p>PostgreSQL owns facts and retrieval. Deterministic Python owns ranking and state. Small specialized models own representations and pairwise relevance. The agent owns language, tool choice and grounded explanation. That separation is what makes Talent Atlas a hybrid RAG system rather than a chatbot wrapped around vector search.</p>
+              <button class="footer-source" type="button" data-open-sources>Inspect the evidence behind the story</button>
+            </div>
+          </footer>
+        </section>
+
+        <noscript>
+          <p class="noscript-note">All article content is available without JavaScript. Pipeline tabs, source drawers and image expansion require JavaScript.</p>
+        </noscript>
+      </article>
+    </div>
+  </main>
+
+  <dialog class="source-dialog" id="sourceDialog" aria-labelledby="sourceDialogTitle">
+    <header>
+      <div>
+        <p class="section-number">Evidence index</p>
+        <h2 id="sourceDialogTitle">Sources behind this journal</h2>
+      </div>
+      <button class="dialog-close" type="button" aria-label="Close sources">×</button>
+    </header>
+    <p class="dialog-intro">Project conversations are summarized and stripped of private context. Code and reports support implementation claims; official model cards and documentation support framework claims.</p>
+    <div class="source-list" id="sourceDialogList"></div>
+  </dialog>
+
+  <dialog class="image-lightbox" id="imageLightbox" aria-labelledby="lightboxCaption">
+    <button class="lightbox-close" type="button" aria-label="Close image">×</button>
+    <div class="lightbox-stage"><img id="lightboxImage" alt=""></div>
+    <p id="lightboxCaption"></p>
+  </dialog>
+</body>
+</html>
