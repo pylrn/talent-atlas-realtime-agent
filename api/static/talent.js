@@ -1440,6 +1440,19 @@
     return [String(value)];
   }
 
+  function relaxationLabel(item) {
+    if (!item || typeof item !== "object") return String(item || "");
+    var field = item.field ? String(item.field) : "constraint";
+    var from = item.from;
+    if (from && typeof from === "object") {
+      from = Object.keys(from).map(function (key) {
+        return from[key] == null ? "" : String(from[key]);
+      }).filter(Boolean).join(", ");
+    }
+    var label = field + (from ? ": " + String(from) : "");
+    return label + (item.to ? " -> " + String(item.to).replaceAll("_", " ") : "");
+  }
+
   function plannerSpec() {
     var spec = state.spec || {};
     return state.queryInterpretation || spec.planner_spec || spec.spec_summary || spec.plannerSpec || {};
@@ -2442,32 +2455,39 @@
       state.results = candidates.map(function (candidate, index) {
         return normalizeResult(Object.assign({}, candidate, {
           rank: index + 1,
-          score_available: false
+          score_available: candidate.feature_score != null || candidate.rerank_score != null || candidate.rrf_score != null
         }), index);
       });
-      state.candidateIds = state.results.map(function (candidate) { return candidate.id; });
-      state.deferredCandidateIds = [];
+      state.candidateIds = Array.isArray(toolResult && toolResult.candidate_ids) ?
+        toolResult.candidate_ids.slice() : state.results.map(function (candidate) { return candidate.id; });
+      state.deferredCandidateIds = Array.isArray(toolResult && toolResult.deferred_candidate_ids) ?
+        toolResult.deferred_candidate_ids.slice() : [];
       state.resultExpanded = false;
+      var canonicalSpec = toolResult && toolResult.canonical_spec ? toolResult.canonical_spec : null;
       state.queryInterpretation = toolResult && toolResult.plan ? {
-        semantic_query: toolResult.plan.query,
-        must_skills: toolResult.plan.must_skills || [],
-        should_skills: toolResult.plan.should_skills || [],
+        semantic_query: canonicalSpec && canonicalSpec.semantic_query || toolResult.plan.query,
+        must_skills: canonicalSpec && canonicalSpec.must_skills || toolResult.plan.must_skills || [],
+        should_skills: canonicalSpec && canonicalSpec.should_skills || toolResult.plan.should_skills || [],
         must_location: {
-          city: toolResult.plan.city,
-          country: toolResult.plan.country
+          city: canonicalSpec && canonicalSpec.must_location && canonicalSpec.must_location.city || toolResult.plan.city,
+          country: canonicalSpec && canonicalSpec.must_location && canonicalSpec.must_location.country || toolResult.plan.country
         },
         experience_range: {
-          min_years: toolResult.plan.min_years_exp,
-          max_years: toolResult.plan.max_years_exp
-        }
+          min_years: canonicalSpec && canonicalSpec.experience_range && canonicalSpec.experience_range.min_years || toolResult.plan.min_years_exp,
+          max_years: canonicalSpec && canonicalSpec.experience_range && canonicalSpec.experience_range.max_years || toolResult.plan.max_years_exp
+        },
+        relaxed_items: (toolResult.relaxations_applied || []).map(relaxationLabel)
       } : null;
+      state.spec = Object.assign({}, state.spec || {}, {
+        query: toolResult && toolResult.plan ? toolResult.plan.query : "",
+        relaxed_items: (toolResult && toolResult.relaxations_applied || []).map(relaxationLabel)
+      });
       state.lastSearchMeta = {
-        mode: "realtime voice",
+        mode: "realtime voice · canonical agent-quality",
         latency_ms: toolResult && toolResult.duration_ms,
-        retrieval_policy: {
-          reused_branches: toolResult && toolResult.reused_branches,
-          executed_branches: toolResult && toolResult.executed_branches
-        }
+        phase_timings: toolResult && toolResult.phase_timings || {},
+        retrieval_policy: toolResult && toolResult.retrieval_policy || {},
+        relaxations_applied: toolResult && toolResult.relaxations_applied || []
       };
       renderResults(candidates.length);
       if (state.results.length) requestAnimationFrame(function () { scrollResultsIntoView(state.results[0].id); });

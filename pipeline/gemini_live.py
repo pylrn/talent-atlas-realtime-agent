@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any, Protocol
@@ -41,6 +42,7 @@ class GeminiLiveBridge:
         self.tools = tools
         self.on_event = on_event
         self.on_audio = on_audio
+        self._tool_tasks: set[asyncio.Task[None]] = set()
 
     async def send_audio(self, data: bytes) -> None:
         await self.transport.send_audio(data)
@@ -58,10 +60,15 @@ class GeminiLiveBridge:
                 await self.on_event("transcript.output", packet.data)
             elif packet.kind == "interrupted":
                 await self.on_event("audio.interrupted", packet.data)
+                await self.tools.cancel_active(reason="barge_in")
             elif packet.kind == "tool_call":
-                await self._handle_tool_call(packet.data)
+                task = asyncio.create_task(self._handle_tool_call(packet.data))
+                self._tool_tasks.add(task)
+                task.add_done_callback(self._tool_tasks.discard)
             elif packet.kind in {"session_resumption", "go_away", "error"}:
                 await self.on_event(f"gemini.{packet.kind}", packet.data)
+        if self._tool_tasks:
+            await asyncio.gather(*tuple(self._tool_tasks), return_exceptions=True)
 
     async def close(self) -> None:
         await self.transport.close()
@@ -73,6 +80,9 @@ class GeminiLiveBridge:
         await self.on_event("tool.started", {"call_id": call_id, "name": name, "arguments": arguments})
         try:
             result = await self.tools.dispatch(name, arguments)
+        except asyncio.CancelledError:
+            result = {"cancelled": True, "reason": "superseded_or_interrupted"}
+            await self.on_event("tool.cancelled", {"call_id": call_id, "name": name, **result})
         except ToolRejected as exc:
             result = {"error": str(exc), "rejected": True}
             await self.on_event("tool.rejected", {"call_id": call_id, "name": name, **result})

@@ -219,6 +219,8 @@ def _merge_explicit(spec: CanonicalSearchSpec, explicit: dict[str, Any]) -> Cano
         m.status = _coerce_status_list(explicit["status"])
     if explicit.get("applied_role"):
         m.applied_role = str(explicit["applied_role"]).strip()
+    if isinstance(explicit.get("must_not"), dict):
+        spec.must_not = _parse_must_not(explicit["must_not"])
     if explicit.get("skill_weights"):
         weights: dict[str, float] = {}
         for name, value in dict(explicit["skill_weights"]).items():

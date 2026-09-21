@@ -48,7 +48,11 @@ class SearchPlanRevision(BaseModel):
     status: str | None = None
     must_skills: list[str] = Field(default_factory=list)
     should_skills: list[str] = Field(default_factory=list)
+    should_themes: list[str] = Field(default_factory=list)
+    should_roles: list[str] = Field(default_factory=list)
+    should_locations: list[str] = Field(default_factory=list)
     excluded_skills: list[str] = Field(default_factory=list)
+    keyword_policy: str = "auto"
     branch_fingerprints: dict[str, str] = Field(default_factory=dict)
 
     @model_validator(mode="after")
@@ -59,13 +63,18 @@ class SearchPlanRevision(BaseModel):
         self.status = _text(self.status)
         self.must_skills = _skills(self.must_skills)
         self.should_skills = _skills(self.should_skills)
+        self.should_themes = _skills(self.should_themes)
+        self.should_roles = _skills(self.should_roles)
+        self.should_locations = _skills(self.should_locations)
         self.excluded_skills = _skills(self.excluded_skills)
         self.branch_fingerprints = {
             "vector": _fingerprint({"query": self.query}),
-            "bm25": _fingerprint({"query": self.query}),
+            "bm25": _fingerprint({"query": self.query, "keyword_policy": self.keyword_policy}),
             "skills": _fingerprint({
                 "must": self.must_skills,
                 "should": self.should_skills,
+                "themes": self.should_themes,
+                "roles": self.should_roles,
                 "excluded": self.excluded_skills,
             }),
             "sql": _fingerprint({
@@ -74,6 +83,7 @@ class SearchPlanRevision(BaseModel):
                 "min_years_exp": self.min_years_exp,
                 "max_years_exp": self.max_years_exp,
                 "status": self.status,
+                "preferred_locations": self.should_locations,
             }),
         }
         return self

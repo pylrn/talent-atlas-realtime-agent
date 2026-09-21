@@ -42,22 +42,23 @@ class EvaluationEngine:
         self.calls: list[str] = []
 
     async def smart_search(self, **kwargs: Any) -> SimpleNamespace:
-        config = kwargs.get("config_overrides") or {}
         filters = kwargs.get("explicit_filters") or {}
-        if not kwargs.get("query"):
-            branch = "sql"
-            results = [_candidate("c-1", "Ada")] if filters.get("city") == "pune" else [_candidate("c-2", "Grace")]
-        elif config.get("use_dense"):
-            branch = "vector"
-            results = [_candidate("c-1", "Ada"), _candidate("c-2", "Grace")]
-        elif config.get("use_bm25"):
-            branch = "bm25"
-            results = [_candidate("c-1", "Ada"), _candidate("c-2", "Grace")]
-        else:
-            branch = "skills"
-            results = [_candidate("c-1", "Ada"), _candidate("c-2", "Grace")]
-        self.calls.append(branch)
-        return SimpleNamespace(results=results, retrieval_policy={"branch": branch})
+        results = [_candidate("c-1", "Ada")] if filters.get("city") == "pune" else [_candidate("c-2", "Grace")]
+        self.calls.append("canonical")
+        return SimpleNamespace(
+            results=results,
+            retrieval_policy={
+                "timings_ms": {"dense_ms": 2, "keyword_ms": 1, "skill_ms": 1, "count_ms": 1},
+                "row_counts": {"dense_rows": 20, "keyword_rows": 10, "skill_rows": 8, "filtered_candidates": 12},
+            },
+            phase_timings={},
+            candidate_ids=[candidate.candidate_id for candidate in results],
+            deferred_candidate_ids=[],
+            total_candidates_scanned=12,
+            clarify=None,
+            spec=None,
+            relaxations_applied=[],
+        )
 
 
 async def _evaluate() -> dict[str, Any]:
@@ -115,7 +116,7 @@ async def _evaluate() -> dict[str, Any]:
             "candidate_count": revised["count"],
             "executed": revised["executed_branches"],
             "reused": revised["reused_branches"],
-            "retrieval_calls_added": calls_after_revision - calls_after_initial,
+            "canonical_calls_added": calls_after_revision - calls_after_initial,
         },
         "presentation_only": {
             "format": formatted["format"],
@@ -129,7 +130,9 @@ async def _evaluate() -> dict[str, Any]:
         },
     }
     passed = (
-        revised["reused_branches"] == ["bm25", "skills", "vector"]
+        scenarios["location_revision"]["canonical_calls_added"] == 1
+        and revised["reused_branches"] == []
+        and revised["executed_branches"] == ["sql", "vector", "bm25", "skills"]
         and scenarios["presentation_only"]["retrieval_calls_added"] == 0
         and rejected
         and scenarios["rapid_interruption"]["stale_cancelled"]

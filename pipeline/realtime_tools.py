@@ -24,7 +24,11 @@ class SearchCandidatesArgs(_ToolArgs):
     max_years_exp: int | None = Field(default=None, ge=0, le=80)
     must_skills: list[str] = Field(default_factory=list, max_length=20)
     should_skills: list[str] = Field(default_factory=list, max_length=20)
+    should_themes: list[str] = Field(default_factory=list, max_length=20)
+    should_roles: list[str] = Field(default_factory=list, max_length=12)
+    should_locations: list[str] = Field(default_factory=list, max_length=12)
     excluded_skills: list[str] = Field(default_factory=list, max_length=20)
+    keyword_policy: Literal["auto", "skip", "force"] = "auto"
     top_k: int = Field(default=8, ge=1, le=20)
 
 
@@ -36,7 +40,11 @@ class ReviseSearchArgs(_ToolArgs):
     max_years_exp: int | None = Field(default=None, ge=0, le=80)
     must_skills: list[str] | None = Field(default=None, max_length=20)
     should_skills: list[str] | None = Field(default=None, max_length=20)
+    should_themes: list[str] | None = Field(default=None, max_length=20)
+    should_roles: list[str] | None = Field(default=None, max_length=12)
+    should_locations: list[str] | None = Field(default=None, max_length=12)
     excluded_skills: list[str] | None = Field(default=None, max_length=20)
+    keyword_policy: Literal["auto", "skip", "force"] | None = None
     top_k: int | None = Field(default=None, ge=1, le=20)
 
     @model_validator(mode="after")
@@ -64,6 +72,11 @@ class CancelCurrentActionArgs(_ToolArgs):
     reason: str = Field(default="user_requested", max_length=200)
 
 
+class ListSkillsArgs(_ToolArgs):
+    queries: list[str] = Field(min_length=1, max_length=8)
+    limit_per_query: int = Field(default=8, ge=1, le=20)
+
+
 ToolCallback = Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]
 
 
@@ -74,6 +87,7 @@ _TOOL_MODELS: dict[str, type[_ToolArgs]] = {
     "compare_candidates": CompareCandidatesArgs,
     "format_current_answer": FormatCurrentAnswerArgs,
     "cancel_current_action": CancelCurrentActionArgs,
+    "list_skills": ListSkillsArgs,
 }
 
 _TOOL_DESCRIPTIONS = {
@@ -83,6 +97,7 @@ _TOOL_DESCRIPTIONS = {
     "compare_candidates": "Compare a bounded set of candidates using retrieved evidence.",
     "format_current_answer": "Reformat the current answer without retrieving new evidence.",
     "cancel_current_action": "Cancel currently cancellable read-only work at the user's request.",
+    "list_skills": "Resolve recruiter wording to the exact canonical skills stored in the candidate database before using hard skill filters.",
 }
 
 
@@ -115,6 +130,12 @@ class RealtimeToolDispatcher:
         if callback is None:
             raise ToolRejected(f"Realtime tool is unavailable in this session: {name}")
         return await callback(validated.model_dump(exclude_unset=True, mode="json"))
+
+    async def cancel_active(self, *, reason: str = "barge_in") -> dict[str, Any]:
+        callback = self.callbacks.get("cancel_current_action")
+        if callback is None:
+            return {"cancelled": False, "reason": "cancel_tool_unavailable"}
+        return await callback({"reason": reason})
 
     @staticmethod
     def tool_declarations() -> list[dict[str, Any]]:

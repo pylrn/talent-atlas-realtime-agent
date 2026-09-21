@@ -102,6 +102,40 @@ async def test_bridge_dispatches_correlated_tool_call_and_returns_result() -> No
 
 
 @pytest.mark.asyncio
+async def test_bridge_keeps_receiving_and_cancels_work_on_barge_in() -> None:
+    release = asyncio.Event()
+
+    async def search(payload: dict) -> dict:
+        await release.wait()
+        return {"revision_id": "rev-cancelled"}
+
+    async def cancel(payload: dict) -> dict:
+        release.set()
+        return {"cancelled": True, "reason": payload["reason"]}
+
+    transport = FakeTransport([
+        LivePacket(
+            kind="tool_call",
+            data={"call_id": "call-2", "name": "search_candidates", "arguments": {"query": "python"}},
+        ),
+        LivePacket(kind="interrupted", data={"reason": "barge_in"}),
+    ])
+    events: list[tuple[str, dict]] = []
+    bridge = GeminiLiveBridge(
+        transport,
+        RealtimeToolDispatcher({"search_candidates": search, "cancel_current_action": cancel}),
+        on_event=lambda kind, data: _append(events, kind, data),
+        on_audio=lambda data: _append_audio([], data),
+    )
+
+    await asyncio.wait_for(bridge.run(), timeout=1)
+
+    kinds = [kind for kind, _ in events]
+    assert kinds.index("audio.interrupted") < kinds.index("tool.completed")
+    assert transport.tool_responses[0][0] == "call-2"
+
+
+@pytest.mark.asyncio
 async def test_bridge_closes_transport() -> None:
     transport = FakeTransport([])
     bridge = GeminiLiveBridge(

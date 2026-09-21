@@ -20,6 +20,9 @@ async def run(url: str, prompt: str, timeout: float) -> dict[str, object]:
         ready = False
         sent_prompt = False
         tool_completed = False
+        completed_tools: list[str] = []
+        started_tools: list[dict[str, object]] = []
+        search_result: dict[str, object] = {}
         branch_counts: dict[str, int] = {}
         deadline = asyncio.get_running_loop().time() + timeout
         while asyncio.get_running_loop().time() < deadline:
@@ -35,8 +38,33 @@ async def run(url: str, prompt: str, timeout: float) -> dict[str, object]:
                 ready = True
                 sent_prompt = True
                 await socket.send(json.dumps({"type": "text.input", "text": prompt}))
+            if event_type == "tool.started":
+                payload = event.get("payload") or {}
+                started_tools.append({
+                    "name": payload.get("name"),
+                    "arguments": payload.get("arguments") or {},
+                })
             if event_type == "tool.completed":
+                payload = event.get("payload") or {}
+                tool_name = str(payload.get("name") or "")
+                completed_tools.append(tool_name)
+                if tool_name not in {"search_candidates", "revise_search"}:
+                    continue
                 tool_completed = True
+                result = payload.get("result") or {}
+                search_result = {
+                    "count": result.get("count"),
+                    "candidate_names": [
+                        candidate.get("name")
+                        for candidate in (result.get("candidates") or [])[:3]
+                    ],
+                    "candidate_locations": [
+                        ", ".join(filter(None, [candidate.get("city"), candidate.get("country")]))
+                        for candidate in (result.get("candidates") or [])[:3]
+                    ],
+                    "plan": result.get("plan") or {},
+                    "relaxations_applied": result.get("relaxations_applied") or [],
+                }
                 await socket.send(json.dumps({"type": "trace.snapshot"}))
                 continue
             if event_type == "trace.snapshot":
@@ -53,6 +81,9 @@ async def run(url: str, prompt: str, timeout: float) -> dict[str, object]:
     return {
         "ready": ready,
         "tool_completed": tool_completed,
+        "completed_tools": completed_tools,
+        "started_tools": started_tools,
+        "search_result": search_result,
         "branch_candidate_counts": branch_counts,
         "event_types": observed,
         "elapsed_ms": round((time.perf_counter() - started) * 1000, 1),

@@ -187,6 +187,38 @@ async def test_do_run_search_passes_should_and_retrieval_controls():
 
 
 @pytest.mark.asyncio
+async def test_do_run_search_exposes_pipeline_relaxations():
+    session = _make_session()
+    mock_resp = MagicMock()
+    mock_resp.results = []
+    mock_resp.spec = None
+    mock_resp.phase_timings = {}
+    mock_resp.total_candidates_scanned = 0
+    mock_resp.clarify = None
+    mock_resp.retrieval_policy = {}
+    mock_resp.relaxations_applied = [{
+        "field": "location",
+        "from": {"city": "bangalore", "country": None},
+        "to": "soft_preference",
+        "reason": "no_results_with_strict_location_filter",
+    }]
+    engine = MagicMock()
+    engine.smart_search = AsyncMock(return_value=mock_resp)
+
+    result = await do_run_search(
+        pool=AsyncMock(),
+        session=session,
+        recruiter_id="r-1",
+        query="python engineer",
+        filters={"city": "Bengaluru"},
+        weights={},
+        search_engine=engine,
+    )
+
+    assert result["relaxations_applied"][0]["field"] == "location"
+
+
+@pytest.mark.asyncio
 async def test_do_compare_iterations_shows_diff():
     entry_a = _make_entry("python dev", n_results=3)
     entry_b = _make_entry("senior python dev", n_results=3)

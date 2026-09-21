@@ -234,6 +234,7 @@ async def do_run_search(
         "top_k": max(1, int(top_k or 7)),
         "spec_summary": spec_sum,
         "retrieval_policy": dict(retrieval_policy),
+        "relaxations_applied": list(getattr(resp, "relaxations_applied", []) or []),
         "clarify_notice": getattr(resp, "clarify", None),
         "latency_ms": entry.latency_ms,
         "timings_ms": entry.timings_ms,

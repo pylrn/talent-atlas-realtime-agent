@@ -75,6 +75,17 @@ def test_explicit_filters_override_llm():
     assert spec.must.min_years_exp == 7
 
 
+def test_explicit_exclusions_override_planner_must_not():
+    raw = _base_raw()
+    spec = validate_spec(
+        raw,
+        original_input="python engineer without java",
+        explicit_filters={"must_not": {"skills": ["java"]}},
+    )
+
+    assert spec.must_not.skills == ["java"]
+
+
 def test_confidence_clamped_to_unit_interval():
     raw = _base_raw()
     raw["confidence"] = 2.5

@@ -12,11 +12,11 @@ import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from pipeline.realtime_coordinator import BranchResult, RealtimeCoordinator
+from pipeline.agent_session import AgentSession
+from pipeline.agent_tools import do_list_skills_batch, do_run_search
 from pipeline.realtime_events import EventEnvelope, TraceGraph
-from pipeline.realtime_plan import SearchPlanRevision
+from pipeline.realtime_plan import SearchPlanRevision, diff_revisions
 from pipeline.realtime_tools import RealtimeToolDispatcher
-from pipeline.search_result import SearchResult
 
 
 CandidateLoader = Callable[[list[str]], Awaitable[dict[str, Any]]]
@@ -33,121 +33,6 @@ class StreamingTraceGraph(TraceGraph):
         return event
 
 
-class HybridBranchRunner:
-    """Run each retrieval path independently so revisions can reuse branches."""
-
-    def __init__(self, engine: Any, *, branch_top_k: int = 80, sql_limit: int = 500) -> None:
-        self.engine = engine
-        self.branch_top_k = branch_top_k
-        self.sql_limit = sql_limit
-
-    async def __call__(self, branch: str, plan: SearchPlanRevision) -> BranchResult:
-        if branch == "sql":
-            return await self._run_sql(plan)
-        if branch == "skills" and not (plan.must_skills or plan.should_skills):
-            return BranchResult(branch=branch, candidates=[], details={
-                "restrictive": False,
-                "reason": "no_explicit_skills",
-                "config": self._config(branch),
-            })
-
-        explicit_filters: dict[str, Any] | None = None
-        query = plan.query
-        if branch == "skills":
-            explicit_filters = {
-                "skills": plan.must_skills,
-                "skills_match": "and",
-                "should": {"skills": plan.should_skills},
-            }
-            query = " ".join(plan.must_skills + plan.should_skills) or plan.query
-
-        config = self._config(branch)
-        response = await self.engine.smart_search(
-            query=query,
-            explicit_filters=explicit_filters,
-            mode="no-llm",
-            top_k=self.branch_top_k,
-            config_overrides=config,
-        )
-        candidates = [_serialize_result(result) for result in response.results]
-        return BranchResult(
-            branch=branch,
-            candidates=candidates,
-            details={
-                "restrictive": branch == "skills" and bool(plan.must_skills),
-                "config": config,
-                "retrieval_policy": getattr(response, "retrieval_policy", {}) or {},
-                "bounded_limit": self.branch_top_k,
-            },
-        )
-
-    async def _run_sql(self, plan: SearchPlanRevision) -> BranchResult:
-        restrictive = any((
-            plan.city,
-            plan.country,
-            plan.min_years_exp is not None,
-            plan.max_years_exp is not None,
-            plan.status,
-            plan.excluded_skills,
-        ))
-        if not restrictive:
-            return BranchResult(branch="sql", candidates=[], details={
-                "restrictive": False,
-                "reason": "no_structured_constraints",
-                "bounded_limit": self.sql_limit,
-            })
-        filters = {
-            key: value
-            for key, value in {
-                "city": plan.city,
-                "country": plan.country,
-                "min_years_exp": plan.min_years_exp,
-                "max_years_exp": plan.max_years_exp,
-                "status": plan.status,
-            }.items()
-            if value is not None
-        }
-        response = await self.engine.smart_search(
-            query="",
-            explicit_filters=filters,
-            mode="no-llm",
-            top_k=self.sql_limit,
-            config_overrides=self._config("sql"),
-        )
-        candidates = [_serialize_result(result) for result in response.results]
-        if plan.excluded_skills:
-            excluded = set(plan.excluded_skills)
-            candidates = [
-                candidate for candidate in candidates
-                if not excluded.intersection(str(skill).casefold() for skill in candidate.get("skills", []))
-            ]
-        return BranchResult(branch="sql", candidates=candidates, details={
-            "restrictive": True,
-            "filters": filters,
-            "excluded_skills": plan.excluded_skills,
-            "bounded_limit": self.sql_limit,
-        })
-
-    @staticmethod
-    def _config(branch: str) -> dict[str, Any]:
-        return {
-            "use_llm_planner": False,
-            "use_planner_fallback": True,
-            "use_fallback_repair": False,
-            "use_dense": branch == "vector",
-            "use_bm25": branch == "bm25",
-            "use_skill_exact": branch == "skills",
-            "use_sql_filter": branch == "sql",
-            "use_cross_encoder": False,
-            "use_feature_ranker": False,
-            "use_mmr": False,
-            "use_auto_relax": False,
-            "use_impression_logging": False,
-            "use_dynamic_retrieval_limits": False,
-            "keyword_policy": "force" if branch == "bm25" else "skip",
-        }
-
-
 class RealtimeAgentSession:
     """Own one interruptible conversation and its immutable search revisions."""
 
@@ -162,14 +47,15 @@ class RealtimeAgentSession:
         self.session_id = session_id or f"rt_{uuid.uuid4().hex}"
         self.events: asyncio.Queue[EventEnvelope] = asyncio.Queue()
         self.graph = StreamingTraceGraph(session_id=self.session_id, queue=self.events)
-        self.coordinator = RealtimeCoordinator(
-            HybridBranchRunner(engine),
+        self.agent_session = AgentSession(
+            recruiter_id="00000000-0000-0000-0000-000000000000",
             session_id=self.session_id,
-            graph=self.graph,
         )
         self.current_plan: SearchPlanRevision | None = None
         self.current_candidates: list[dict[str, Any]] = []
         self.answer_format = "brief"
+        self._generation = 0
+        self._active_search_task: asyncio.Task[dict[str, Any]] | None = None
         self.candidate_loader = candidate_loader or self._default_candidate_loader
         self.tools = RealtimeToolDispatcher({
             "search_candidates": self._search_candidates,
@@ -178,115 +64,264 @@ class RealtimeAgentSession:
             "compare_candidates": self._compare_candidates,
             "format_current_answer": self._format_current_answer,
             "cancel_current_action": self._cancel_current_action,
+            "list_skills": self._list_skills,
         })
 
     async def _search_candidates(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        top_k = int(arguments.pop("top_k", 8))
-        revision = SearchPlanRevision.create(**arguments)
-        return await self._execute_revision(revision, top_k=top_k)
+        values = dict(arguments)
+        top_k = int(values.pop("top_k", 8))
+        revision = SearchPlanRevision.create(**values)
+        previous = self.current_plan
+        self.current_plan = revision
+        return await self._execute_revision(revision, previous=previous, top_k=top_k)
 
     async def _revise_search(self, arguments: dict[str, Any]) -> dict[str, Any]:
         if self.current_plan is None:
             raise ValueError("There is no active search to revise")
-        top_k = int(arguments.pop("top_k", len(self.current_candidates) or 8))
-        revision = self.current_plan.patch(**arguments)
-        return await self._execute_revision(revision, top_k=top_k)
+        values = dict(arguments)
+        top_k = int(values.pop("top_k", len(self.current_candidates) or 8))
+        previous = self.current_plan
+        revision = previous.patch(**values)
+        self.current_plan = revision
+        return await self._execute_revision(revision, previous=previous, top_k=top_k)
 
     async def _execute_revision(
         self,
         revision: SearchPlanRevision,
         *,
+        previous: SearchPlanRevision | None,
         top_k: int,
     ) -> dict[str, Any]:
-        started = time.perf_counter()
-        outcome = await self.coordinator.execute(revision)
-        candidates = outcome.candidates[:max(1, min(top_k, 20))]
-        candidates, rerank_details = await self._rerank(revision.query, candidates)
-        rerank_id = f"rerank-{revision.revision_id}"
+        diff = diff_revisions(previous, revision)
+        plan_id = f"plan-{revision.revision_id}"
         self.graph.upsert_node(
-            node_id=rerank_id,
-            kind="rerank",
-            status="completed",
+            node_id=plan_id,
+            kind="plan",
+            status="running",
             revision_id=revision.revision_id,
-            parent_ids=[f"fusion-{revision.revision_id}"],
-            details={**rerank_details, "candidate_count": len(candidates), "candidates": candidates},
-        )
-        evidence = [
-            {
-                "candidate_id": candidate.get("candidate_id"),
-                "name": candidate.get("name"),
-                "evidence": candidate.get("best_evidence") or candidate.get("best_chunk") or "",
-                "retrieval_paths": candidate.get("retrieval_paths", []),
-            }
-            for candidate in candidates
-        ]
-        ground_id = f"ground-{revision.revision_id}"
-        self.graph.upsert_node(
-            node_id=ground_id,
-            kind="ground",
-            status="completed",
-            revision_id=revision.revision_id,
-            parent_ids=[rerank_id],
-            details={"candidate_count": len(candidates), "evidence": evidence, "candidates": candidates},
-        )
-        self.graph.upsert_node(
-            node_id=f"answer-{revision.revision_id}",
-            kind="answer",
-            status="completed",
-            revision_id=revision.revision_id,
-            parent_ids=[ground_id],
             details={
-                "format": self.answer_format,
-                "candidate_count": len(candidates),
-                "candidate_ids": [candidate.get("candidate_id") for candidate in candidates],
-                "instruction": "Answer only from the bounded grounded candidate payload returned by this tool.",
+                "plan": revision.model_dump(mode="json", exclude={"branch_fingerprints"}),
+                "diff": diff.model_dump(mode="json"),
+                "orchestrator": "canonical_search_pipeline",
             },
         )
-        self.current_plan = revision
+
+        await self._cancel_active(reason="superseded_by_new_revision")
+        self._generation += 1
+        generation = self._generation
+        task = asyncio.create_task(self._run_canonical_search(revision, top_k=top_k))
+        self._active_search_task = task
+        try:
+            result = await task
+        except asyncio.CancelledError:
+            self.graph.upsert_node(
+                node_id=plan_id,
+                kind="plan",
+                status="cancelled",
+                revision_id=revision.revision_id,
+                details={"reason": "superseded_or_interrupted", "diff": diff.model_dump(mode="json")},
+            )
+            raise
+        finally:
+            if self._active_search_task is task:
+                self._active_search_task = None
+
+        if generation != self._generation:
+            raise asyncio.CancelledError
+
+        candidates = result["candidates"]
         self.current_candidates = candidates
+        self._emit_pipeline_graph(revision, diff.model_dump(mode="json"), result)
+        return result
+
+    async def _run_canonical_search(self, revision: SearchPlanRevision, *, top_k: int) -> dict[str, Any]:
+        started = time.perf_counter()
+        filters = {
+            key: value
+            for key, value in {
+                "city": revision.city,
+                "country": revision.country,
+                "min_years_exp": revision.min_years_exp,
+                "max_years_exp": revision.max_years_exp,
+                "status": [revision.status] if revision.status else None,
+            }.items()
+            if value is not None
+        }
+        if revision.must_skills:
+            filters["skills"] = revision.must_skills
+            filters["skills_match"] = "and"
+        if revision.excluded_skills:
+            filters["must_not"] = {"skills": revision.excluded_skills}
+        should = {
+            "skills": revision.should_skills,
+            "themes": revision.should_themes,
+            "roles": revision.should_roles,
+            "locations": revision.should_locations,
+        }
+        if not any(should.values()):
+            should = {}
+
+        canonical = await do_run_search(
+            pool=getattr(self.engine, "pool", None),
+            session=self.agent_session,
+            recruiter_id=self.agent_session.recruiter_id,
+            query=revision.query,
+            filters=filters,
+            should=should or None,
+            weights={},
+            retrieval={"keyword_policy": revision.keyword_policy},
+            mode="agent-quality",
+            top_k=max(1, min(top_k, 20)),
+            search_engine=self.engine,
+        )
+        candidates = [_canonical_candidate(candidate) for candidate in canonical.get("results", [])]
         return {
             "revision_id": revision.revision_id,
             "parent_revision_id": revision.parent_revision_id,
             "plan": revision.model_dump(mode="json", exclude={"branch_fingerprints"}),
+            "canonical_spec": canonical.get("spec_summary") or {},
             "candidates": candidates,
             "count": len(candidates),
-            "reused_branches": sorted(outcome.reused),
-            "executed_branches": sorted(outcome.executed),
-            "failed_branches": sorted(outcome.failed),
-            "degraded": outcome.degraded,
+            "candidate_ids": canonical.get("candidate_ids") or [c["candidate_id"] for c in candidates],
+            "deferred_candidate_ids": canonical.get("deferred_candidate_ids") or [],
+            "retrieval_policy": canonical.get("retrieval_policy") or {},
+            "phase_timings": canonical.get("phase_timings") or {},
+            "relaxations_applied": canonical.get("relaxations_applied") or [],
+            "recovery": canonical.get("recovery"),
+            "reused_branches": [],
+            "executed_branches": ["sql", "vector", "bm25", "skills"],
+            "failed_branches": [],
+            "degraded": bool(canonical.get("recovery")),
             "duration_ms": round((time.perf_counter() - started) * 1000, 3),
-            "answer_rule": "Use only the evidence in this tool response; state when evidence is missing.",
+            "answer_rule": (
+                "The count and candidates in this object are authoritative. Use only their facts and evidence; "
+                "never report zero results when count is non-zero. If relaxations_applied is non-empty, first "
+                "state which original hard constraint produced no exact matches and that the displayed candidates "
+                "are broader alternatives; never imply those alternatives satisfy the relaxed constraint."
+            ),
         }
 
-    async def _rerank(
+    def _emit_pipeline_graph(
         self,
-        query: str,
-        candidates: list[dict[str, Any]],
-    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-        if not candidates or not hasattr(self.engine, "_get_reranker"):
-            return candidates, {"applied": False, "reason": "reranker_unavailable_or_empty"}
-        try:
-            reranker = self.engine._get_reranker()
-            objects = [_candidate_to_result(candidate) for candidate in candidates]
-            reranked = await reranker.rerank(query, objects)
-            by_id = {candidate["candidate_id"]: candidate for candidate in candidates}
-            ordered: list[dict[str, Any]] = []
-            for result in reranked:
-                candidate = dict(by_id[str(result.candidate_id)])
-                candidate["rerank_score"] = result.rerank_score
-                ordered.append(candidate)
-            return ordered, {
-                "applied": True,
-                "model": type(reranker).__name__,
-                "query": query,
+        revision: SearchPlanRevision,
+        diff: dict[str, Any],
+        result: dict[str, Any],
+    ) -> None:
+        policy = result.get("retrieval_policy") or {}
+        timings = policy.get("timings_ms") or {}
+        counts = policy.get("row_counts") or {}
+        revision_id = revision.revision_id
+        plan_id = f"plan-{revision_id}"
+        self.graph.upsert_node(
+            node_id=plan_id,
+            kind="plan",
+            status="completed",
+            revision_id=revision_id,
+            details={
+                "plan": result["plan"],
+                "canonical_spec": result.get("canonical_spec") or {},
+                "relaxations_applied": result.get("relaxations_applied") or [],
+                "diff": diff,
+                "orchestrator": "canonical_search_pipeline",
+            },
+        )
+        branch_specs = {
+            "vector": ("dense_rows", "dense_ms"),
+            "bm25": ("keyword_rows", "keyword_ms"),
+            "skills": ("skill_rows", "skill_ms"),
+            "sql": ("filtered_candidates", "count_ms"),
+        }
+        for branch, (count_key, timing_key) in branch_specs.items():
+            details = {
+                "candidate_count": int(counts.get(count_key) or 0),
+                "duration_ms": float(timings.get(timing_key) or 0.0),
+                "source": "canonical_search_telemetry",
             }
-        except Exception as exc:
-            return candidates, {
-                "applied": False,
-                "degraded": True,
-                "error": str(exc),
-                "error_type": type(exc).__name__,
+            if branch == "bm25":
+                details["policy"] = policy.get("keyword") or {}
+            if branch == "sql":
+                details["constraints"] = {
+                    "city": revision.city,
+                    "country": revision.country,
+                    "min_years_exp": revision.min_years_exp,
+                    "max_years_exp": revision.max_years_exp,
+                    "must_skills": revision.must_skills,
+                    "excluded_skills": revision.excluded_skills,
+                }
+                details["relaxations_applied"] = result.get("relaxations_applied") or []
+            self.graph.upsert_node(
+                node_id=f"{branch}-{revision_id}",
+                kind=branch,
+                status="completed",
+                revision_id=revision_id,
+                parent_ids=[plan_id],
+                details=details,
+            )
+
+        candidates = result["candidates"]
+        branch_ids = [f"{branch}-{revision_id}" for branch in branch_specs]
+        fusion_id = f"fusion-{revision_id}"
+        self.graph.upsert_node(
+            node_id=fusion_id,
+            kind="fusion",
+            status="completed",
+            revision_id=revision_id,
+            parent_ids=branch_ids,
+            details={
+                "formula": "weighted reciprocal rank fusion from canonical pipeline",
+                "candidate_count": len(result.get("candidate_ids") or candidates),
+                "candidate_ids": result.get("candidate_ids") or [],
+                "candidates": candidates,
+                "source": "canonical_search_pipeline",
+            },
+        )
+        ranking_timings = policy.get("ranking_timings_ms") or {}
+        rerank_id = f"rerank-{revision_id}"
+        self.graph.upsert_node(
+            node_id=rerank_id,
+            kind="rerank",
+            status="completed",
+            revision_id=revision_id,
+            parent_ids=[fusion_id],
+            details={
+                "candidate_count": len(candidates),
+                "applied": any(candidate.get("rerank_score") is not None for candidate in candidates),
+                "timings_ms": ranking_timings,
+                "candidates": candidates,
+                "source": "canonical_search_pipeline",
+            },
+        )
+        evidence = [
+            {
+                "candidate_id": candidate["candidate_id"],
+                "name": candidate.get("name"),
+                "evidence": candidate.get("best_evidence") or "",
+                "retrieval_paths": candidate.get("retrieval_paths") or [],
             }
+            for candidate in candidates
+        ]
+        ground_id = f"ground-{revision_id}"
+        self.graph.upsert_node(
+            node_id=ground_id,
+            kind="ground",
+            status="completed",
+            revision_id=revision_id,
+            parent_ids=[rerank_id],
+            details={"candidate_count": len(candidates), "evidence": evidence, "candidates": candidates},
+        )
+        self.graph.upsert_node(
+            node_id=f"answer-{revision_id}",
+            kind="answer",
+            status="completed",
+            revision_id=revision_id,
+            parent_ids=[ground_id],
+            details={
+                "format": self.answer_format,
+                "candidate_count": len(candidates),
+                "candidate_ids": [candidate["candidate_id"] for candidate in candidates],
+                "instruction": result["answer_rule"],
+            },
+        )
 
     async def _inspect_candidate(self, arguments: dict[str, Any]) -> dict[str, Any]:
         result = await self.candidate_loader([arguments["candidate_id"]])
@@ -310,8 +345,31 @@ class RealtimeAgentSession:
         }
 
     async def _cancel_current_action(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        await self.coordinator.close()
-        return {"cancelled": True, "reason": arguments.get("reason", "user_requested")}
+        reason = arguments.get("reason", "user_requested")
+        cancelled = await self._cancel_active(reason=reason)
+        return {"cancelled": cancelled, "reason": reason}
+
+    async def _list_skills(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        pool = getattr(self.engine, "pool", None)
+        if pool is None:
+            return {"queries": arguments["queries"], "results": {}, "count": 0, "unavailable": True}
+        return await do_list_skills_batch(
+            pool,
+            arguments["queries"],
+            limit_per_query=arguments.get("limit_per_query", 8),
+        )
+
+    async def _cancel_active(self, *, reason: str) -> bool:
+        task = self._active_search_task
+        if task is None or task.done():
+            return False
+        self._generation += 1
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+        revision = self.current_plan
+        if revision is not None:
+            self.graph.emit("search.cancelled", payload={"reason": reason}, revision_id=revision.revision_id)
+        return True
 
     async def _default_candidate_loader(self, candidate_ids: list[str]) -> dict[str, Any]:
         pool = getattr(self.engine, "pool", None)
@@ -329,42 +387,21 @@ class RealtimeAgentSession:
         return self.graph.snapshot()
 
     async def close(self) -> None:
-        await self.coordinator.close()
+        await self._cancel_active(reason="session_closed")
 
 
-def _serialize_result(result: Any) -> dict[str, Any]:
-    explanation = getattr(result, "explanation", None) or {}
+def _canonical_candidate(candidate: dict[str, Any]) -> dict[str, Any]:
+    explanation = candidate.get("ranking_explanation") or {}
+    candidate_id = str(candidate.get("id") or candidate.get("candidate_id") or "")
     return {
-        "candidate_id": str(getattr(result, "candidate_id", "")),
-        "name": getattr(result, "full_name", "") or "",
-        "city": getattr(result, "city", None),
-        "country": getattr(result, "country", None),
-        "years_exp": getattr(result, "years_exp", 0),
-        "skills": list(getattr(result, "skills", []) or []),
-        "best_evidence": (explanation.get("best_evidence") or getattr(result, "best_chunk", "") or "")[:1200],
-        "best_chunk": (getattr(result, "best_chunk", "") or "")[:1200],
-        "supporting_chunks": list(getattr(result, "supporting_chunks", []) or [])[:3],
-        "similarity_score": round(float(getattr(result, "similarity_score", 0.0) or 0.0), 6),
-        "rrf_score": round(float(getattr(result, "fused_rrf_score", 0.0) or 0.0), 8),
-        "feature_score": round(float(getattr(result, "feature_score", 0.0) or 0.0), 4),
-        "rerank_score": getattr(result, "rerank_score", None),
-        "retrieval_paths": list(getattr(result, "retrieval_paths", []) or []),
-        "sort_basis": getattr(result, "sort_basis", "fused_rrf_score"),
-        "doc_type": getattr(result, "doc_type", "") or "",
-        "document_title": getattr(result, "document_title", None),
+        **candidate,
+        "id": candidate_id,
+        "candidate_id": candidate_id,
+        "full_name": candidate.get("name") or candidate.get("full_name") or "",
+        "name": candidate.get("name") or candidate.get("full_name") or "",
+        "best_chunk": candidate.get("best_evidence") or "",
+        "supporting_chunks": list(candidate.get("supporting_evidence") or [])[:3],
+        "rrf_score": candidate.get("fused_rrf_score"),
+        "ranking_explanation": explanation,
+        "score_available": candidate.get("feature_score") is not None,
     }
-
-
-def _candidate_to_result(candidate: dict[str, Any]) -> SearchResult:
-    return SearchResult(
-        candidate_id=str(candidate.get("candidate_id") or ""),
-        full_name=str(candidate.get("name") or ""),
-        city=candidate.get("city"),
-        country=candidate.get("country"),
-        years_exp=int(candidate.get("years_exp") or 0),
-        skills=list(candidate.get("skills") or []),
-        best_chunk=str(candidate.get("best_chunk") or candidate.get("best_evidence") or ""),
-        supporting_chunks=list(candidate.get("supporting_chunks") or []),
-        fused_rrf_score=float(candidate.get("fusion_score") or candidate.get("rrf_score") or 0.0),
-        similarity_score=float(candidate.get("similarity_score") or 0.0),
-    )

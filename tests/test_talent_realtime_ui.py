@@ -42,6 +42,10 @@ def test_realtime_client_targets_talent_websocket_and_supports_audio():
     talent_script = (ROOT / "api/static/talent.js").read_text()
     assert "data-telemetry-candidate" in talent_script
     assert "applyRealtimeResults" in talent_script
+    assert 'payload.name === "search_candidates"' in script
+    assert "candidate.feature_score != null" in talent_script
+    assert "relaxations_applied" in talent_script
+    assert "relaxationLabel" in talent_script
 
 
 def test_new_talent_header_does_not_use_straatix_branding():

@@ -114,7 +114,8 @@
     if (event.type === "tool.started") setVoiceState("Running " + String(payload.name || "tool").replace(/_/g, " "));
     if (event.type === "tool.completed") {
       setVoiceState("Responding from evidence");
-      if (payload.result && Array.isArray(payload.result.candidates) && window.TalentApp) {
+      if ((payload.name === "search_candidates" || payload.name === "revise_search") &&
+          payload.result && Array.isArray(payload.result.candidates) && window.TalentApp) {
         window.TalentApp.applyRealtimeResults(payload.result);
       }
     }

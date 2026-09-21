@@ -60,6 +60,8 @@ def test_tool_declarations_do_not_expose_sql_or_credentials() -> None:
 
     assert "search_candidates" in serialized
     assert "revise_search" in serialized
+    assert "list_skills" in serialized
+    assert "should_themes" in serialized
     assert "raw_sql" not in serialized
     assert "api_key" not in serialized
     assert "additionalproperties" not in serialized
