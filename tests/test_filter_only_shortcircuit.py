@@ -12,14 +12,11 @@ import asyncio
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-import pytest
-
 from pipeline.search import (
     HybridSearchEngine,
     _has_filter_values,
     _spec_from_explicit_filters,
 )
-
 
 # ── Pure helpers (no DB / no LLM) ────────────────────────────────────────────
 
@@ -131,7 +128,7 @@ def test_smart_search_still_calls_planner_when_query_provided():
     sentinel_spec.semantic_query = "python developer"
     plan_mock = AsyncMock(return_value=sentinel_spec)
 
-    async def _fake_full(spec, cfg, top_k, recruiter_prefs, recruiter_id, recruiter_profile, phase1_ms, spec_dict, prefetched=None):
+    async def _fake_full(spec, cfg, top_k, recruiter_prefs, recruiter_id, recruiter_profile, phase1_ms, spec_dict, prefetched=None, branch_provider=None):
         from pipeline.search import SearchResponse
         return SearchResponse(results=["c1"], spec=spec, spec_dict=spec_dict)
 

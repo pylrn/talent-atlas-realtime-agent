@@ -171,6 +171,7 @@ async def do_run_search(
     mode: str = "no-llm",
     top_k: int = 7,
     search_engine: Any | None = None,
+    branch_provider: Any | None = None,
 ) -> dict[str, Any]:
     """Run a full hybrid search and push the iteration onto the session stack."""
     engine = search_engine or SearchEngine(pool)
@@ -195,6 +196,9 @@ async def do_run_search(
         top_k=max(1, int(top_k or 7)),
         recruiter_id=recruiter_id,
         config_overrides=config_overrides,
+        # An interruptible caller passes this to own branch lifecycle, so it can
+        # cancel only the branches a new revision invalidated.
+        branch_provider=branch_provider,
     )
 
     preview = [_enrich_result(r, i) for i, r in enumerate(resp.results[:10])]
@@ -715,7 +719,7 @@ async def do_confirm_observation(
 def _record_observation_score(observation_id: str, content: str, *, accepted: bool) -> None:
     """Record a Langfuse score when the recruiter confirms/dismisses an observation."""
     try:
-        from pipeline.observability import record_score, ScoreName, get_current_trace_id
+        from pipeline.observability import ScoreName, get_current_trace_id, record_score
         trace_id = get_current_trace_id()
         if trace_id:
             record_score(
@@ -1289,7 +1293,7 @@ async def do_query_candidates_db(
                 "count": len(display_results),
             }
         return result
-    except asyncio.TimeoutError:
+    except TimeoutError:
         return {"error": "Query timed out after 5 seconds"}
     except Exception as exc:
         logger.warning("Agent SQL query failed: %s | sql=%s", exc, safe_sql[:200])
@@ -1298,6 +1302,7 @@ async def do_query_candidates_db(
 
 # ── New UX and Intelligence Tools ──────────────────────────────────────────
 import os as _os
+
 from pydantic_ai import Agent as _Agent
 
 

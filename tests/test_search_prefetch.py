@@ -132,3 +132,43 @@ def test_a_prefetched_count_short_circuits_the_sql_branch():
     policy = response.retrieval_policy or {}
     assert policy["prefetched_branches"] == ["sql"]
     assert (policy.get("row_counts") or {}).get("filtered_candidates") == 42
+
+
+def test_a_branch_provider_owns_branch_execution():
+    """The provider hook is what lets an interruptible session run branches as
+    separate tasks and cancel only the invalidated ones."""
+    seen: list[str] = []
+
+    async def provider(request):
+        seen.append(request.branch)
+        return 7 if request.branch == "sql" else []
+
+    response = asyncio.run(_engine()._full_pipeline(_spec(), _cfg(), 5, branch_provider=provider))
+
+    # The keyword branch is policy-gated, so it is not asserted on here.
+    assert "vector" in seen
+    assert "skills" in seen
+    assert "sql" in seen
+    assert (response.retrieval_policy or {})["provided_branches"] == sorted(seen)
+
+
+def test_a_branch_provider_takes_precedence_over_prefetched_rows():
+    """Two reuse mechanisms must not both claim a branch."""
+    seen: list[str] = []
+
+    async def provider(request):
+        seen.append(request.branch)
+        return 3 if request.branch == "sql" else []
+
+    response = asyncio.run(
+        _engine()._full_pipeline(
+            _spec(), _cfg(), 5,
+            prefetched={"vector": []},
+            branch_provider=provider,
+        )
+    )
+
+    assert "vector" in seen
+    policy = response.retrieval_policy or {}
+    assert "prefetched_branches" not in policy
+    assert policy["provided_branches"] == sorted(seen)

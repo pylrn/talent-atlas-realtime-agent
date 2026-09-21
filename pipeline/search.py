@@ -13,40 +13,38 @@ import logging
 import re
 import time as _time
 import uuid
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 import asyncpg
 
-from pipeline import settings
+from pipeline import cache as _cache
 from pipeline import metrics as _metrics
-from pipeline.config import SEARCH_CONFIG
+from pipeline import settings
+from pipeline.constants import SEARCH_TARGET_DOC_TYPES
 from pipeline.db_timing import finalize_db_timing
-from pipeline.modes import get_config
+from pipeline.diversity import mmr_select_async
 from pipeline.embedder import EmbeddingProvider, get_embedder
-from pipeline.spec import CanonicalSearchSpec
-from pipeline.search_result import SearchResult
+from pipeline.explanation import build_explanation
+from pipeline.feature_ranker import score_results
+from pipeline.fusion import rrf_fuse
+from pipeline.group import group_by_candidate
+from pipeline.intent_router import should_short_circuit
+from pipeline.keyword_policy import KeywordPolicyDecision, decide_keyword_policy
+from pipeline.modes import get_config
+from pipeline.observability import _get_client as _obs_client
+from pipeline.observability import is_enabled as _obs_enabled
+from pipeline.observability import update_current_span as _obs_update_current_span
+from pipeline.planner import plan as _plan
+from pipeline.reranker import Reranker, get_reranker
+from pipeline.retrieve_bm25 import retrieve_bm25
+from pipeline.retrieve_dense import retrieve_dense
+from pipeline.retrieve_skill import retrieve_skill
 
 # ── Stage imports ─────────────────────────────────────────────────────────────
 from pipeline.router import detect_route
-from pipeline.sanitize import sanitize_input
-from pipeline import cache as _cache
-from pipeline.planner import plan as _plan
-from pipeline.planner_fallback import fallback_plan
-from pipeline.intent_router import should_short_circuit
-from pipeline.sql_filter import build_filter_sql, build_must_not_sql, build_candidate_filter
-from pipeline.retrieve_dense import retrieve_dense
-from pipeline.retrieve_bm25 import retrieve_bm25
-from pipeline.retrieve_skill import retrieve_skill
-from pipeline.keyword_policy import KeywordPolicyDecision, decide_keyword_policy
-from pipeline.fusion import rrf_fuse
-from pipeline.group import group_by_candidate
-from pipeline.reranker import get_reranker, Reranker
-from pipeline.feature_ranker import score_results
-from pipeline.diversity import mmr_select, mmr_select_async
-from pipeline.explanation import build_explanation
-from pipeline.constants import SEARCH_TARGET_DOC_TYPES
-from pipeline.observability import is_enabled as _obs_enabled, _get_client as _obs_client, update_current_span as _obs_update_current_span
+from pipeline.search_result import SearchResult
 from pipeline.search_telemetry import (
     db_timing_payload,
     filter_payload,
@@ -58,6 +56,9 @@ from pipeline.search_telemetry import (
     row_preview,
     spec_payload,
 )
+from pipeline.spec import CanonicalSearchSpec
+from pipeline.sql_filter import build_candidate_filter, build_filter_sql, build_must_not_sql
+
 
 class _NullContext:
     def __enter__(self): return self
@@ -87,24 +88,48 @@ _QUERY_STOPWORDS = {
 # The old SearchFilters had many more fields than MustFilters; keep the full
 # definition here so legacy code (query_planner, benchmark scripts) still works.
 from dataclasses import field as _field
-from typing import Literal as _Literal, List as _List
+from typing import Literal as _Literal
+
+
+@dataclass(slots=True)
+class BranchRequest:
+    """One branch's resolved inputs, handed to an external branch provider.
+
+    Bundled so a provider can run a branch without rebuilding the filter, the
+    document-type set or the keyword policy itself. Rebuilding them in the
+    caller is how the caller and the engine drift apart.
+    """
+
+    branch: str
+    spec: CanonicalSearchSpec
+    cfg: dict
+    filter_sql: str
+    filter_params: list[Any]
+    doc_types: list[str] | None = None
+    keyword_decision: KeywordPolicyDecision | None = None
+
+
+# An interruptible caller supplies this to own branch lifecycle — running
+# branches as separate tasks so it can cancel only the ones a new revision
+# invalidated, and keep the ones that are still valid.
+BranchProvider = Callable[["BranchRequest"], Awaitable[Any]]
 
 
 @dataclass
 class SearchFilters:
-    location:        Optional[str]                        = None
-    country:         Optional[str]                        = None
-    city:            Optional[str]                        = None
-    min_age:         Optional[int]                        = None
-    max_age:         Optional[int]                        = None
-    skills:          Optional[list[str]]                  = None
-    interests:       Optional[list[str]]                  = None
-    min_years_exp:   Optional[int]                        = None
-    max_years_exp:   Optional[int]                        = None
-    min_salary:      Optional[int]                        = None
-    max_salary:      Optional[int]                        = None
+    location:        str | None                        = None
+    country:         str | None                        = None
+    city:            str | None                        = None
+    min_age:         int | None                        = None
+    max_age:         int | None                        = None
+    skills:          list[str] | None                  = None
+    interests:       list[str] | None                  = None
+    min_years_exp:   int | None                        = None
+    max_years_exp:   int | None                        = None
+    min_salary:      int | None                        = None
+    max_salary:      int | None                        = None
     status:          list[str]                            = _field(default_factory=lambda: ["active"])
-    doc_types:       Optional[list[str]]                  = None
+    doc_types:       list[str] | None                  = None
     skills_match:    _Literal["and", "or"]                = "or"
     interests_match: _Literal["and", "or"]                = "or"
 
@@ -112,14 +137,14 @@ class SearchFilters:
 @dataclass
 class SearchResponse:
     results:             list[SearchResult]
-    spec:                Optional[CanonicalSearchSpec] = None
-    clarify:             Optional[str]                 = None
+    spec:                CanonicalSearchSpec | None = None
+    clarify:             str | None                 = None
     relaxations_applied: list[dict]                    = field(default_factory=list)
     total_candidates_scanned: int                      = 0
     search_id:           str                           = field(default_factory=lambda: str(uuid.uuid4()))
     phase_timings:       dict[str, float]              = field(default_factory=dict)
     retrieval_policy:    dict[str, Any]                = field(default_factory=dict)
-    spec_dict:           Optional[dict]                = None
+    spec_dict:           dict | None                = None
     personalization_applied: bool                      = False
     candidate_ids:       list[str]                     = field(default_factory=list)
     deferred_candidate_ids: list[str]                  = field(default_factory=list)
@@ -131,9 +156,9 @@ class HybridSearchEngine:
     def __init__(
         self,
         pool: asyncpg.Pool,
-        embedder: Optional[EmbeddingProvider] = None,
-        reranker: Optional[Reranker] = None,
-        reranker_cache: Optional[dict[str, Reranker]] = None,
+        embedder: EmbeddingProvider | None = None,
+        reranker: Reranker | None = None,
+        reranker_cache: dict[str, Reranker] | None = None,
         search_pool: asyncpg.Pool | None = None,
     ):
         self.pool        = pool
@@ -177,13 +202,15 @@ class HybridSearchEngine:
         recruiter_id: str | None = None,
         config_overrides: dict[str, Any] | None = None,
         prefetched: dict[str, list[dict[str, Any]]] | None = None,
+        branch_provider: BranchProvider | None = None,
     ) -> SearchResponse:
         """Full pipeline returning SearchResponse (results + meta).
 
         ``prefetched`` optionally supplies already-retrieved rows for branches
         whose inputs are unchanged, so an interruptible caller can reuse work it
-        already paid for instead of re-running every branch. See
-        ``_full_pipeline``.
+        already paid for instead of re-running every branch. ``branch_provider``
+        hands branch execution to the caller entirely, which is what lets an
+        interruptible session cancel individual branches. See ``_full_pipeline``.
         """
         override_keys = set((config_overrides or {}).keys())
         cfg     = get_config(mode, overrides=config_overrides or {})
@@ -310,7 +337,8 @@ class HybridSearchEngine:
                                          recruiter_id=recruiter_id,
                                          recruiter_profile=recruiter_profile,
                                          phase1_ms=phase1_ms, spec_dict=spec_dict,
-                                         prefetched=prefetched)
+                                         prefetched=prefetched,
+                                         branch_provider=branch_provider)
         if preserved_clarify and not resp.clarify:
             resp.clarify = preserved_clarify
         return resp
@@ -392,7 +420,7 @@ class HybridSearchEngine:
                     ),
                     timeout=(keyword_decision.timeout_ms / 1000.0) + 0.25,
                 )
-            except (asyncio.TimeoutError, asyncpg.exceptions.QueryCanceledError):
+            except (TimeoutError, asyncpg.exceptions.QueryCanceledError):
                 # A keyword timeout degrades recall; it does not fail the search.
                 if timings is not None:
                     timings["timed_out"] = True
@@ -411,6 +439,7 @@ class HybridSearchEngine:
         phase1_ms: float = 0.0,
         spec_dict: dict | None = None,
         prefetched: dict[str, list[dict[str, Any]]] | None = None,
+        branch_provider: BranchProvider | None = None,
     ) -> SearchResponse:
         """Run the retrieval pipeline.
 
@@ -420,6 +449,12 @@ class HybridSearchEngine:
         than re-queried. Fusion, grouping, ranking and diversity are unchanged,
         which is what keeps a partially reused search byte-identical to a cold
         one. Passing None (the default) disables the seam entirely.
+
+        ``branch_provider`` is the lower-level hook: it hands branch execution
+        to the caller, which lets an interruptible session run branches as
+        separate tasks and cancel only the invalidated ones. It takes
+        precedence over ``prefetched``, and a caller using it normally leaves
+        ``prefetched`` empty because the provider does its own reuse.
         """
         relaxations: list[dict] = []
 
@@ -461,6 +496,8 @@ class HybridSearchEngine:
         hydration_passes: list[dict[str, Any]] = []
         # Branches served from rows an earlier revision already fetched.
         prefetched_branches: list[str] = []
+        # Branches whose execution was handed to an external provider.
+        provided_branches: list[str] = []
 
         with _obs_span("search.retrieve", input={
             "spec": spec_payload(spec),
@@ -747,9 +784,28 @@ class HybridSearchEngine:
                 timing_key: str,
                 factory,
             ):
-                rows = _prefetched_rows(branch, count_key, timing_key)
-                if rows is not None:
-                    return rows
+                if branch_provider is not None:
+                    # The provider owns reuse and cancellation for this branch.
+                    request = BranchRequest(
+                        branch=branch,
+                        spec=spec,
+                        cfg=cfg,
+                        filter_sql=filter_sql,
+                        filter_params=filter_params,
+                        doc_types=doc_types,
+                        keyword_decision=keyword_decision,
+                    )
+                    started = _time.perf_counter()
+                    provided = await branch_provider(request)
+                    retrieval_timings[timing_key] = ms_since(started, _time.perf_counter)
+                    retrieval_counts[count_key] = (
+                        int(provided) if branch == "sql" else len(provided)
+                    )
+                    provided_branches.append(branch)
+                    return provided
+                value = _prefetched_rows(branch, count_key, timing_key)
+                if value is not None:
+                    return value
                 return await factory()
 
             def _bm25_factory():
@@ -803,6 +859,8 @@ class HybridSearchEngine:
             bm25_rows = await bm25_task if bm25_task is not None else []
             if prefetched_branches:
                 retrieval_policy["prefetched_branches"] = sorted(set(prefetched_branches))
+            if provided_branches:
+                retrieval_policy["provided_branches"] = sorted(set(provided_branches))
 
             # ── Step 11: RRF fusion ───────────────────────────────────────────
             fusion_started = _time.perf_counter()
@@ -1860,7 +1918,7 @@ def _spec_from_explicit_filters(explicit_filters: dict[str, Any]) -> CanonicalSe
     Marks the spec as filters_only so the intent router and downstream
     short-circuits both treat it as a structured query.
     """
-    from pipeline.spec import MustFilters, ShouldFilters, MustNotFilters
+    from pipeline.spec import MustFilters, MustNotFilters, ShouldFilters
     from pipeline.validator import _merge_explicit
 
     must = MustFilters()
