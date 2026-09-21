@@ -1,0 +1,131 @@
+"""Bounded, typed tools exposed to the realtime conversation model."""
+
+from __future__ import annotations
+
+from collections.abc import Awaitable, Callable
+from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+
+
+class ToolRejected(ValueError):
+    pass
+
+
+class _ToolArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class SearchCandidatesArgs(_ToolArgs):
+    query: str = Field(min_length=2, max_length=1000)
+    city: str | None = Field(default=None, max_length=120)
+    country: str | None = Field(default=None, max_length=120)
+    min_years_exp: int | None = Field(default=None, ge=0, le=80)
+    max_years_exp: int | None = Field(default=None, ge=0, le=80)
+    must_skills: list[str] = Field(default_factory=list, max_length=20)
+    should_skills: list[str] = Field(default_factory=list, max_length=20)
+    excluded_skills: list[str] = Field(default_factory=list, max_length=20)
+    top_k: int = Field(default=8, ge=1, le=20)
+
+
+class ReviseSearchArgs(_ToolArgs):
+    query: str | None = Field(default=None, min_length=2, max_length=1000)
+    city: str | None = Field(default=None, max_length=120)
+    country: str | None = Field(default=None, max_length=120)
+    min_years_exp: int | None = Field(default=None, ge=0, le=80)
+    max_years_exp: int | None = Field(default=None, ge=0, le=80)
+    must_skills: list[str] | None = Field(default=None, max_length=20)
+    should_skills: list[str] | None = Field(default=None, max_length=20)
+    excluded_skills: list[str] | None = Field(default=None, max_length=20)
+    top_k: int | None = Field(default=None, ge=1, le=20)
+
+    @model_validator(mode="after")
+    def require_change(self) -> "ReviseSearchArgs":
+        if not self.model_fields_set:
+            raise ValueError("At least one search field must change")
+        return self
+
+
+class InspectCandidateArgs(_ToolArgs):
+    candidate_id: str = Field(min_length=8, max_length=80)
+    include_documents: bool = True
+
+
+class CompareCandidatesArgs(_ToolArgs):
+    candidate_ids: list[str] = Field(min_length=2, max_length=6)
+    focus: str | None = Field(default=None, max_length=300)
+
+
+class FormatCurrentAnswerArgs(_ToolArgs):
+    format: Literal["brief", "bullets", "table", "detailed"]
+
+
+class CancelCurrentActionArgs(_ToolArgs):
+    reason: str = Field(default="user_requested", max_length=200)
+
+
+ToolCallback = Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]
+
+
+_TOOL_MODELS: dict[str, type[_ToolArgs]] = {
+    "search_candidates": SearchCandidatesArgs,
+    "revise_search": ReviseSearchArgs,
+    "inspect_candidate": InspectCandidateArgs,
+    "compare_candidates": CompareCandidatesArgs,
+    "format_current_answer": FormatCurrentAnswerArgs,
+    "cancel_current_action": CancelCurrentActionArgs,
+}
+
+_TOOL_DESCRIPTIONS = {
+    "search_candidates": "Start a new grounded candidate search from the recruiter's request.",
+    "revise_search": "Change only explicit fields of the current search plan.",
+    "inspect_candidate": "Inspect one candidate using approved profile and document evidence.",
+    "compare_candidates": "Compare a bounded set of candidates using retrieved evidence.",
+    "format_current_answer": "Reformat the current answer without retrieving new evidence.",
+    "cancel_current_action": "Cancel currently cancellable read-only work at the user's request.",
+}
+
+
+def _gemini_schema(value: Any) -> Any:
+    """Remove JSON Schema keywords unsupported by Gemini Live tools."""
+    if isinstance(value, dict):
+        return {
+            key: _gemini_schema(item)
+            for key, item in value.items()
+            if key not in {"additionalProperties", "$schema"}
+        }
+    if isinstance(value, list):
+        return [_gemini_schema(item) for item in value]
+    return value
+
+
+class RealtimeToolDispatcher:
+    def __init__(self, callbacks: dict[str, ToolCallback]) -> None:
+        self.callbacks = dict(callbacks)
+
+    async def dispatch(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        model = _TOOL_MODELS.get(name)
+        if model is None:
+            raise ToolRejected(f"Unknown realtime tool: {name}")
+        try:
+            validated = model.model_validate(arguments)
+        except ValidationError as exc:
+            raise ToolRejected(f"Invalid arguments for {name}: {exc}") from exc
+        callback = self.callbacks.get(name)
+        if callback is None:
+            raise ToolRejected(f"Realtime tool is unavailable in this session: {name}")
+        return await callback(validated.model_dump(exclude_unset=True, mode="json"))
+
+    @staticmethod
+    def tool_declarations() -> list[dict[str, Any]]:
+        return [
+            {
+                "name": name,
+                "description": _TOOL_DESCRIPTIONS[name],
+                "parameters": _gemini_schema(model.model_json_schema()),
+                # Gemini 3.8 Live otherwise treats function calls as non-blocking.
+                # A grounded answer must wait for retrieval evidence.
+                "behavior": "BLOCKING",
+            }
+            for name, model in _TOOL_MODELS.items()
+        ]

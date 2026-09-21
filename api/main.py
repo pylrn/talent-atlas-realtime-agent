@@ -82,6 +82,9 @@ from pipeline.llm_models import list_llm_models
 from pipeline.llm_models import gemini_model_supports_thinking
 from pipeline.observability import init_langfuse, shutdown_langfuse, init_otel
 from pipeline.live_rag import LiveRAGSession, TOOL_REGISTRY
+from pipeline.gemini_live import GeminiLiveBridge, GoogleGenAILiveTransport
+from pipeline.realtime_prompt import REALTIME_SYSTEM_PROMPT
+from pipeline.realtime_session import RealtimeAgentSession
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(name)s | %(message)s")
 logger = logging.getLogger(__name__)
@@ -665,6 +668,12 @@ async def root_ui_redirect():
     return RedirectResponse(url="/talent")
 
 
+@app.get("/favicon.ico", include_in_schema=False)
+async def empty_favicon():
+    """Avoid a noisy browser-console 404 for the local demo."""
+    return Response(status_code=204)
+
+
 @app.get("/ui", include_in_schema=False)
 async def admin_ui():
     """Serve the lightweight local admin UI."""
@@ -773,6 +782,122 @@ async def live_rag_socket(websocket: WebSocket):
             await emit("error", {"message": str(exc)})
         except Exception:
             pass
+
+
+@app.websocket("/talent/realtime/ws")
+async def talent_realtime_socket(websocket: WebSocket):
+    """Bidirectional voice transport backed by the revision-aware search harness."""
+    await websocket.accept()
+    runtime = RealtimeAgentSession(app.state.search_engine)
+    send_lock = asyncio.Lock()
+    bridge: GeminiLiveBridge | None = None
+    bridge_task: asyncio.Task | None = None
+
+    async def send_events() -> None:
+        while True:
+            event = await runtime.events.get()
+            async with send_lock:
+                await websocket.send_json(event.model_dump(mode="json"))
+
+    async def on_bridge_event(event_type: str, payload: dict[str, Any]) -> None:
+        revision_id = runtime.current_plan.revision_id if runtime.current_plan else None
+        runtime.graph.emit(event_type, payload=payload, revision_id=revision_id)
+
+    async def on_bridge_audio(audio: bytes) -> None:
+        async with send_lock:
+            await websocket.send_bytes(audio)
+
+    async def start_bridge() -> GeminiLiveBridge:
+        nonlocal bridge, bridge_task
+        if bridge is not None:
+            return bridge
+        factory = getattr(app.state, "realtime_transport_factory", None)
+        model = _os.environ.get("GEMINI_LIVE_MODEL", "gemini-3.8-live")
+        connect_args = {
+            "api_key": settings.google_api_key,
+            "model": model,
+            "system_instruction": REALTIME_SYSTEM_PROMPT,
+            "tools": runtime.tools.tool_declarations(),
+        }
+        if factory is None:
+            if not settings.google_api_key:
+                raise RuntimeError("GOOGLE_API_KEY is required for realtime voice")
+            transport = await GoogleGenAILiveTransport.connect(**connect_args)
+        else:
+            created = factory(**connect_args)
+            transport = await created if hasattr(created, "__await__") else created
+        bridge = GeminiLiveBridge(
+            transport,
+            runtime.tools,
+            on_event=on_bridge_event,
+            on_audio=on_bridge_audio,
+        )
+        bridge_task = asyncio.create_task(bridge.run())
+        runtime.graph.emit("session.ready", payload={
+            "model": model,
+            "message": "Realtime voice connected. Interruptions and search revisions are active.",
+            "tool_count": len(runtime.tools.tool_declarations()),
+        })
+        return bridge
+
+    event_task = asyncio.create_task(send_events())
+    runtime.graph.emit("session.connected", payload={
+        "session_scope": "ephemeral",
+        "audio_input_hz": 16000,
+        "audio_output_hz": 24000,
+    })
+    try:
+        while True:
+            message = await websocket.receive()
+            if message.get("type") == "websocket.disconnect":
+                break
+            audio = message.get("bytes")
+            if audio is not None:
+                active_bridge = await start_bridge()
+                await active_bridge.send_audio(audio)
+                continue
+            raw_text = message.get("text")
+            if raw_text is None:
+                continue
+            try:
+                command = json.loads(raw_text)
+            except json.JSONDecodeError:
+                command = {"type": "text.input", "text": raw_text}
+            command_type = command.get("type")
+            if command_type == "session.start":
+                await start_bridge()
+            elif command_type == "session.stop":
+                break
+            elif command_type == "session.reset":
+                await runtime.close()
+                runtime.graph.emit("session.reset", payload={"message": "Active retrieval was cancelled."})
+            elif command_type == "trace.snapshot":
+                runtime.graph.emit("trace.snapshot", payload=runtime.snapshot())
+            elif command_type == "text.input":
+                text = str(command.get("text") or "").strip()
+                if text:
+                    active_bridge = await start_bridge()
+                    await active_bridge.send_text(text)
+            else:
+                runtime.graph.emit("error", payload={
+                    "message": "Unsupported realtime event type",
+                    "received": command_type,
+                })
+    except WebSocketDisconnect:
+        pass
+    except Exception as exc:
+        logger.exception("Talent realtime socket failed")
+        runtime.graph.emit("error", payload={"message": str(exc), "error_type": type(exc).__name__})
+        await asyncio.sleep(0)
+    finally:
+        await runtime.close()
+        if bridge is not None:
+            await bridge.close()
+        if bridge_task is not None:
+            bridge_task.cancel()
+            await asyncio.gather(bridge_task, return_exceptions=True)
+        event_task.cancel()
+        await asyncio.gather(event_task, return_exceptions=True)
 
 
 @app.get("/talent/settings", include_in_schema=False)
