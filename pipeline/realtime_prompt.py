@@ -44,6 +44,22 @@ Interruptions:
 - Treat a mid-sentence interruption as a correction to the active goal, not as a
   new conversation. Keep the parts of the plan the recruiter did not change.
 
+Goal changes:
+- A changed criterion is a refinement. Call interrupt_search with only the
+  fields the recruiter changed and leave intent at its default, so the parts of
+  the plan they did not mention are kept.
+- A changed goal is a replacement: the recruiter is now looking for something
+  different, not the same thing with different filters. Call interrupt_search
+  with intent "replace" and every field the new search needs. Hard filters from
+  the previous search are then dropped rather than silently carried over, which
+  is what the recruiter expects. Never let a city or skill requirement they have
+  stopped mentioning quietly survive into a new goal.
+- Every search result includes session_context. If overlap_with_previous is
+  non-empty, say that those candidates also came up in the earlier search
+  instead of presenting them as new. If dropped_constraints is non-empty, say
+  which requirement you dropped and why. Cite an earlier goal only from those
+  fields; never invent a previous result or a candidate they do not list.
+
 Speculative retrieval:
 - Retrieval may already be running from what the recruiter has said so far. Call
   the search tool as usual; when your plan matches the prefetched one the

@@ -103,6 +103,22 @@ class GatedEngine(FakeEngine):
         return response
 
 
+class _OverlappingEngine(FakeEngine):
+    """FakeEngine whose second goal re-surfaces a candidate from the first.
+
+    Two goals need to share a candidate before overlap can be observed at all.
+    """
+
+    async def smart_search(self, **kwargs):
+        response = await super().smart_search(**kwargs)
+        filters = kwargs.get("explicit_filters") or {}
+        if filters.get("city") is None:
+            results = [_result("c-1", "Ada"), _result("c-2", "Grace")]
+            response.results = results
+            response.candidate_ids = [item.candidate_id for item in results]
+        return response
+
+
 @pytest.mark.asyncio
 async def test_search_uses_canonical_pipeline_once_with_structured_contract():
     engine = FakeEngine()
@@ -518,3 +534,112 @@ async def test_a_leaked_candidate_name_is_caught_with_the_previous_result_in_sco
     assert closing["kind"] == "violation"
     assert closing["reason"] == "names_a_candidate_before_evidence"
     assert closing["matched_name"] == "Ada"
+
+
+@pytest.mark.asyncio
+async def test_a_goal_replacement_drops_stale_hard_filters():
+    """Changing what the recruiter is looking for must not carry over filters.
+
+    Patching a replacement the way a refinement is patched would silently keep
+    the previous city and skill requirement, and the agent would answer a
+    question nobody asked.
+    """
+    session = RealtimeAgentSession(FakeEngine(), session_id="voice-goal-replace")
+    await session.tools.dispatch("search_candidates", {
+        "query": "python backend engineer",
+        "city": "Pune",
+        "must_skills": ["python"],
+        "min_years_exp": 5,
+        "top_k": 5,
+    })
+
+    replaced = await session.tools.dispatch("revise_search", {
+        "query": "product designer",
+        "intent": "replace",
+        "top_k": 5,
+    })
+
+    assert replaced["plan"]["city"] is None
+    assert replaced["plan"]["must_skills"] == []
+    assert replaced["plan"]["min_years_exp"] is None
+    assert replaced["plan"]["query"] == "product designer"
+    assert len(session.goals.goals) == 2
+    assert session.goals.goals[0].superseded is True
+
+
+@pytest.mark.asyncio
+async def test_a_refinement_keeps_constraints_the_recruiter_did_not_mention():
+    """The contrast with a replacement: a criterion change is a patch."""
+    session = RealtimeAgentSession(FakeEngine(), session_id="voice-goal-refine")
+    await session.tools.dispatch("search_candidates", {
+        "query": "python backend engineer",
+        "city": "Pune",
+        "must_skills": ["python"],
+        "top_k": 5,
+    })
+
+    refined = await session.tools.dispatch("revise_search", {"city": "Bengaluru", "top_k": 5})
+
+    # The location normaliser canonicalises Bengaluru to the stored spelling.
+    assert refined["plan"]["city"] == "bangalore"
+    assert refined["plan"]["must_skills"] == ["python"]
+    assert len(session.goals.goals) == 1
+
+
+@pytest.mark.asyncio
+async def test_a_replacement_reports_candidates_that_also_matched_the_earlier_goal():
+    """Session context survives the goal change: a repeat candidate is labelled
+    as a repeat instead of being presented as new."""
+    session = RealtimeAgentSession(_OverlappingEngine(), session_id="voice-goal-overlap")
+    first = await session.tools.dispatch("search_candidates", {
+        "query": "python backend engineer",
+        "city": "Pune",
+        "top_k": 5,
+    })
+    assert first["session_context"]["note"] == "This is the first goal in the session."
+
+    replaced = await session.tools.dispatch("revise_search", {
+        "query": "platform engineer",
+        "intent": "replace",
+        "top_k": 5,
+    })
+
+    context = replaced["session_context"]
+    assert context["overlap_with_previous"] == ["c-1"]
+    assert context["previously_surfaced"] == ["c-1"]
+    assert context["replaces_goal"] == "python backend engineer"
+    assert "1 of these 2 candidates" in context["note"]
+
+
+@pytest.mark.asyncio
+async def test_a_goal_replacement_emits_what_it_dropped():
+    """Losing context is allowed; losing it silently is not."""
+    session = RealtimeAgentSession(FakeEngine(), session_id="voice-goal-trace")
+    await session.tools.dispatch("search_candidates", {
+        "query": "python backend engineer",
+        "city": "Pune",
+        "must_skills": ["python"],
+        "min_years_exp": 5,
+        "top_k": 5,
+    })
+    while not session.events.empty():
+        session.events.get_nowait()
+
+    await session.tools.dispatch("revise_search", {
+        "query": "product designer",
+        "intent": "replace",
+        "top_k": 5,
+    })
+
+    events = []
+    while not session.events.empty():
+        events.append(session.events.get_nowait())
+    replaced = [event for event in events if event.type == "goal.replaced"]
+    assert len(replaced) == 1
+    assert replaced[0].payload["previous_goal"] == "python backend engineer"
+    assert replaced[0].payload["dropped_constraints"] == {
+        "city": "pune",
+        "min_years_exp": 5,
+        "must_skills": ["python"],
+    }
+    assert replaced[0].payload["carried_context"]["previously_surfaced"] == ["c-1"]

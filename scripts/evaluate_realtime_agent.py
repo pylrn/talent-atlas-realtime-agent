@@ -66,6 +66,19 @@ class EvaluationEngine:
         )
 
 
+class _OverlappingEngine(EvaluationEngine):
+    """Returns a shared candidate for a second goal so overlap is observable."""
+
+    async def smart_search(self, **kwargs: Any) -> SimpleNamespace:
+        response = await super().smart_search(**kwargs)
+        filters = kwargs.get("explicit_filters") or {}
+        if filters.get("city") is None:
+            results = [_candidate("c-1", "Ada"), _candidate("c-2", "Grace")]
+            response.results = results
+            response.candidate_ids = [item.candidate_id for item in results]
+        return response
+
+
 async def _evaluate() -> dict[str, Any]:
     engine = EvaluationEngine()
     session = RealtimeAgentSession(engine, session_id="evaluation")
@@ -134,6 +147,25 @@ async def _evaluate() -> dict[str, Any]:
     ungrounded_filler = filler_session.note_tool_activity("tool.completed", {"call_id": "f-2"})
     filler_session.note_tool_activity("tool.started", {"call_id": "f-3", "name": "search_candidates"})
     silent_filler = filler_session.note_tool_activity("tool.completed", {"call_id": "f-3"})
+
+    # Changing what the recruiter is looking for must drop constraints they
+    # stopped mentioning, while keeping the session context that makes the new
+    # result legible.
+    goal_session = RealtimeAgentSession(_OverlappingEngine(), session_id="evaluation-goal")
+    first_goal = await goal_session.tools.dispatch("search_candidates", {
+        "query": "python backend engineer",
+        "city": "Pune",
+        "must_skills": ["python"],
+        "min_years_exp": 5,
+        "top_k": 5,
+    })
+    new_goal = await goal_session.tools.dispatch("revise_search", {
+        "query": "product designer",
+        "intent": "replace",
+        "top_k": 5,
+    })
+    # The same goal, one criterion changed, must stay on the same goal record.
+    refinement = await goal_session.tools.dispatch("revise_search", {"top_k": 5, "city": "Pune"})
 
     gate = asyncio.Event()
     vector_started = asyncio.Event()
@@ -214,6 +246,18 @@ async def _evaluate() -> dict[str, Any]:
                 if item["behavior"] == "BLOCKING"
             ),
         },
+        "goal_change": {
+            "first_goal": first_goal["session_context"]["goal_statement"],
+            "new_goal": new_goal["session_context"]["goal_statement"],
+            "dropped_constraints": new_goal["session_context"]["dropped_constraints"],
+            "carried_over": new_goal["session_context"]["previously_surfaced"],
+            "overlap": new_goal["session_context"]["overlap_with_previous"],
+            "goals_recorded": len(goal_session.goals.goals),
+            "refinement_stayed_on_goal": (
+                refinement["session_context"]["goal_id"]
+                == new_goal["session_context"]["goal_id"]
+            ),
+        },
         "rapid_interruption": {
             "stale_cancelled": cancelled["vector"] == 1,
             "replacement_revision": second.revision_id,
@@ -262,11 +306,25 @@ async def _evaluate() -> dict[str, Any]:
             "list_skills",
         ]
         and scenarios["rapid_interruption"]["stale_cancelled"]
+        # A goal change starts a clean plan, names what it dropped, and keeps
+        # the session context; a refinement stays on the same goal.
+        and scenarios["goal_change"]["first_goal"] == "python backend engineer"
+        and scenarios["goal_change"]["new_goal"] == "product designer"
+        and scenarios["goal_change"]["dropped_constraints"] == {
+            "city": "pune",
+            "min_years_exp": 5,
+            "must_skills": ["python"],
+        }
+        and scenarios["goal_change"]["overlap"] == ["c-1"]
+        and scenarios["goal_change"]["carried_over"] == ["c-1"]
+        and scenarios["goal_change"]["goals_recorded"] == 2
+        and scenarios["goal_change"]["refinement_stayed_on_goal"] is True
     )
     await session.close()
     await barge_session.close()
     await spec_session.close()
     await filler_session.close()
+    await goal_session.close()
     await coordinator.close()
     return {"passed": passed, "scenarios": scenarios}
 

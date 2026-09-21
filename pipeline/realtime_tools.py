@@ -46,10 +46,13 @@ class ReviseSearchArgs(_ToolArgs):
     excluded_skills: list[str] | None = Field(default=None, max_length=20)
     keyword_policy: Literal["auto", "skip", "force"] | None = None
     top_k: int | None = Field(default=None, ge=1, le=20)
+    intent: Literal["refine", "replace"] = "refine"
 
     @model_validator(mode="after")
     def require_change(self) -> "ReviseSearchArgs":
-        if not self.model_fields_set:
+        # `intent` alone is not a change: it describes how to treat the other
+        # fields, so a call that sets only intent has nothing to apply.
+        if not (self.model_fields_set - {"intent"}):
             raise ValueError("At least one search field must change")
         return self
 
@@ -97,7 +100,13 @@ _TOOL_MODELS: dict[str, type[_ToolArgs]] = {
 
 _TOOL_DESCRIPTIONS = {
     "search_candidates": "Start a new grounded candidate search from the recruiter's request.",
-    "interrupt_search": "Interrupt stale retrieval and revise only explicit fields of the active search plan. Pass null for a field that should be removed.",
+    "interrupt_search": (
+        "Interrupt stale retrieval and revise the active search plan. Set intent to "
+        "'replace' when the recruiter has changed what they are looking for rather "
+        "than a criterion within it; hard filters from the previous search are then "
+        "dropped instead of silently carried over. Pass null for a field that should "
+        "be removed."
+    ),
     "revise_search": "Compatibility alias for interrupt_search.",
     "inspect_candidate": "Inspect one candidate using approved profile and document evidence.",
     "compare_candidates": "Compare a bounded set of candidates using retrieved evidence.",

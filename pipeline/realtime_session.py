@@ -16,6 +16,7 @@ from pipeline.agent_session import AgentSession
 from pipeline.agent_tools import do_list_skills_batch, do_run_search
 from pipeline.realtime_events import EventEnvelope, TraceGraph
 from pipeline.realtime_filler import classify_filler
+from pipeline.realtime_goals import GoalLedger, dropped_constraints
 from pipeline.realtime_plan import BRANCHES, SearchPlanRevision, diff_revisions
 from pipeline.realtime_speculation import is_speculatable, plan_from_partial
 from pipeline.realtime_tools import RealtimeToolDispatcher
@@ -104,6 +105,9 @@ class RealtimeAgentSession:
         }
         self.filler_log: list[dict[str, Any]] = []
         self.candidate_loader = candidate_loader or self._default_candidate_loader
+        # Goal history sits above the plan: a refinement patches the active
+        # plan, a replacement starts a clean one and carries session context.
+        self.goals = GoalLedger()
         self.tools = RealtimeToolDispatcher({
             "search_candidates": self._search_candidates,
             "revise_search": self._revise_search,
@@ -127,11 +131,23 @@ class RealtimeAgentSession:
         if self.current_plan is None:
             raise ValueError("There is no active search to revise")
         values = dict(arguments)
+        intent = str(values.pop("intent", "refine"))
         top_k = int(values.pop("top_k", len(self.current_candidates) or 8))
         previous = self.current_plan
-        revision = previous.patch(**values)
+        if intent == "replace":
+            # A different goal must not inherit hard filters the recruiter never
+            # restated. Patching would silently keep the previous city or skill
+            # filter and answer a question nobody asked.
+            revision = SearchPlanRevision.create(**values)
+        else:
+            revision = previous.patch(**values)
         self.current_plan = revision
-        return await self._execute_revision(revision, previous=previous, top_k=top_k)
+        return await self._execute_revision(
+            revision,
+            previous=previous,
+            top_k=top_k,
+            replaces_goal=intent == "replace",
+        )
 
     async def _execute_revision(
         self,
@@ -139,6 +155,7 @@ class RealtimeAgentSession:
         *,
         previous: SearchPlanRevision | None,
         top_k: int,
+        replaces_goal: bool = False,
     ) -> dict[str, Any]:
         diff = diff_revisions(previous, revision)
         cache_key = self._cache_key(revision, top_k)
@@ -158,7 +175,7 @@ class RealtimeAgentSession:
             from_speculation = bool(cached.get("speculative"))
             if from_speculation:
                 self.speculation_stats["speculation_hits"] += 1
-            return {
+            return self._with_session_context({
                 **cached["result"],
                 "revision_id": revision.revision_id,
                 "parent_revision_id": revision.parent_revision_id,
@@ -169,7 +186,7 @@ class RealtimeAgentSession:
                 "served_from_speculation": from_speculation,
                 "reused_from_revision_id": cached["revision_id"],
                 "duration_ms": round((time.perf_counter() - started) * 1000, 3),
-            }
+            }, revision, previous=previous, replaces_goal=replaces_goal)
 
         plan_id = f"plan-{revision.revision_id}"
         self.graph.upsert_node(
@@ -215,7 +232,59 @@ class RealtimeAgentSession:
 
         self.current_candidates = result["candidates"]
         self.reuse_stats["revisions"] += 1
-        return result
+        return self._with_session_context(
+            result, revision, previous=previous, replaces_goal=replaces_goal
+        )
+
+    def _with_session_context(
+        self,
+        result: dict[str, Any],
+        revision: SearchPlanRevision,
+        *,
+        previous: SearchPlanRevision | None,
+        replaces_goal: bool,
+    ) -> dict[str, Any]:
+        """Attach goal bookkeeping to a search result.
+
+        Every search tells the model how it relates to the rest of the session,
+        so a new goal is connected to what was already shown rather than
+        presented as if the conversation had just started. A replacement also
+        reports the constraints it dropped, because losing context is allowed
+        and losing it silently is not.
+        """
+        dropped: dict[str, Any] = {}
+        replaced = None
+        if replaces_goal or self.goals.active is None:
+            _, replaced = self.goals.start(
+                statement=revision.query, revision_id=revision.revision_id
+            )
+            if replaced is not None:
+                dropped = dropped_constraints(previous, revision)
+                self.graph.emit(
+                    "goal.replaced",
+                    payload={
+                        "previous_goal": replaced.statement,
+                        "goal": revision.query,
+                        "dropped_constraints": dropped,
+                        "carried_context": {
+                            "previously_surfaced": self.goals.surfaced_candidate_ids(),
+                            "policy": (
+                                "A replacement starts a clean plan; only the "
+                                "candidates already shown are carried over."
+                            ),
+                        },
+                    },
+                    revision_id=revision.revision_id,
+                )
+        else:
+            self.goals.attach_revision(revision.revision_id)
+
+        candidate_ids = [str(item) for item in result.get("candidate_ids") or []]
+        context = self.goals.context_for(candidate_ids)
+        if replaced is not None:
+            context["dropped_constraints"] = dropped
+        self.goals.record_candidates(candidate_ids)
+        return {**result, "session_context": context}
 
     @staticmethod
     def _cache_key(revision: SearchPlanRevision, top_k: int) -> str:
