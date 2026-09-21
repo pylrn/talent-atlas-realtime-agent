@@ -32,36 +32,98 @@
 
 .voice-toggle {
   align-items: center;
+  background: #fff;
+  border: 1.5px solid var(--rt-line);
+  border-radius: 50%;
+  color: #526879;
+  cursor: pointer;
   display: inline-flex;
-  gap: 6px;
+  flex: 0 0 46px;
+  height: 46px;
+  justify-content: center;
+  padding: 0;
+  transition: background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease, transform .16s ease;
+  width: 46px;
 }
 
 .voice-icon {
-  border: 1.5px solid currentColor;
-  border-radius: 7px;
-  display: inline-block;
-  height: 12px;
-  position: relative;
-  width: 7px;
+  display: block;
+  height: 20px;
+  width: 20px;
 }
 
-.voice-icon::after {
-  border-bottom: 1.5px solid currentColor;
-  border-left: 1.5px solid currentColor;
-  border-radius: 0 0 8px 8px;
-  border-right: 1.5px solid currentColor;
-  bottom: -5px;
-  content: "";
-  height: 5px;
-  left: -4px;
-  position: absolute;
-  width: 13px;
+.voice-toggle:hover {
+  border-color: var(--rt-navy);
+  color: var(--rt-navy);
+  transform: translateY(-1px);
+}
+
+.voice-toggle:focus-visible {
+  outline: 3px solid rgba(207,95,56,.22);
+  outline-offset: 2px;
 }
 
 .voice-toggle[aria-pressed="true"] {
   background: var(--rt-rust);
   border-color: var(--rt-rust);
+  box-shadow: 0 0 0 5px rgba(207,95,56,.12);
   color: #fff;
+}
+
+.sr-only {
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.user-bubble {
+  align-self: end;
+  background: #eaf1f6;
+  border-radius: 18px 18px 5px 18px;
+  color: var(--rt-ink);
+  font: 500 15px/1.55 Archivo, sans-serif;
+  justify-self: end;
+  max-width: min(72%, 620px);
+  padding: 11px 15px;
+}
+
+.assistant-copy.realtime-transcript {
+  color: var(--rt-ink);
+  font: 400 16px/1.68 Archivo, sans-serif;
+  max-width: 720px;
+  padding: 5px 4px 8px 38px;
+  position: relative;
+}
+
+.assistant-copy.realtime-transcript::before {
+  align-items: center;
+  background: var(--rt-navy);
+  border-radius: 50%;
+  color: #fff;
+  content: "A";
+  display: flex;
+  font: 600 10px/1 "IBM Plex Mono", monospace;
+  height: 26px;
+  justify-content: center;
+  left: 0;
+  position: absolute;
+  top: 5px;
+  width: 26px;
+}
+
+.realtime-transcript[data-live="true"]::after {
+  animation: rt-blink 900ms steps(1) infinite;
+  background: var(--rt-rust);
+  content: "";
+  display: inline-block;
+  height: 1em;
+  margin-left: 3px;
+  vertical-align: -2px;
+  width: 2px;
 }
 
 .voice-session-bar {
@@ -387,6 +449,7 @@
 @keyframes rt-pulse { 70% { box-shadow: 0 0 0 9px rgba(207,95,56,0); } 100% { box-shadow: 0 0 0 0 rgba(207,95,56,0); } }
 @keyframes rt-level { from { height: 4px; } to { height: 18px; } }
 @keyframes rt-spin { to { transform: rotate(360deg); } }
+@keyframes rt-blink { 50% { opacity: 0; } }
 
 @media (max-width: 900px) {
   .activity-inspector { width: min(760px, 96vw); }
@@ -398,7 +461,7 @@
   .activity-head { padding: 17px 16px 14px; }
   .graph-scroll { padding: 16px; }
   .telemetry-panel { padding: 16px; }
-  .voice-toggle #voiceToggleLabel { display: none; }
+  .voice-toggle { flex-basis: 42px; height: 42px; width: 42px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

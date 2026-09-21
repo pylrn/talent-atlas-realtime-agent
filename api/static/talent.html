@@ -162,9 +162,6 @@
               </select>
               <button class="mini-btn" id="sessionHistoryBtn" type="button">history</button>
               <button class="mini-btn" id="fileUploadBtn" type="button">upload</button>
-              <button class="mini-btn voice-toggle" id="voiceToggle" type="button" aria-pressed="false" title="Start a realtime voice session">
-                <span class="voice-icon" aria-hidden="true"></span><span id="voiceToggleLabel">voice</span>
-              </button>
               <button class="mini-btn" id="stopBtn" type="button" hidden>stop · esc</button>
               <button class="mini-btn" id="newSessionBtn" type="button">new session</button>
             </div>
@@ -177,6 +174,14 @@
           <div class="context-stack" id="contextStack" hidden></div>
           <form class="chat-input-row" id="chatForm">
             <input class="chat-input" id="chatInput" autocomplete="off" placeholder="Ask a follow-up — refine, compare, draft outreach...">
+            <button class="voice-toggle" id="voiceToggle" type="button" aria-pressed="false" title="Start voice conversation" aria-label="Start voice conversation">
+              <svg class="voice-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                <path d="M12 19v3"></path>
+              </svg>
+              <span class="sr-only" id="voiceToggleLabel">Start voice conversation</span>
+            </button>
             <button class="send-round" id="chatSubmit" type="submit" style="position:static;flex:0 0 auto">→</button>
           </form>
           <div class="voice-session-bar" id="voiceSessionBar" hidden aria-live="polite">

@@ -52,7 +52,10 @@
     state.active = active;
     byId("voiceSessionBar").hidden = !active;
     byId("voiceToggle").setAttribute("aria-pressed", active ? "true" : "false");
-    byId("voiceToggleLabel").textContent = active ? "listening" : "voice";
+    var voiceLabel = active ? "End voice conversation" : "Start voice conversation";
+    byId("voiceToggleLabel").textContent = voiceLabel;
+    byId("voiceToggle").setAttribute("aria-label", voiceLabel);
+    byId("voiceToggle").setAttribute("title", voiceLabel);
   }
 
   function connectSocket() {

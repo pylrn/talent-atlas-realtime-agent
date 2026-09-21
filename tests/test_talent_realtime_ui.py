@@ -15,6 +15,17 @@ def test_talent_page_loads_realtime_assets_and_controls():
     assert '/static/talent-realtime.js' in html
 
 
+def test_voice_control_lives_in_chat_composer_with_accessible_icon():
+    html = (ROOT / "api/static/talent.html").read_text()
+    composer = html.split('<form class="chat-input-row" id="chatForm">', 1)[1].split("</form>", 1)[0]
+    toolbar = html.split('<div class="chat-toolbar">', 1)[1].split("</div>", 1)[0]
+
+    assert 'id="voiceToggle"' in composer
+    assert 'aria-label="Start voice conversation"' in composer
+    assert '<svg class="voice-icon"' in composer
+    assert 'id="voiceToggle"' not in toolbar
+
+
 def test_realtime_client_targets_talent_websocket_and_supports_audio():
     script = (ROOT / "api/static/talent-realtime.js").read_text()
 
