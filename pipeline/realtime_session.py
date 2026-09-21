@@ -16,10 +16,16 @@ from pipeline.agent_session import AgentSession
 from pipeline.agent_tools import do_list_skills_batch, do_run_search
 from pipeline.realtime_events import EventEnvelope, TraceGraph
 from pipeline.realtime_plan import BRANCHES, SearchPlanRevision, diff_revisions
+from pipeline.realtime_speculation import is_speculatable, plan_from_partial
 from pipeline.realtime_tools import RealtimeToolDispatcher
 
 
 CandidateLoader = Callable[[list[str]], Awaitable[dict[str, Any]]]
+
+# Speculative retrieval must request the same result size the model's default
+# call would, otherwise the cached evidence cannot be reused. The realtime tool
+# schema defaults top_k to 8 and only sends fields the model actually set.
+SPECULATIVE_TOP_K = 8
 
 
 class StreamingTraceGraph(TraceGraph):
@@ -59,14 +65,26 @@ class RealtimeAgentSession:
         # A superseded revision keeps running so its evidence stays reusable.
         # At most one detached search is retained at a time.
         self._detached_search_task: asyncio.Task[dict[str, Any]] | None = None
-        # plan fingerprint -> {"revision_id", "result", "nodes"}. A hit means
-        # every branch input is identical, so the stored evidence is still exact.
+        # Speculative retrieval runs on a partial transcript. It is a side
+        # channel: it never becomes the current plan and never renders as the
+        # authoritative answer.
+        self._speculative_task: asyncio.Task[dict[str, Any]] | None = None
+        self._speculative_cache_key: str | None = None
+        self.transcript_buffer = ""
+        # cache key -> {"revision_id", "result", "nodes", "speculative"}. A hit
+        # means every branch input is identical, so the stored evidence is exact.
         self._revision_cache: dict[str, dict[str, Any]] = {}
         self.reuse_stats: dict[str, int] = {
             "revisions": 0,
             "reused_revisions": 0,
             "reused_branches": 0,
             "executed_branches": 0,
+        }
+        self.speculation_stats: dict[str, int] = {
+            "observations": 0,
+            "speculations_started": 0,
+            "speculations_superseded": 0,
+            "speculation_hits": 0,
         }
         self.candidate_loader = candidate_loader or self._default_candidate_loader
         self.tools = RealtimeToolDispatcher({
@@ -106,12 +124,13 @@ class RealtimeAgentSession:
         top_k: int,
     ) -> dict[str, Any]:
         diff = diff_revisions(previous, revision)
-        cached = self._revision_cache.get(revision.plan_fingerprint)
+        cache_key = self._cache_key(revision, top_k)
+        cached = self._revision_cache.get(cache_key)
 
         if cached is not None:
-            # The composite fingerprint covers every branch input, so an exact
-            # match means the stored evidence is still correct. Serve it without
-            # touching the database and report it as a genuine reuse.
+            # The composite fingerprint covers every branch input and the result
+            # size, so an exact match means the stored evidence is still correct.
+            # Serve it without touching the database.
             self._generation += 1
             started = time.perf_counter()
             self.current_candidates = list(cached["result"].get("candidates") or [])
@@ -119,6 +138,9 @@ class RealtimeAgentSession:
             self.reuse_stats["revisions"] += 1
             self.reuse_stats["reused_revisions"] += 1
             self.reuse_stats["reused_branches"] += len(BRANCHES)
+            from_speculation = bool(cached.get("speculative"))
+            if from_speculation:
+                self.speculation_stats["speculation_hits"] += 1
             return {
                 **cached["result"],
                 "revision_id": revision.revision_id,
@@ -127,6 +149,7 @@ class RealtimeAgentSession:
                 "reused_branches": list(BRANCHES),
                 "executed_branches": [],
                 "served_from_cache": True,
+                "served_from_speculation": from_speculation,
                 "reused_from_revision_id": cached["revision_id"],
                 "duration_ms": round((time.perf_counter() - started) * 1000, 3),
             }
@@ -150,6 +173,7 @@ class RealtimeAgentSession:
         task = asyncio.create_task(self._run_and_record(
             revision,
             top_k=top_k,
+            cache_key=cache_key,
             diff=diff.model_dump(mode="json"),
             generation=generation,
         ))
@@ -176,11 +200,21 @@ class RealtimeAgentSession:
         self.reuse_stats["revisions"] += 1
         return result
 
+    @staticmethod
+    def _cache_key(revision: SearchPlanRevision, top_k: int) -> str:
+        """Identify a retrieval outcome.
+
+        The result size is part of the key: the same plan asked for eight
+        candidates is not the same answer as the same plan asked for three.
+        """
+        return f"{revision.plan_fingerprint}:{top_k}"
+
     async def _run_and_record(
         self,
         revision: SearchPlanRevision,
         *,
         top_k: int,
+        cache_key: str,
         diff: dict[str, Any],
         generation: int,
     ) -> dict[str, Any]:
@@ -194,10 +228,11 @@ class RealtimeAgentSession:
         result = await self._run_canonical_search(revision, top_k=top_k)
         superseded = generation != self._generation
         captured = self._emit_pipeline_graph(revision, diff, result, superseded=superseded)
-        self._revision_cache[revision.plan_fingerprint] = {
+        self._revision_cache[cache_key] = {
             "revision_id": revision.revision_id,
             "result": result,
             "nodes": captured,
+            "speculative": False,
         }
         self.reuse_stats["executed_branches"] += len(BRANCHES)
         if superseded:
@@ -239,7 +274,165 @@ class RealtimeAgentSession:
             # task exception warning.
             task.exception()
 
-    async def _run_canonical_search(self, revision: SearchPlanRevision, *, top_k: int) -> dict[str, Any]:
+    def observe_transcript(self, text: str, *, final: bool = False) -> dict[str, Any]:
+        """Consume a partial transcript and start speculative retrieval when stable.
+
+        Full-duplex conversation means the user is still speaking while retrieval
+        should already be running. This is a side channel: the speculative search
+        warms the revision cache but never becomes the current plan and never
+        renders as the authoritative answer.
+
+        Deliberately synchronous — it is called from the audio receive loop, and
+        awaiting a superseded search there would delay audio forwarding. The work
+        itself runs on its own task.
+        """
+        self.transcript_buffer = " ".join(str(text or "").split())
+        self.speculation_stats["observations"] += 1
+
+        if final:
+            # End of speech is the model's cue, not ours. Drop anything still in
+            # flight rather than racing the authoritative tool call.
+            return {
+                "speculated": False,
+                "reason": "end_of_speech",
+                "superseded": self._supersede_speculation(),
+            }
+
+        if not is_speculatable(self.transcript_buffer):
+            return {"speculated": False, "reason": "prefix_not_stable"}
+
+        plan = plan_from_partial(self.transcript_buffer)
+        if plan is None:
+            return {"speculated": False, "reason": "empty_prefix"}
+
+        cache_key = self._cache_key(plan, SPECULATIVE_TOP_K)
+        if cache_key in self._revision_cache:
+            return {"speculated": False, "reason": "already_cached", "cache_key": cache_key}
+
+        superseded = self._supersede_speculation()
+        self._speculative_cache_key = cache_key
+        self._speculative_task = asyncio.create_task(self._run_speculation(plan, cache_key))
+        self.speculation_stats["speculations_started"] += 1
+        return {
+            "speculated": True,
+            "query": plan.query,
+            "city": plan.city,
+            "fingerprint": plan.plan_fingerprint,
+            "superseded": superseded,
+        }
+
+    async def _run_speculation(
+        self,
+        plan: SearchPlanRevision,
+        cache_key: str,
+    ) -> dict[str, Any] | None:
+        """Run one provisional search and cache it without becoming authoritative."""
+        revision_id = plan.revision_id
+        self.graph.upsert_node(
+            node_id=f"plan-{revision_id}",
+            kind="plan",
+            status="running",
+            revision_id=revision_id,
+            details={
+                "plan": plan.model_dump(mode="json", exclude={"branch_fingerprints"}),
+                "diff": {},
+                "orchestrator": "speculative_prefetch",
+                "speculative": True,
+                "transcript": self.transcript_buffer,
+            },
+        )
+        try:
+            result = await self._run_canonical_search(
+                plan,
+                top_k=SPECULATIVE_TOP_K,
+                agent_session=self._speculation_session(),
+            )
+        except asyncio.CancelledError:
+            self.graph.upsert_node(
+                node_id=f"plan-{revision_id}",
+                kind="plan",
+                status="superseded",
+                revision_id=revision_id,
+                details={"reason": "prefix_grew", "speculative": True},
+            )
+            raise
+        except Exception as exc:  # noqa: BLE001 - a failed guess must never break the session
+            self.graph.upsert_node(
+                node_id=f"plan-{revision_id}",
+                kind="plan",
+                status="failed",
+                revision_id=revision_id,
+                details={"error": str(exc), "error_type": type(exc).__name__, "speculative": True},
+            )
+            return None
+
+        captured = self._emit_pipeline_graph(plan, {}, result, speculative=True)
+        self._revision_cache[cache_key] = {
+            "revision_id": revision_id,
+            "result": result,
+            "nodes": captured,
+            "speculative": True,
+        }
+        self.graph.emit(
+            "speculation.ready",
+            payload={
+                "query": plan.query,
+                "city": plan.city,
+                "candidate_count": result["count"],
+                "cache_key": cache_key,
+                "policy": (
+                    "Evidence is ready before end of speech. The authoritative call "
+                    "reuses it when the settled plan matches."
+                ),
+            },
+            revision_id=revision_id,
+        )
+        return result
+
+    def _supersede_speculation(self) -> bool:
+        """Cancel an in-flight speculative search. Never awaits it.
+
+        Speculation is a latency optimisation, not authoritative work: when the
+        prefix changes the old guess is worthless, so it is dropped immediately
+        and the caller is not blocked on its cancellation.
+        """
+        task = self._speculative_task
+        self._speculative_task = None
+        self._speculative_cache_key = None
+        if task is None or task.done():
+            return False
+        self.speculation_stats["speculations_superseded"] += 1
+        task.cancel()
+        return True
+
+    async def settle_speculation(self) -> dict[str, Any] | None:
+        """Await the in-flight speculative search, if any.
+
+        Speculation is normally superseded rather than awaited, but callers that
+        need evidence to be ready — or that need a deterministic ordering in
+        tests — can settle the current guess here.
+        """
+        task = self._speculative_task
+        if task is None:
+            return None
+        outcome = await asyncio.gather(task, return_exceptions=True)
+        first = outcome[0] if outcome else None
+        return first if isinstance(first, dict) else None
+
+    def _speculation_session(self) -> AgentSession:
+        """A disposable session so speculative runs never enter the model's history."""
+        return AgentSession(
+            recruiter_id=self.agent_session.recruiter_id,
+            session_id=f"{self.session_id}-speculative",
+        )
+
+    async def _run_canonical_search(
+        self,
+        revision: SearchPlanRevision,
+        *,
+        top_k: int,
+        agent_session: AgentSession | None = None,
+    ) -> dict[str, Any]:
         started = time.perf_counter()
         filters = {
             key: value
@@ -268,7 +461,7 @@ class RealtimeAgentSession:
 
         canonical = await do_run_search(
             pool=getattr(self.engine, "pool", None),
-            session=self.agent_session,
+            session=agent_session or self.agent_session,
             recruiter_id=self.agent_session.recruiter_id,
             query=revision.query,
             filters=filters,
@@ -315,6 +508,7 @@ class RealtimeAgentSession:
         result: dict[str, Any],
         *,
         superseded: bool = False,
+        speculative: bool = False,
     ) -> dict[str, dict[str, Any]]:
         """Materialise the execution graph for one revision and capture it.
 
@@ -350,6 +544,7 @@ class RealtimeAgentSession:
             "orchestrator": "canonical_search_pipeline",
             "fingerprint": revision.plan_fingerprint,
             "superseded": superseded,
+            "speculative": speculative,
         }, [])
         branch_specs = {
             "vector": ("dense_rows", "dense_ms"),
@@ -544,9 +739,17 @@ class RealtimeAgentSession:
         return await do_get_candidate_details(pool, candidate_ids, limit=len(candidate_ids))
 
     def snapshot(self) -> dict[str, Any]:
-        return {**self.graph.snapshot(), "reuse_stats": dict(self.reuse_stats)}
+        return {
+            **self.graph.snapshot(),
+            "reuse_stats": dict(self.reuse_stats),
+            "speculation_stats": dict(self.speculation_stats),
+        }
 
     async def close(self) -> None:
+        speculative = self._speculative_task
+        self._supersede_speculation()
+        if speculative is not None:
+            await asyncio.gather(speculative, return_exceptions=True)
         await self._cancel_active(reason="session_closed")
 
 

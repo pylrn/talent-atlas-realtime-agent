@@ -802,6 +802,15 @@ async def talent_realtime_socket(websocket: WebSocket):
     async def on_bridge_event(event_type: str, payload: dict[str, Any]) -> None:
         revision_id = runtime.current_plan.revision_id if runtime.current_plan else None
         runtime.graph.emit(event_type, payload=payload, revision_id=revision_id)
+        if event_type == "transcript.input":
+            # Full-duplex: start retrieval from the settled prefix instead of
+            # waiting for end-of-speech and the model's tool call. This is
+            # synchronous by design so audio forwarding is never delayed.
+            text = str(payload.get("text") or "")
+            if text:
+                report = runtime.observe_transcript(text, final=bool(payload.get("final")))
+                if report.get("speculated") or report.get("superseded"):
+                    runtime.graph.emit("speculation.decision", payload=report, revision_id=revision_id)
 
     async def on_bridge_audio(audio: bytes) -> None:
         async with send_lock:

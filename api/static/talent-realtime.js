@@ -322,11 +322,22 @@
     }
   }
 
+  function revisionIsSpeculative(revisionId) {
+    var speculative = false;
+    state.nodes.forEach(function (node) {
+      if (speculative || node.revision_id !== revisionId) return;
+      if ((node.details || {}).speculative === true) speculative = true;
+    });
+    return speculative;
+  }
+
   function renderRevisions() {
     var strip = byId("revisionStrip");
     if (!strip) return;
     strip.innerHTML = state.revisions.map(function (revision, index) {
-      return '<button class="revision-chip ' + (revision === state.selectedRevision ? "active" : "") + '" type="button" data-revision="' + escapeHtml(revision) + '">rev ' + (index + 1) + '</button>';
+      var speculative = revisionIsSpeculative(revision);
+      var classes = "revision-chip" + (revision === state.selectedRevision ? " active" : "") + (speculative ? " speculative" : "");
+      return '<button class="' + classes + '" type="button" data-revision="' + escapeHtml(revision) + '" title="' + escapeHtml(speculative ? "Retrieval started from a partial transcript, before end of speech" : "Authoritative revision") + '">rev ' + (index + 1) + (speculative ? '<span class="revision-tag">prefetched</span>' : "") + '</button>';
     }).join("");
     strip.querySelectorAll("[data-revision]").forEach(function (button) {
       button.addEventListener("click", function () {
@@ -363,8 +374,9 @@
       return '<div class="graph-column" data-column="' + column.key + '">' + matches.map(function (node) {
         var details = node.details || {};
         var count = details.candidate_count;
-        var meta = node.status + (count != null ? " · " + count + " candidates" : "") + (details.duration_ms != null ? " · " + Math.round(details.duration_ms) + "ms" : "");
-        return '<button type="button" role="listitem" class="graph-node ' + (state.selectedNode === node.node_id ? "selected" : "") + '" data-node-id="' + escapeHtml(node.node_id) + '" data-status="' + escapeHtml(node.status) + '"><strong>' + escapeHtml(labelForNode(node)) + '</strong><small>' + escapeHtml(meta) + '</small></button>';
+        var speculative = details.speculative === true;
+        var meta = node.status + (speculative ? " · prefetched" : "") + (count != null ? " · " + count + " candidates" : "") + (details.duration_ms != null ? " · " + Math.round(details.duration_ms) + "ms" : "");
+        return '<button type="button" role="listitem" class="graph-node ' + (state.selectedNode === node.node_id ? "selected" : "") + '" data-node-id="' + escapeHtml(node.node_id) + '" data-status="' + escapeHtml(node.status) + '" data-speculative="' + (speculative ? "true" : "false") + '"><strong>' + escapeHtml(labelForNode(node)) + (speculative ? '<span class="node-badge">prefetched</span>' : "") + '</strong><small>' + escapeHtml(meta) + '</small></button>';
       }).join("") + '</div>';
     }).join("");
     graph.querySelectorAll("[data-node-id]").forEach(function (button) {
@@ -404,7 +416,10 @@
         var bend = Math.max(18, (x2 - x1) * 0.45);
         var path = document.createElementNS("http://www.w3.org/2000/svg", "path");
         path.setAttribute("d", "M " + x1 + " " + y1 + " C " + (x1 + bend) + " " + y1 + ", " + (x2 - bend) + " " + y2 + ", " + x2 + " " + y2);
-        path.setAttribute("class", "graph-edge" + (node.status === "reused" ? " reused" : ""));
+        var edgeClasses = "graph-edge";
+        if (node.status === "reused") edgeClasses += " reused";
+        if ((node.details || {}).speculative === true) edgeClasses += " speculative";
+        path.setAttribute("class", edgeClasses);
         svg.appendChild(path);
       });
     });
@@ -466,6 +481,8 @@
       ["Candidates", details.candidate_count != null ? details.candidate_count : "—"],
       ["Parents", (node.parent_ids || []).join(", ") || "—"],
       ["Reused from", node.reused_from || "—"],
+      ["Speculative", details.speculative ? "yes — started before end of speech" : "—"],
+      ["Served from cache", details.served_from_cache ? "yes" : "—"],
       ["Fingerprint", details.fingerprint || "—"],
       ["Formula", details.formula || "—"],
       ["Error", details.error || "—"]

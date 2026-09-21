@@ -350,6 +350,41 @@
   color: #fff;
 }
 
+/* A revision whose retrieval was started from a partial transcript. The
+   evidence is real, but it was fetched on a guess, so it reads as tentative. */
+.revision-chip.speculative {
+  border-color: #96722b;
+  border-style: dashed;
+}
+
+.revision-tag,
+.node-badge {
+  background: #f2e6c8;
+  border: 1px solid #d9c48c;
+  border-radius: 2px;
+  color: #6b501a;
+  font: 600 8px/1 "IBM Plex Mono", monospace;
+  letter-spacing: .04em;
+  padding: 2px 4px;
+  text-transform: uppercase;
+}
+
+.revision-tag {
+  margin-left: 6px;
+}
+
+.node-badge {
+  display: inline-block;
+  margin-left: 5px;
+  vertical-align: 1px;
+}
+
+.revision-chip.active .revision-tag {
+  background: #fff;
+  border-color: #fff;
+  color: var(--rt-ink);
+}
+
 .graph-scroll {
   background-color: #eef0ed;
   background-image: radial-gradient(#cbd1ce 1px, transparent 1px);
@@ -396,6 +431,11 @@
   stroke-dasharray: 4 3;
 }
 
+.graph-edge.speculative {
+  stroke: #b3903f;
+  stroke-dasharray: 2 4;
+}
+
 .graph-node {
   background: #fff;
   border: 1px solid #bac2c1;
@@ -430,6 +470,11 @@
 .graph-node[data-status="cancelled"],
 .graph-node[data-status="superseded"] { border-left-color: #8c9293; opacity: .68; }
 .graph-node[data-status="failed"] { border-left-color: #b83232; }
+.graph-node[data-speculative="true"] {
+  background: #fffdf6;
+  border-color: #d9c48c;
+  border-left-color: #b3903f;
+}
 .graph-node.selected { box-shadow: 0 0 0 2px var(--rt-rust); }
 
 .graph-node[data-status="running"]::after {

@@ -5,8 +5,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from pipeline.realtime_session import RealtimeAgentSession
 from pipeline.realtime_plan import SearchPlanRevision
+from pipeline.realtime_session import RealtimeAgentSession
 
 
 def _result(candidate_id: str, name: str, score: float = 0.8):
@@ -235,14 +235,15 @@ async def test_returning_to_an_earlier_plan_reuses_cached_evidence():
         "city": "Pune",
         "top_k": 5,
     })
-    await session.tools.dispatch("revise_search", {"city": "Bengaluru"})
+    await session.tools.dispatch("revise_search", {"city": "Bengaluru", "top_k": 5})
     assert len(engine.calls) == 2
 
-    restored = await session.tools.dispatch("revise_search", {"city": "Pune"})
+    restored = await session.tools.dispatch("revise_search", {"city": "Pune", "top_k": 5})
 
     # No third retrieval: the identical composite fingerprint is served from cache.
     assert len(engine.calls) == 2
     assert restored["served_from_cache"] is True
+    assert restored["served_from_speculation"] is False
     assert sorted(restored["reused_branches"]) == ["bm25", "skills", "sql", "vector"]
     assert restored["executed_branches"] == []
     assert restored["reused_from_revision_id"] == first["revision_id"]
@@ -303,4 +304,124 @@ async def test_explicit_cancel_still_stops_in_flight_work():
     with pytest.raises(asyncio.CancelledError):
         await task
     assert engine.completed is False
+
+
+@pytest.mark.asyncio
+async def test_partial_transcript_starts_speculative_retrieval():
+    engine = FakeEngine()
+    session = RealtimeAgentSession(engine, session_id="voice-spec")
+
+    report = session.observe_transcript("Find python engineers in Pune")
+
+    assert report["speculated"] is True
+    assert report["query"] == "find python engineers in pune"
+    assert report["city"] == "pune"
+
+    await session.settle_speculation()
+
+    # The speculative run really reached the canonical pipeline, before any tool
+    # call happened.
+    assert len(engine.calls) == 1
+    assert engine.calls[0]["explicit_filters"]["city"] == "pune"
+
+    speculative_plans = [
+        node for node in session.graph.nodes.values()
+        if node.kind == "plan" and node.details.get("speculative") is True
+    ]
+    assert len(speculative_plans) == 1
+    assert speculative_plans[0].status == "completed"
+    assert session.speculation_stats["speculations_started"] == 1
+
+
+@pytest.mark.asyncio
+async def test_settled_plan_reuses_speculative_evidence_without_retrieval():
+    engine = FakeEngine()
+    session = RealtimeAgentSession(engine, session_id="voice-spec-hit")
+
+    session.observe_transcript("Find python engineers in Pune")
+    await session.settle_speculation()
+    assert len(engine.calls) == 1
+
+    result = await session.tools.dispatch("search_candidates", {
+        "query": "Find python engineers in Pune",
+        "city": "Pune",
+        "top_k": 8,
+    })
+
+    assert len(engine.calls) == 1
+    assert result["served_from_cache"] is True
+    assert result["served_from_speculation"] is True
+    assert result["reused_from_revision_id"]
+    assert [candidate["candidate_id"] for candidate in result["candidates"]] == ["c-1"]
+    assert session.speculation_stats["speculation_hits"] == 1
+
+
+@pytest.mark.asyncio
+async def test_growing_prefix_supersedes_the_previous_speculation():
+    session = RealtimeAgentSession(FakeEngine(), session_id="voice-spec-supersede")
+
+    session.observe_transcript("find python engineers")
+    session.observe_transcript("find python engineers in Pune")
+
+    assert session.speculation_stats["speculations_started"] == 2
+    assert session.speculation_stats["speculations_superseded"] == 1
+
+    await session.settle_speculation()
+    assert session.speculation_stats["speculations_started"] == 2
+
+
+@pytest.mark.asyncio
+async def test_unstable_prefix_does_not_start_speculation():
+    session = RealtimeAgentSession(FakeEngine(), session_id="voice-spec-wait")
+
+    report = session.observe_transcript("find python engineers and")
+
+    assert report["speculated"] is False
+    assert report["reason"] == "prefix_not_stable"
+    assert session.speculation_stats["speculations_started"] == 0
+
+
+@pytest.mark.asyncio
+async def test_end_of_speech_supersedes_pending_speculation():
+    session = RealtimeAgentSession(FakeEngine(), session_id="voice-spec-final")
+
+    session.observe_transcript("find python engineers")
+    report = session.observe_transcript("find python engineers in Pune", final=True)
+
+    assert report["speculated"] is False
+    assert report["reason"] == "end_of_speech"
+    assert report["superseded"] is True
+
+
+@pytest.mark.asyncio
+async def test_speculation_is_a_side_channel():
+    engine = FakeEngine()
+    session = RealtimeAgentSession(engine, session_id="voice-spec-side")
+
+    session.observe_transcript("find python engineers in Pune")
+    await session.settle_speculation()
+
+    # Speculation must not become the session's authoritative state, and must not
+    # enter the model's search history.
+    assert session.current_plan is None
+    assert session.current_candidates == []
+    assert session.agent_session.search_stack == []
+    assert session.reuse_stats["executed_branches"] == 0
+
+
+@pytest.mark.asyncio
+async def test_repeated_speculation_on_the_same_prefix_is_not_rerun():
+    engine = FakeEngine()
+    session = RealtimeAgentSession(engine, session_id="voice-spec-repeat")
+
+    session.observe_transcript("find python engineers in Pune")
+    await session.settle_speculation()
+    assert len(engine.calls) == 1
+
+    report = session.observe_transcript("find python engineers in Pune")
+
+    assert report["speculated"] is False
+    assert report["reason"] == "already_cached"
+    assert len(engine.calls) == 1
+
 

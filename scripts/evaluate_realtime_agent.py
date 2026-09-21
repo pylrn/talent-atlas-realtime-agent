@@ -76,12 +76,12 @@ async def _evaluate() -> dict[str, Any]:
         "top_k": 5,
     })
     calls_after_initial = len(engine.calls)
-    revised = await session.tools.dispatch("revise_search", {"city": "Bengaluru"})
+    revised = await session.tools.dispatch("revise_search", {"city": "Bengaluru", "top_k": 5})
     calls_after_revision = len(engine.calls)
     # Returning to a plan that was already executed must be served from the
     # revision cache. This is the behaviour the harness previously reported as
     # reuse without ever performing it.
-    restored = await session.tools.dispatch("revise_search", {"city": "Pune"})
+    restored = await session.tools.dispatch("revise_search", {"city": "Pune", "top_k": 5})
     calls_after_restore = len(engine.calls)
     formatted = await session.tools.dispatch("format_current_answer", {"format": "bullets"})
 
@@ -107,6 +107,20 @@ async def _evaluate() -> dict[str, Any]:
     barge_ack = await barge_session.tools.note_barge_in(reason="barge_in")
     barge_gate.set()
     barge_result = await asyncio.wait_for(barge_task, timeout=5)
+
+    # Speculative retrieval must begin from a partial transcript, before the
+    # conversation model issues any tool call at all.
+    spec_engine = EvaluationEngine()
+    spec_session = RealtimeAgentSession(spec_engine, session_id="evaluation-speculation")
+    partial = spec_session.observe_transcript("Find python backend engineers in Pune")
+    await spec_session.settle_speculation()
+    calls_after_speculation = len(spec_engine.calls)
+    settled = await spec_session.tools.dispatch("search_candidates", {
+        "query": "Find python backend engineers in Pune",
+        "city": "Pune",
+        "top_k": 8,
+    })
+    calls_after_settled = len(spec_engine.calls)
 
     gate = asyncio.Event()
     vector_started = asyncio.Event()
@@ -155,6 +169,13 @@ async def _evaluate() -> dict[str, Any]:
             "search_completed": barge_result["count"] >= 0,
             "canonical_calls": len(barge_engine.calls),
         },
+        "speculative_prefetch": {
+            "started_from_partial": partial["speculated"],
+            "calls_before_tool_call": calls_after_speculation,
+            "served_from_speculation": settled["served_from_speculation"],
+            "calls_for_settled_plan": calls_after_settled - calls_after_speculation,
+            "candidate_ids": [candidate["candidate_id"] for candidate in settled["candidates"]],
+        },
         "presentation_only": {
             "format": formatted["format"],
             "retrieval_rerun": formatted["retrieval_rerun"],
@@ -182,12 +203,19 @@ async def _evaluate() -> dict[str, Any]:
         and scenarios["barge_in"]["cancelled"] is False
         and scenarios["barge_in"]["in_flight_search"] == "preserved"
         and scenarios["barge_in"]["search_completed"] is True
+        # Retrieval starts from the partial transcript and is reused when the
+        # settled plan matches, so the tool call costs nothing extra.
+        and scenarios["speculative_prefetch"]["started_from_partial"] is True
+        and scenarios["speculative_prefetch"]["calls_before_tool_call"] == 1
+        and scenarios["speculative_prefetch"]["served_from_speculation"] is True
+        and scenarios["speculative_prefetch"]["calls_for_settled_plan"] == 0
         and scenarios["presentation_only"]["retrieval_calls_added"] == 0
         and rejected
         and scenarios["rapid_interruption"]["stale_cancelled"]
     )
     await session.close()
     await barge_session.close()
+    await spec_session.close()
     await coordinator.close()
     return {"passed": passed, "scenarios": scenarios}
 

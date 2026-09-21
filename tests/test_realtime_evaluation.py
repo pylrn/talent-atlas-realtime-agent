@@ -30,3 +30,17 @@ def test_realtime_evaluation_proves_reuse_and_interruption_recovery():
     assert barge_in["cancelled"] is False
     assert barge_in["in_flight_search"] == "preserved"
     assert barge_in["search_completed"] is True
+
+
+def test_realtime_evaluation_proves_retrieval_starts_before_end_of_speech():
+    report = run_evaluation()
+    speculative = report["scenarios"]["speculative_prefetch"]
+
+    # Retrieval ran from the partial transcript, before any tool call existed.
+    assert speculative["started_from_partial"] is True
+    assert speculative["calls_before_tool_call"] == 1
+    # The settled plan was then served from that prefetch for free.
+    assert speculative["served_from_speculation"] is True
+    assert speculative["calls_for_settled_plan"] == 0
+    assert speculative["candidate_ids"]
+
