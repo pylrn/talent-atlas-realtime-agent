@@ -2,7 +2,7 @@
 services:
   postgres:
     image: pgvector/pgvector:pg17
-    container_name: hybrid_search_db
+    container_name: samsung_rag_postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-hybrid_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hybrid_pass}
@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ./.runtime/postgres:/var/lib/postgresql/data
       - ./db/migrations:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hybrid_user} -d ${POSTGRES_DB:-hiring_platform}"]
@@ -20,7 +20,7 @@ services:
 
   pgbouncer:
     image: edoburu/pgbouncer:latest
-    container_name: hybrid_search_pgbouncer
+    container_name: samsung_rag_pgbouncer
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-hybrid_user}:${POSTGRES_PASSWORD:-hybrid_pass}@postgres:5432/${POSTGRES_DB:-hiring_platform}
       POOL_MODE: transaction
@@ -34,7 +34,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: hybrid_search_redis
+    container_name: samsung_rag_redis
     command: ["redis-server", "--appendonly", "no", "--maxmemory-policy", "allkeys-lru"]
     ports:
       - "6379:6379"
@@ -43,6 +43,3 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-
-volumes:
-  pgdata:

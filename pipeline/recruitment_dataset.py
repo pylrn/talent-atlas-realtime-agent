@@ -19,6 +19,7 @@ from typing import Any
 DATASET_URL = "https://www.kaggle.com/api/v1/datasets/download/surendra365/recruitement-dataset"
 DATASET_FILENAME = "job_applicant_dataset.csv"
 FALLBACK_EMAIL_DOMAIN = "kaggle-recruitment.local"
+TRANSFORM_VERSION = "recruitment-dataset/v2"
 
 SYNTHETIC_LOCATIONS = {
     "India": ["Bengaluru", "Mumbai", "Delhi", "Hyderabad", "Pune", "Chennai"],

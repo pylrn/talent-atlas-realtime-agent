@@ -14,14 +14,17 @@ from __future__ import annotations
 import argparse
 import asyncio
 import csv
+import hashlib
 import io
 import json
+import ssl
 import urllib.request
 import zipfile
 from pathlib import Path
 from typing import Iterable
 
 import asyncpg
+import certifi
 
 from pipeline import settings
 from pipeline.ingest import IngestionPipeline
@@ -29,6 +32,7 @@ from pipeline.recruitment_dataset import (
     DATASET_FILENAME,
     DATASET_URL,
     TransformedRecruitmentRow,
+    TRANSFORM_VERSION,
     transform_recruitment_row,
 )
 
@@ -48,7 +52,8 @@ def parse_args() -> argparse.Namespace:
 
 def download_dataset_zip(dataset_url: str) -> bytes:
     request = urllib.request.Request(dataset_url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(request, timeout=120) as response:
+    tls_context = ssl.create_default_context(cafile=certifi.where())
+    with urllib.request.urlopen(request, timeout=120, context=tls_context) as response:
         return response.read()
 
 
@@ -103,6 +108,51 @@ def write_jsonl_outputs(
             eval_file.write(json.dumps(item.eval_case, ensure_ascii=False) + "\n")
 
     return records_path, eval_path
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def write_manifest(
+    *,
+    output_dir: Path,
+    dataset_url: str,
+    source_sha256: str,
+    offset: int,
+    requested_count: int,
+    actual_count: int,
+    records_path: Path,
+    eval_path: Path,
+) -> Path:
+    manifest_path = output_dir / f"manifest_{actual_count}.json"
+    manifest = {
+        "source": {
+            "url": dataset_url,
+            "filename": DATASET_FILENAME,
+            "sha256": source_sha256,
+        },
+        "transform_version": TRANSFORM_VERSION,
+        "offset": offset,
+        "requested_count": requested_count,
+        "actual_count": actual_count,
+        "outputs": {
+            "records": {
+                "path": str(records_path),
+                "sha256": file_sha256(records_path),
+            },
+            "eval_cases": {
+                "path": str(eval_path),
+                "sha256": file_sha256(eval_path),
+            },
+        },
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    return manifest_path
 
 
 async def load_transformed_rows(transformed: list[TransformedRecruitmentRow]) -> dict[str, int]:
@@ -209,8 +259,19 @@ async def main() -> None:
     print(f"Transforming rows offset={args.offset}, limit={args.limit}...")
     transformed = transform_rows(iter_dataset_rows(zip_bytes), offset=args.offset, limit=args.limit)
     records_path, eval_path = write_jsonl_outputs(transformed, args.output_dir)
+    manifest_path = write_manifest(
+        output_dir=args.output_dir,
+        dataset_url=args.dataset_url,
+        source_sha256=hashlib.sha256(zip_bytes).hexdigest(),
+        offset=args.offset,
+        requested_count=args.limit,
+        actual_count=len(transformed),
+        records_path=records_path,
+        eval_path=eval_path,
+    )
     print(f"Wrote transformed records: {records_path}")
     print(f"Wrote evaluation cases:    {eval_path}")
+    print(f"Wrote reproducibility manifest: {manifest_path}")
 
     if transformed:
         preview = transformed[0]
