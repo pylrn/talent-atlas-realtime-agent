@@ -18,6 +18,8 @@ venv/
 # Local runtime/test artifacts
 .playwright-cli/
 .playwright-mcp/
+.superpowers/
+.runtime/
 server.log
 repomix-output.xml
 
