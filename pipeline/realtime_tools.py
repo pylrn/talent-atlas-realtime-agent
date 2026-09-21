@@ -54,6 +54,10 @@ class ReviseSearchArgs(_ToolArgs):
         return self
 
 
+class InterruptSearchArgs(ReviseSearchArgs):
+    """Interrupt stale retrieval and patch only the recruiter's changed fields."""
+
+
 class InspectCandidateArgs(_ToolArgs):
     candidate_id: str = Field(min_length=8, max_length=80)
     include_documents: bool = True
@@ -82,6 +86,7 @@ ToolCallback = Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]
 
 _TOOL_MODELS: dict[str, type[_ToolArgs]] = {
     "search_candidates": SearchCandidatesArgs,
+    "interrupt_search": InterruptSearchArgs,
     "revise_search": ReviseSearchArgs,
     "inspect_candidate": InspectCandidateArgs,
     "compare_candidates": CompareCandidatesArgs,
@@ -92,7 +97,8 @@ _TOOL_MODELS: dict[str, type[_ToolArgs]] = {
 
 _TOOL_DESCRIPTIONS = {
     "search_candidates": "Start a new grounded candidate search from the recruiter's request.",
-    "revise_search": "Change only explicit fields of the current search plan.",
+    "interrupt_search": "Interrupt stale retrieval and revise only explicit fields of the active search plan. Pass null for a field that should be removed.",
+    "revise_search": "Compatibility alias for interrupt_search.",
     "inspect_candidate": "Inspect one candidate using approved profile and document evidence.",
     "compare_candidates": "Compare a bounded set of candidates using retrieved evidence.",
     "format_current_answer": "Reformat the current answer without retrieving new evidence.",
@@ -119,14 +125,15 @@ class RealtimeToolDispatcher:
         self.callbacks = dict(callbacks)
 
     async def dispatch(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
-        model = _TOOL_MODELS.get(name)
+        canonical_name = "revise_search" if name == "interrupt_search" else name
+        model = _TOOL_MODELS.get(canonical_name)
         if model is None:
             raise ToolRejected(f"Unknown realtime tool: {name}")
         try:
             validated = model.model_validate(arguments)
         except ValidationError as exc:
             raise ToolRejected(f"Invalid arguments for {name}: {exc}") from exc
-        callback = self.callbacks.get(name)
+        callback = self.callbacks.get(canonical_name)
         if callback is None:
             raise ToolRejected(f"Realtime tool is unavailable in this session: {name}")
         return await callback(validated.model_dump(exclude_unset=True, mode="json"))
@@ -149,4 +156,5 @@ class RealtimeToolDispatcher:
                 "behavior": "BLOCKING",
             }
             for name, model in _TOOL_MODELS.items()
+            if name != "revise_search"
         ]

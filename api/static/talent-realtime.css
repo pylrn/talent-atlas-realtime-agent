@@ -249,6 +249,16 @@
 .voice-level i:nth-child(4) { animation-delay: 360ms; }
 .voice-level i:nth-child(5) { animation-delay: 480ms; }
 
+.voice-heard {
+  color: rgba(255,255,255,.78);
+  flex: 1;
+  font: 500 10px/1.35 "IBM Plex Mono", monospace;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .voice-stop {
   background: rgba(255,255,255,.1);
   border: 1px solid rgba(255,255,255,.24);
@@ -257,7 +267,7 @@
   cursor: pointer;
   font: 22px/28px Arial, sans-serif;
   height: 30px;
-  margin-left: auto;
+  margin-left: 0;
   width: 30px;
 }
 

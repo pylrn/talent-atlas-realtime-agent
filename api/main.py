@@ -818,6 +818,8 @@ async def talent_realtime_socket(websocket: WebSocket):
             "model": model,
             "system_instruction": REALTIME_SYSTEM_PROMPT,
             "tools": runtime.tools.tool_declarations(),
+            "vad_silence_ms": settings.gemini_live_vad_silence_ms,
+            "vad_prefix_ms": settings.gemini_live_vad_prefix_ms,
         }
         if factory is None:
             if not settings.google_api_key:

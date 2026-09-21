@@ -70,8 +70,8 @@ class RealtimeAgentSession:
     async def _search_candidates(self, arguments: dict[str, Any]) -> dict[str, Any]:
         values = dict(arguments)
         top_k = int(values.pop("top_k", 8))
-        revision = SearchPlanRevision.create(**values)
         previous = self.current_plan
+        revision = previous.patch(**values) if previous is not None else SearchPlanRevision.create(**values)
         self.current_plan = revision
         return await self._execute_revision(revision, previous=previous, top_k=top_k)
 

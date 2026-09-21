@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from pipeline.realtime_session import RealtimeAgentSession
+from pipeline.realtime_plan import SearchPlanRevision
 
 
 def _result(candidate_id: str, name: str, score: float = 0.8):
@@ -159,6 +160,33 @@ async def test_location_revision_reruns_canonical_pipeline_and_links_revision():
     assert engine.calls[1]["explicit_filters"]["city"] == "bangalore"
     plan_node = session.graph.nodes[f"plan-{second['revision_id']}"]
     assert "city" in plan_node.details["diff"]["changed_fields"]
+
+
+@pytest.mark.asyncio
+async def test_active_search_candidates_call_becomes_revision():
+    engine = FakeEngine()
+    session = RealtimeAgentSession(engine, session_id="voice-revision-search")
+
+    first = await session.tools.dispatch("search_candidates", {
+        "query": "python backend engineer",
+        "city": "Pune",
+        "top_k": 5,
+    })
+    second = await session.tools.dispatch("search_candidates", {
+        "query": "python backend engineer",
+        "city": None,
+        "top_k": 5,
+    })
+
+    assert second["parent_revision_id"] == first["revision_id"]
+    assert second["plan"]["city"] is None
+
+
+def test_plan_treats_serialized_null_as_removed_constraint():
+    revision = SearchPlanRevision.create(query="python engineer", city="null", country="None")
+
+    assert revision.city is None
+    assert revision.country is None
 
 
 @pytest.mark.asyncio

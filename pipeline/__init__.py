@@ -119,6 +119,12 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 8000
 
+    # ─── Gemini Live voice ────────────────
+    # Wait longer before treating a pause as end-of-turn. 1200 ms avoids
+    # submitting short pauses in the middle of a recruiter's sentence.
+    gemini_live_vad_silence_ms: int = 1200
+    gemini_live_vad_prefix_ms: int = 200
+
     # ─── Connection Pool ──────────────────
     db_pool_min: int = 5
     db_pool_max: int = 20

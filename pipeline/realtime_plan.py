@@ -20,6 +20,8 @@ def _text(value: str | None) -> str | None:
     if value is None:
         return None
     normalized = re.sub(r"\s+", " ", value).strip().casefold()
+    if normalized in {"null", "none", "undefined"}:
+        return None
     return normalized or None
 
 

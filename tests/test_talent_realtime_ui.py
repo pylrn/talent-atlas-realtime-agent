@@ -8,6 +8,7 @@ def test_talent_page_loads_realtime_assets_and_controls():
     html = (ROOT / "api/static/talent.html").read_text()
 
     assert 'id="voiceToggle"' in html
+    assert 'id="voiceHeard"' in html
     assert 'id="activityButton"' in html
     assert 'id="activityInspector"' in html
     assert 'id="executionGraph"' in html
@@ -51,6 +52,8 @@ def test_realtime_client_targets_talent_websocket_and_supports_audio():
     assert "realtime-tool-card" in script
     assert "clearPendingTranscripts" in script
     assert "markAssistantInterrupted" in script
+    assert "updateVoiceHeard" in script
+    assert "Interrupt & Revise Search" in script
 
 
 def test_realtime_transcript_and_tool_styles_are_present():

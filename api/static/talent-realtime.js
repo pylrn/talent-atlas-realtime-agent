@@ -25,7 +25,8 @@
     activeUserBubble: null,
     toolCards: new Map(),
     pendingTranscriptTimers: [],
-    assistantSpeaking: false
+    assistantSpeaking: false,
+    voiceHeardText: ""
   };
 
   var columns = [
@@ -111,6 +112,7 @@
       state.activeAssistantBubble = null;
       clearPendingTranscripts();
       addRealtimeTranscript(payload.text, "user");
+      updateVoiceHeard(payload.text, payload.final);
       if (payload.final) state.activeUserBubble = null;
     }
     if (event.type === "transcript.output") {
@@ -133,7 +135,7 @@
     if (event.type === "tool.completed") {
       setVoiceState("Responding from evidence");
       appendToolActivity(payload, "completed");
-      if ((payload.name === "search_candidates" || payload.name === "revise_search") &&
+      if ((payload.name === "search_candidates" || payload.name === "interrupt_search" || payload.name === "revise_search") &&
           payload.result && Array.isArray(payload.result.candidates) && window.TalentApp) {
         window.TalentApp.applyRealtimeResults(payload.result);
       }
@@ -181,6 +183,21 @@
     state.pendingTranscriptTimers = [];
   }
 
+  function updateVoiceHeard(text, final) {
+    var host = byId("voiceHeard");
+    if (!host) return;
+    if (text) state.voiceHeardText += text;
+    host.textContent = state.voiceHeardText ? "you: " + state.voiceHeardText : "";
+    host.hidden = !state.voiceHeardText;
+    if (final) {
+      window.setTimeout(function () {
+        state.voiceHeardText = "";
+        host.textContent = "";
+        host.hidden = true;
+      }, 1600);
+    }
+  }
+
   function markAssistantInterrupted() {
     var bubble = state.activeAssistantBubble;
     if (!bubble || !bubble.isConnected || bubble.dataset.interrupted === "true") return;
@@ -210,12 +227,13 @@
   }
 
   function toolTitle(name) {
+    if (name === "interrupt_search") return "Interrupt & Revise Search";
     return String(name || "tool").replace(/_/g, " ").replace(/\b\w/g, function (char) { return char.toUpperCase(); });
   }
 
   function toolArgumentsSummary(name, argumentsValue) {
     var args = argumentsValue && typeof argumentsValue === "object" ? argumentsValue : {};
-    if (name === "search_candidates" || name === "revise_search") {
+    if (name === "search_candidates" || name === "interrupt_search" || name === "revise_search") {
       var parts = [];
       if (args.query) parts.push(String(args.query));
       if (args.city) parts.push("city: " + args.city);
@@ -277,6 +295,9 @@
       badge.textContent = "running";
     } else if (status === "completed") {
       badge.textContent = toolResultSummary(payload.name, payload.result);
+      if (payload.name === "search_candidates" && payload.result && payload.result.parent_revision_id) {
+        card.querySelector(".realtime-tool-title").textContent = "Interrupt & Revise Search";
+      }
     } else {
       badge.textContent = status;
     }
@@ -561,6 +582,11 @@
     state.activeAssistantBubble = null;
     state.activeUserBubble = null;
     state.assistantSpeaking = false;
+    state.voiceHeardText = "";
+    if (byId("voiceHeard")) {
+      byId("voiceHeard").textContent = "";
+      byId("voiceHeard").hidden = true;
+    }
     if (notify !== false && state.socket && state.socket.readyState === WebSocket.OPEN) {
       state.socket.send(JSON.stringify({ type: "session.stop" }));
       state.socket.close(1000, "user ended voice session");

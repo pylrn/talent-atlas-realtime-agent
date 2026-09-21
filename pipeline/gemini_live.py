@@ -110,6 +110,8 @@ class GoogleGenAILiveTransport:
         model: str,
         system_instruction: str,
         tools: list[dict[str, Any]],
+        vad_silence_ms: int = 1200,
+        vad_prefix_ms: int = 200,
     ) -> "GoogleGenAILiveTransport":
         from google import genai
         from google.genai import types
@@ -121,6 +123,14 @@ class GoogleGenAILiveTransport:
             input_audio_transcription=types.AudioTranscriptionConfig(),
             output_audio_transcription=types.AudioTranscriptionConfig(),
             tools=[types.Tool(function_declarations=tools)],
+            realtime_input_config=types.RealtimeInputConfig(
+                automatic_activity_detection=types.AutomaticActivityDetection(
+                    prefix_padding_ms=vad_prefix_ms,
+                    silence_duration_ms=vad_silence_ms,
+                    start_of_speech_sensitivity=types.StartSensitivity.START_SENSITIVITY_HIGH,
+                    end_of_speech_sensitivity=types.EndSensitivity.END_SENSITIVITY_LOW,
+                )
+            ),
             session_resumption=types.SessionResumptionConfig(),
             context_window_compression=types.ContextWindowCompressionConfig(
                 trigger_tokens=25000,

@@ -59,7 +59,8 @@ def test_tool_declarations_do_not_expose_sql_or_credentials() -> None:
     serialized = str(declarations).casefold()
 
     assert "search_candidates" in serialized
-    assert "revise_search" in serialized
+    assert "interrupt_search" in serialized
+    assert "revise_search" not in serialized
     assert "list_skills" in serialized
     assert "should_themes" in serialized
     assert "raw_sql" not in serialized
