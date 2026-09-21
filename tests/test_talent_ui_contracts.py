@@ -26,7 +26,8 @@ def test_talent_static_assets_exist_and_use_reference_visual_language():
     assert TALENT_JS.exists()
     assert TALENT_SETTINGS_HTML.exists()
     assert TALENT_SETTINGS_JS.exists()
-    assert "STRAATIX" in html
+    assert "TALENT ATLAS" in html
+    assert "STRAATIX" not in html
     assert "High performing talent." in html
     assert 'id="heroForm"' in html
     assert 'id="thread"' in html

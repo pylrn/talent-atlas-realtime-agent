@@ -1630,7 +1630,7 @@
       renderEvidencePreview(r) +
       renderRankingExplanation(r.ranking_explanation, r) +
       '<div class="paths">' + renderResultProvenance(r) +
-      '<span style="flex:1"></span><button class="ghost-btn" type="button" data-ask="' + esc(r.id) + '">Ask copilot</button><button class="ghost-btn" type="button" data-morelike="' + esc(r.id) + '">More like this</button><button class="ghost-btn" type="button" data-shortlist="' + esc(r.id) + '">' + (saved ? "Saved" : "Shortlist") + '</button></div>' +
+      '<span style="flex:1"></span><button class="ghost-btn" type="button" data-telemetry-candidate="' + esc(r.id) + '">Evidence trace</button><button class="ghost-btn" type="button" data-ask="' + esc(r.id) + '">Ask copilot</button><button class="ghost-btn" type="button" data-morelike="' + esc(r.id) + '">More like this</button><button class="ghost-btn" type="button" data-shortlist="' + esc(r.id) + '">' + (saved ? "Saved" : "Shortlist") + '</button></div>' +
       '</article>';
   }
 
@@ -2435,6 +2435,44 @@
       }
     });
   }
+
+  window.TalentApp = Object.assign(window.TalentApp || {}, {
+    applyRealtimeResults: function (toolResult) {
+      var candidates = Array.isArray(toolResult && toolResult.candidates) ? toolResult.candidates : [];
+      state.results = candidates.map(function (candidate, index) {
+        return normalizeResult(Object.assign({}, candidate, {
+          rank: index + 1,
+          score_available: false
+        }), index);
+      });
+      state.candidateIds = state.results.map(function (candidate) { return candidate.id; });
+      state.deferredCandidateIds = [];
+      state.resultExpanded = false;
+      state.queryInterpretation = toolResult && toolResult.plan ? {
+        semantic_query: toolResult.plan.query,
+        must_skills: toolResult.plan.must_skills || [],
+        should_skills: toolResult.plan.should_skills || [],
+        must_location: {
+          city: toolResult.plan.city,
+          country: toolResult.plan.country
+        },
+        experience_range: {
+          min_years: toolResult.plan.min_years_exp,
+          max_years: toolResult.plan.max_years_exp
+        }
+      } : null;
+      state.lastSearchMeta = {
+        mode: "realtime voice",
+        latency_ms: toolResult && toolResult.duration_ms,
+        retrieval_policy: {
+          reused_branches: toolResult && toolResult.reused_branches,
+          executed_branches: toolResult && toolResult.executed_branches
+        }
+      };
+      renderResults(candidates.length);
+      if (state.results.length) requestAnimationFrame(function () { scrollResultsIntoView(state.results[0].id); });
+    }
+  });
 
   document.addEventListener("DOMContentLoaded", function () {
     initControls();

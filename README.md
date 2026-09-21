@@ -1,14 +1,33 @@
-# SignalRAG — Streaming Live RAG over PostgreSQL + pgvector
+# Talent Atlas — Interruptible Realtime Hybrid RAG
 
-SignalRAG is the Samsung PRISM Theme 4 evolution of Talent Atlas. It begins
-retrieval from stable partial transcripts, decomposes compound intent, reuses
-completed work when a late detail arrives, and grounds every displayed result
-in a real corpus chunk ID. The original hybrid search and Talent Atlas surfaces
-remain available, but the hackathon demonstration starts at `/live-rag`.
+Talent Atlas is a conversational recruiting search system over PostgreSQL and
+pgvector. Gemini Live handles audio and natural conversation while an
+application-owned realtime harness validates typed tool calls, creates immutable
+search revisions, runs SQL, vector, keyword and exact-skill branches, cancels
+stale work, reuses unchanged branches, fuses rankings, reranks a bounded pool,
+and returns grounded candidate evidence.
+
+The recruiter stays in the original `/talent` interface. The execution graph is
+hidden under **Activity** until someone wants to inspect the fork/join workflow,
+the exact bounded results, timings, inputs, evidence or raw event for each node.
 
 ```bash
-uvicorn api.main:app --reload
-# Open http://127.0.0.1:8000/live-rag
+cd /Volumes/MAC/Projects_devolopment/Samsum_rag
+source scripts/setup_external_runtime.sh
+docker compose up -d postgres
+.venv/bin/python scripts/verify_local_corpus.py --expected-candidates 10000 --require-external-root
+.venv/bin/python -m uvicorn api.main:app --host 127.0.0.1 --port 8010
+# Open http://127.0.0.1:8010/talent
+```
+
+`GOOGLE_API_KEY` and `GEMINI_LIVE_MODEL=gemini-3.8-live` are required only for
+voice. Typed search remains available without Gemini. The setup script
+deliberately selects the SSD-local Docker database and disables remote telemetry.
+
+Validate interruption, branch reuse and guardrails without network access:
+
+```bash
+.venv/bin/python scripts/evaluate_realtime_agent.py
 ```
 
 The product strategy and official acceptance-gate mapping live in
