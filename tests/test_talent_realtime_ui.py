@@ -46,6 +46,18 @@ def test_realtime_client_targets_talent_websocket_and_supports_audio():
     assert "candidate.feature_score != null" in talent_script
     assert "relaxations_applied" in talent_script
     assert "relaxationLabel" in talent_script
+    assert "appendToolActivity" in script
+    assert "queueAssistantTranscript" in script
+    assert "realtime-tool-card" in script
+    assert "clearPendingTranscripts" in script
+
+
+def test_realtime_transcript_and_tool_styles_are_present():
+    css = (ROOT / "api/static/talent-realtime.css").read_text()
+
+    assert ".realtime-tool-card" in css
+    assert ".realtime-tool-status[data-status=\"completed\"]" in css
+    assert "white-space: pre-wrap" in css
 
 
 def test_new_talent_header_does_not_use_straatix_branding():

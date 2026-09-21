@@ -97,6 +97,7 @@
   max-width: 720px;
   padding: 5px 4px 8px 38px;
   position: relative;
+  white-space: pre-wrap;
 }
 
 .assistant-copy.realtime-transcript::before {
@@ -124,6 +125,73 @@
   margin-left: 3px;
   vertical-align: -2px;
   width: 2px;
+}
+
+.realtime-tool-card {
+  align-items: center;
+  align-self: start;
+  background: #fff;
+  border: 1px solid var(--rt-line);
+  border-left: 3px solid var(--rt-blue);
+  border-radius: 5px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  margin-left: 38px;
+  max-width: min(720px, calc(100% - 38px));
+  padding: 10px 12px;
+}
+
+.realtime-tool-mark {
+  color: var(--rt-blue);
+  font: 600 16px/1 "IBM Plex Mono", monospace;
+  text-align: center;
+}
+
+.realtime-tool-body {
+  min-width: 0;
+}
+
+.realtime-tool-title {
+  color: var(--rt-ink);
+  display: block;
+  font: 600 12px/1.3 Archivo, sans-serif;
+}
+
+.realtime-tool-detail {
+  color: #64747b;
+  display: block;
+  font: 400 10px/1.45 "IBM Plex Mono", monospace;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+}
+
+.realtime-tool-status {
+  border: 1px solid #cbd3d3;
+  border-radius: 999px;
+  color: #66767c;
+  font: 500 9px/1 "IBM Plex Mono", monospace;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+
+.realtime-tool-status[data-status="completed"] {
+  background: #e9f5f1;
+  border-color: #b9ddd4;
+  color: #126b5a;
+}
+
+.realtime-tool-status[data-status="running"] {
+  background: #edf4f8;
+  border-color: #c6dce8;
+  color: #245f85;
+}
+
+.realtime-tool-status[data-status="failed"],
+.realtime-tool-status[data-status="rejected"] {
+  background: #faeeeb;
+  border-color: #edc9bf;
+  color: #9c3d26;
 }
 
 .voice-session-bar {

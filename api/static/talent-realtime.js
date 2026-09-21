@@ -20,7 +20,11 @@
     selectedNode: null,
     selectedTab: "summary",
     pinned: false,
-    inspectorReturnFocus: null
+    inspectorReturnFocus: null,
+    activeAssistantBubble: null,
+    activeUserBubble: null,
+    toolCards: new Map(),
+    pendingTranscriptTimers: []
   };
 
   var columns = [
@@ -101,23 +105,35 @@
     if (event.type === "session.ready") setVoiceState("Listening — interrupt any time");
     if (event.type === "transcript.input") {
       setVoiceState("Understanding");
+      state.activeAssistantBubble = null;
+      clearPendingTranscripts();
       addRealtimeTranscript(payload.text, "user");
+      if (payload.final) state.activeUserBubble = null;
     }
     if (event.type === "transcript.output") {
       setVoiceState("Speaking — interrupt any time");
-      addRealtimeTranscript(payload.text, "assistant");
+      queueAssistantTranscript(payload.text);
     }
     if (event.type === "audio.interrupted") {
       clearPlayback();
+      clearPendingTranscripts();
+      state.activeAssistantBubble = null;
       setVoiceState("Interrupted — listening");
     }
-    if (event.type === "tool.started") setVoiceState("Running " + String(payload.name || "tool").replace(/_/g, " "));
+    if (event.type === "tool.started") {
+      setVoiceState("Running " + String(payload.name || "tool").replace(/_/g, " "));
+      appendToolActivity(payload, "running");
+    }
     if (event.type === "tool.completed") {
       setVoiceState("Responding from evidence");
+      appendToolActivity(payload, "completed");
       if ((payload.name === "search_candidates" || payload.name === "revise_search") &&
           payload.result && Array.isArray(payload.result.candidates) && window.TalentApp) {
         window.TalentApp.applyRealtimeResults(payload.result);
       }
+    }
+    if (event.type === "tool.rejected" || event.type === "tool.failed" || event.type === "tool.cancelled") {
+      appendToolActivity(payload, event.type.replace("tool.", ""));
     }
     if (event.type === "node.updated" && payload.node) {
       state.nodes.set(payload.node.node_id, payload.node);
@@ -139,19 +155,116 @@
     if (!text) return;
     var thread = byId("thread");
     if (!thread) return;
-    var current = thread.querySelector('[data-realtime-role="' + role + '"]:last-child');
-    if (current && current.dataset.live === "true") {
-      current.textContent += text;
+    var current = role === "assistant" ? state.activeAssistantBubble : state.activeUserBubble;
+    if (!current || !current.isConnected) {
+      current = document.createElement("div");
+      current.className = role === "user" ? "user-bubble" : "assistant-copy realtime-transcript";
+      current.dataset.realtimeRole = role;
+      thread.appendChild(current);
+      if (role === "assistant") state.activeAssistantBubble = current;
+      else state.activeUserBubble = current;
+    }
+    current.dataset.live = "true";
+    current.textContent += text;
+    thread.scrollTop = thread.scrollHeight;
+    window.setTimeout(function () { current.dataset.live = "false"; }, 650);
+  }
+
+  function clearPendingTranscripts() {
+    state.pendingTranscriptTimers.forEach(function (timer) { window.clearTimeout(timer); });
+    state.pendingTranscriptTimers = [];
+  }
+
+  function queueAssistantTranscript(text) {
+    if (!text) return;
+    if (!state.playbackContext || !state.playbackSources.length) {
+      addRealtimeTranscript(text, "assistant");
       return;
     }
-    var line = document.createElement("div");
-    line.className = role === "user" ? "user-bubble" : "assistant-copy realtime-transcript";
-    line.dataset.realtimeRole = role;
-    line.dataset.live = "true";
-    line.textContent = text;
-    thread.appendChild(line);
+    var delaySeconds = Math.max(0, state.playbackCursor - state.playbackContext.currentTime - 0.08);
+    if (delaySeconds <= 0.02) {
+      addRealtimeTranscript(text, "assistant");
+      return;
+    }
+    var timer = window.setTimeout(function () {
+      state.pendingTranscriptTimers = state.pendingTranscriptTimers.filter(function (item) { return item !== timer; });
+      addRealtimeTranscript(text, "assistant");
+    }, delaySeconds * 1000);
+    state.pendingTranscriptTimers.push(timer);
+  }
+
+  function toolTitle(name) {
+    return String(name || "tool").replace(/_/g, " ").replace(/\b\w/g, function (char) { return char.toUpperCase(); });
+  }
+
+  function toolArgumentsSummary(name, argumentsValue) {
+    var args = argumentsValue && typeof argumentsValue === "object" ? argumentsValue : {};
+    if (name === "search_candidates" || name === "revise_search") {
+      var parts = [];
+      if (args.query) parts.push(String(args.query));
+      if (args.city) parts.push("city: " + args.city);
+      if (args.min_years_exp != null) parts.push(args.min_years_exp + "+ years");
+      if (Array.isArray(args.must_skills) && args.must_skills.length) parts.push("required: " + args.must_skills.join(", "));
+      if (Array.isArray(args.should_skills) && args.should_skills.length) parts.push("preferred: " + args.should_skills.join(", "));
+      return parts.join(" · ");
+    }
+    if (name === "list_skills" && Array.isArray(args.queries)) return args.queries.join(", ");
+    if (Array.isArray(args.candidate_ids)) return args.candidate_ids.join(", ");
+    return Object.keys(args).slice(0, 4).map(function (key) { return key + ": " + String(args[key]); }).join(" · ");
+  }
+
+  function toolResultSummary(name, result) {
+    var value = result && typeof result === "object" ? result : {};
+    if (value.error) return String(value.error);
+    if (value.cancelled) return "Cancelled";
+    if (name === "list_skills") {
+      var results = value.results && typeof value.results === "object" ? Object.values(value.results) : [];
+      return results.reduce(function (total, item) { return total + (Array.isArray(item) ? item.length : 0); }, 0) + " canonical matches";
+    }
+    if (value.count != null) return value.count + " candidate" + (Number(value.count) === 1 ? "" : "s");
+    return "Completed";
+  }
+
+  function appendToolActivity(payload, status) {
+    var thread = byId("thread");
+    if (!thread) return;
+    var callId = String(payload.call_id || payload.name || "tool");
+    var card = state.toolCards.get(callId);
+    if (!card || !card.isConnected) {
+      card = document.createElement("div");
+      card.className = "realtime-tool-card";
+      card.dataset.callId = callId;
+      var mark = document.createElement("span");
+      mark.className = "realtime-tool-mark";
+      mark.textContent = "↳";
+      var body = document.createElement("div");
+      body.className = "realtime-tool-body";
+      var title = document.createElement("strong");
+      title.className = "realtime-tool-title";
+      title.textContent = toolTitle(payload.name);
+      var detail = document.createElement("span");
+      detail.className = "realtime-tool-detail";
+      detail.textContent = toolArgumentsSummary(payload.name, payload.arguments);
+      var stateLabel = document.createElement("span");
+      stateLabel.className = "realtime-tool-status";
+      body.appendChild(title);
+      body.appendChild(detail);
+      card.appendChild(mark);
+      card.appendChild(body);
+      card.appendChild(stateLabel);
+      thread.appendChild(card);
+      state.toolCards.set(callId, card);
+    }
+    var badge = card.querySelector(".realtime-tool-status");
+    badge.dataset.status = status;
+    if (status === "running") {
+      badge.textContent = "running";
+    } else if (status === "completed") {
+      badge.textContent = toolResultSummary(payload.name, payload.result);
+    } else {
+      badge.textContent = status;
+    }
     thread.scrollTop = thread.scrollHeight;
-    window.setTimeout(function () { line.dataset.live = "false"; }, 650);
   }
 
   function openInspector() {
@@ -416,6 +529,7 @@
 
   async function stopVoice(notify) {
     setVoiceUi(false);
+    clearPendingTranscripts();
     clearPlayback();
     if (state.mediaStream) state.mediaStream.getTracks().forEach(function (track) { track.stop(); });
     if (state.workletNode) state.workletNode.disconnect();
@@ -425,6 +539,8 @@
     state.workletNode = null;
     state.sourceNode = null;
     state.audioContext = null;
+    state.activeAssistantBubble = null;
+    state.activeUserBubble = null;
     if (notify !== false && state.socket && state.socket.readyState === WebSocket.OPEN) {
       state.socket.send(JSON.stringify({ type: "session.stop" }));
       state.socket.close(1000, "user ended voice session");
