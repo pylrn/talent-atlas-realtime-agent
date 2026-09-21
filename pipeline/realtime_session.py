@@ -15,6 +15,7 @@ from typing import Any
 from pipeline.agent_session import AgentSession
 from pipeline.agent_tools import do_list_skills_batch, do_run_search
 from pipeline.realtime_events import EventEnvelope, TraceGraph
+from pipeline.realtime_filler import classify_filler
 from pipeline.realtime_plan import BRANCHES, SearchPlanRevision, diff_revisions
 from pipeline.realtime_speculation import is_speculatable, plan_from_partial
 from pipeline.realtime_tools import RealtimeToolDispatcher
@@ -26,6 +27,11 @@ CandidateLoader = Callable[[list[str]], Awaitable[dict[str, Any]]]
 # call would, otherwise the cached evidence cannot be reused. The realtime tool
 # schema defaults top_k to 8 and only sends fields the model actually set.
 SPECULATIVE_TOP_K = 8
+
+# Bridge events that end a tool call, and therefore close its speech window.
+TOOL_TERMINAL_EVENTS = frozenset(
+    {"tool.completed", "tool.failed", "tool.rejected", "tool.cancelled"}
+)
 
 
 class StreamingTraceGraph(TraceGraph):
@@ -86,6 +92,17 @@ class RealtimeAgentSession:
             "speculations_superseded": 0,
             "speculation_hits": 0,
         }
+        # Retrieval runs in the background, so the model keeps talking while a
+        # tool is in flight. These counters audit what it says in that window.
+        # call_id -> {"name", "spoken", "reported"}.
+        self._in_flight_tools: dict[str, dict[str, Any]] = {}
+        self.filler_stats: dict[str, int] = {
+            "acknowledgements": 0,
+            "over_budget": 0,
+            "violations": 0,
+            "silent_retrievals": 0,
+        }
+        self.filler_log: list[dict[str, Any]] = []
         self.candidate_loader = candidate_loader or self._default_candidate_loader
         self.tools = RealtimeToolDispatcher({
             "search_candidates": self._search_candidates,
@@ -320,6 +337,95 @@ class RealtimeAgentSession:
             "fingerprint": plan.plan_fingerprint,
             "superseded": superseded,
         }
+
+    def note_tool_activity(self, event_type: str, payload: dict[str, Any]) -> dict[str, Any] | None:
+        """Open or close the speech window belonging to one tool call.
+
+        A window opens when the model calls a tool and closes when that call
+        finishes, so it spans exactly the period in which the model is speaking
+        without evidence. Returns the closing audit report, if a window closed.
+        """
+        call_id = str(payload.get("call_id") or "")
+        if not call_id:
+            return None
+        if event_type == "tool.started":
+            self._in_flight_tools[call_id] = {
+                "name": str(payload.get("name") or "tool"),
+                "spoken": "",
+                "reported": False,
+            }
+            return None
+        if event_type not in TOOL_TERMINAL_EVENTS:
+            return None
+        entry = self._in_flight_tools.pop(call_id, None)
+        if entry is None:
+            return None
+        return self._close_filler_window(call_id, entry)
+
+    def observe_speaker_output(self, text: str) -> dict[str, Any] | None:
+        """Audit agent speech emitted while a tool is still in flight.
+
+        Output transcription arrives in chunks, so one sentence can be split
+        across several calls. Text is therefore accumulated per window and
+        classified as a whole: classifying each chunk would both miss a claim
+        split across a boundary and invent one that was never spoken.
+
+        The returned report is provisional and is re-derived when the window
+        closes. Counters are only updated on the closing report, so a violation
+        is never counted twice.
+
+        Returns None when no tool is in flight — ordinary conversation between
+        turns is not a filler claim and must not be judged as one.
+        """
+        if not self._in_flight_tools:
+            return None
+        spoken = " ".join(str(text or "").split())
+        if not spoken:
+            return None
+        for entry in self._in_flight_tools.values():
+            entry["spoken"] = f"{entry['spoken']} {spoken}".strip()
+        provisional = classify_filler(
+            next(iter(self._in_flight_tools.values()))["spoken"],
+            candidate_names=self._candidate_names(),
+        )
+        if provisional["kind"] == "violation" and not any(
+            entry["reported"] for entry in self._in_flight_tools.values()
+        ):
+            for entry in self._in_flight_tools.values():
+                entry["reported"] = True
+            self.graph.emit("filler.violation", payload={**provisional, "provisional": True})
+        return provisional
+
+    def _close_filler_window(self, call_id: str, entry: dict[str, Any]) -> dict[str, Any]:
+        report: dict[str, Any] = {
+            **classify_filler(entry["spoken"], candidate_names=self._candidate_names()),
+            "call_id": call_id,
+            "tool": entry["name"],
+        }
+        if report["kind"] == "empty":
+            if entry["name"] in RealtimeToolDispatcher.non_blocking_tools():
+                # A background retrieval the model never acknowledged is exactly
+                # the dead air this mechanism exists to remove.
+                self.filler_stats["silent_retrievals"] += 1
+            return report
+        if report["kind"] == "violation":
+            self.filler_stats["violations"] += 1
+            self.graph.emit("filler.violation", payload={**report, "provisional": False})
+        elif report["kind"] == "over_budget":
+            self.filler_stats["over_budget"] += 1
+        else:
+            self.filler_stats["acknowledgements"] += 1
+        self.filler_log.append(report)
+        del self.filler_log[:-50]
+        return report
+
+    def _candidate_names(self) -> tuple[str, ...]:
+        names: list[str] = []
+        for candidate in self.current_candidates:
+            name = candidate.get("name") or candidate.get("full_name")
+            if name:
+                names.append(str(name))
+        return tuple(names)
 
     async def _run_speculation(
         self,
@@ -743,6 +849,7 @@ class RealtimeAgentSession:
             **self.graph.snapshot(),
             "reuse_stats": dict(self.reuse_stats),
             "speculation_stats": dict(self.speculation_stats),
+            "filler_stats": dict(self.filler_stats),
         }
 
     async def close(self) -> None:

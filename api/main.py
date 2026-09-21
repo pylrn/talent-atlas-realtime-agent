@@ -811,6 +811,15 @@ async def talent_realtime_socket(websocket: WebSocket):
                 report = runtime.observe_transcript(text, final=bool(payload.get("final")))
                 if report.get("speculated") or report.get("superseded"):
                     runtime.graph.emit("speculation.decision", payload=report, revision_id=revision_id)
+        elif event_type.startswith("tool."):
+            # Retrieval tools are non-blocking, so the model speaks while they
+            # run. Open or close the speech window for that call.
+            runtime.note_tool_activity(event_type, payload)
+        elif event_type == "transcript.output":
+            # Audit what the agent said during that window. The session emits
+            # `filler.violation` itself when the speech asserts an outcome it
+            # could not yet know.
+            runtime.observe_speaker_output(str(payload.get("text") or ""))
 
     async def on_bridge_audio(audio: bytes) -> None:
         async with send_lock:

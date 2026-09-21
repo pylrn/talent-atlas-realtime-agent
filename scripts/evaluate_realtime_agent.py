@@ -12,7 +12,7 @@ from typing import Any
 from pipeline.realtime_coordinator import BranchResult, RealtimeCoordinator
 from pipeline.realtime_plan import BRANCHES, SearchPlanRevision
 from pipeline.realtime_session import RealtimeAgentSession
-from pipeline.realtime_tools import ToolRejected
+from pipeline.realtime_tools import RealtimeToolDispatcher, ToolRejected
 
 
 def _candidate(candidate_id: str, name: str) -> SimpleNamespace:
@@ -122,6 +122,19 @@ async def _evaluate() -> dict[str, Any]:
     })
     calls_after_settled = len(spec_engine.calls)
 
+    # Retrieval runs in the background so the conversation never goes silent.
+    # What the model says during that window is audited: criteria it authored are
+    # safe, outcomes it cannot yet know are not.
+    filler_session = RealtimeAgentSession(EvaluationEngine(), session_id="evaluation-filler")
+    filler_session.note_tool_activity("tool.started", {"call_id": "f-1", "name": "search_candidates"})
+    filler_session.observe_speaker_output("Searching for python engineers in Pune.")
+    grounded_filler = filler_session.note_tool_activity("tool.completed", {"call_id": "f-1"})
+    filler_session.note_tool_activity("tool.started", {"call_id": "f-2", "name": "interrupt_search"})
+    filler_session.observe_speaker_output("I found three strong matches")
+    ungrounded_filler = filler_session.note_tool_activity("tool.completed", {"call_id": "f-2"})
+    filler_session.note_tool_activity("tool.started", {"call_id": "f-3", "name": "search_candidates"})
+    silent_filler = filler_session.note_tool_activity("tool.completed", {"call_id": "f-3"})
+
     gate = asyncio.Event()
     vector_started = asyncio.Event()
     cancelled: Counter[str] = Counter()
@@ -182,11 +195,31 @@ async def _evaluate() -> dict[str, Any]:
             "retrieval_calls_added": len(engine.calls) - calls_after_restore,
         },
         "invalid_tool_arguments": {"rejected": rejected},
+        "filler_budget": {
+            "grounded_kind": grounded_filler["kind"],
+            "grounded": grounded_filler["grounded"],
+            "ungrounded_kind": ungrounded_filler["kind"],
+            "ungrounded_reason": ungrounded_filler["reason"],
+            "ungrounded": ungrounded_filler["grounded"],
+            "silent_kind": silent_filler["kind"],
+            "violations": filler_session.filler_stats["violations"],
+            "acknowledgements": filler_session.filler_stats["acknowledgements"],
+            "silent_retrievals": filler_session.filler_stats["silent_retrievals"],
+        },
+        "tool_behavior": {
+            "non_blocking": sorted(RealtimeToolDispatcher.non_blocking_tools()),
+            "blocking": sorted(
+                item["name"]
+                for item in RealtimeToolDispatcher.tool_declarations()
+                if item["behavior"] == "BLOCKING"
+            ),
+        },
         "rapid_interruption": {
             "stale_cancelled": cancelled["vector"] == 1,
             "replacement_revision": second.revision_id,
         },
         "reuse_stats": dict(session.reuse_stats),
+        "speculation_stats": dict(spec_session.speculation_stats),
     }
     passed = (
         # A partial change still re-runs the canonical pipeline, and says so.
@@ -211,11 +244,29 @@ async def _evaluate() -> dict[str, Any]:
         and scenarios["speculative_prefetch"]["calls_for_settled_plan"] == 0
         and scenarios["presentation_only"]["retrieval_calls_added"] == 0
         and rejected
+        # The agent may speak across retrieval, but only about criteria it sent.
+        and scenarios["filler_budget"]["grounded"] is True
+        and scenarios["filler_budget"]["grounded_kind"] == "acknowledgement"
+        and scenarios["filler_budget"]["ungrounded"] is False
+        and scenarios["filler_budget"]["ungrounded_kind"] == "violation"
+        and scenarios["filler_budget"]["violations"] == 1
+        and scenarios["filler_budget"]["acknowledgements"] == 1
+        and scenarios["filler_budget"]["silent_retrievals"] == 1
+        # Only retrieval is non-blocking; lookups still wait for their answer.
+        and scenarios["tool_behavior"]["non_blocking"] == ["interrupt_search", "search_candidates"]
+        and scenarios["tool_behavior"]["blocking"] == [
+            "cancel_current_action",
+            "compare_candidates",
+            "format_current_answer",
+            "inspect_candidate",
+            "list_skills",
+        ]
         and scenarios["rapid_interruption"]["stale_cancelled"]
     )
     await session.close()
     await barge_session.close()
     await spec_session.close()
+    await filler_session.close()
     await coordinator.close()
     return {"passed": passed, "scenarios": scenarios}
 

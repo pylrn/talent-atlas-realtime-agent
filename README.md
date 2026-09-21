@@ -8,6 +8,13 @@ superseded work instead of discarding it, serves a repeated plan from a
 fingerprint-keyed revision cache with zero retrieval, fuses rankings, reranks a
 bounded pool, and returns grounded candidate evidence.
 
+Retrieval starts before the recruiter stops talking. A settled prefix of the
+transcript warms the revision cache speculatively, so the model's own tool call
+is often served with no corpus work at all. Because retrieval runs in the
+background rather than blocking the turn, the agent keeps talking instead of
+going silent — and what it says during that window is audited, so it can name
+the criteria it just sent but never claim an outcome retrieval has not returned.
+
 The recruiter stays in the original `/talent` interface. The execution graph is
 hidden under **Activity** until someone wants to inspect the fork/join workflow,
 the exact bounded results, timings, inputs, evidence or raw event for each node.
@@ -25,11 +32,17 @@ docker compose up -d postgres
 voice. Typed search remains available without Gemini. The setup script
 deliberately selects the SSD-local Docker database and disables remote telemetry.
 
-Validate interruption, branch reuse and guardrails without network access:
+Validate interruption, branch reuse, speculative prefetch and guardrails without
+network access:
 
 ```bash
 .venv/bin/python scripts/evaluate_realtime_agent.py
 ```
+
+The report is a pass/fail gate, not a log. It fails if an interruption cancels
+in-flight retrieval, if a repeated plan touches the database, if retrieval does
+not start before end of speech, if a lookup tool is made non-blocking, or if the
+agent claims an outcome during a background retrieval.
 
 The product strategy and official acceptance-gate mapping live in
 [`docs/hackathon/STRATEGY.md`](docs/hackathon/STRATEGY.md). The supporting

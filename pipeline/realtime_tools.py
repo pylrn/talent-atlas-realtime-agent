@@ -106,6 +106,20 @@ _TOOL_DESCRIPTIONS = {
     "list_skills": "Resolve recruiter wording to the exact canonical skills stored in the candidate database before using hard skill filters.",
 }
 
+# Tools that must not block the conversation.
+#
+# Retrieval against the corpus is the only operation slow enough that waiting on
+# it produces dead air, and dead air is what makes an interruptible voice agent
+# feel broken. These tools therefore run in the background: the model may speak
+# one grounded sentence about the criteria it just sent, and the evidence is
+# folded in whenever it arrives.
+#
+# Everything else stays blocking on purpose. list_skills gates plan
+# construction, so the model genuinely needs its answer before continuing;
+# inspect_candidate, compare_candidates and format_current_answer are bounded
+# lookups whose latency is shorter than a filler sentence would be.
+_NON_BLOCKING_TOOLS = frozenset({"search_candidates", "interrupt_search"})
+
 
 def _gemini_schema(value: Any) -> Any:
     """Remove JSON Schema keywords unsupported by Gemini Live tools."""
@@ -159,15 +173,20 @@ class RealtimeToolDispatcher:
         return await callback({"reason": reason})
 
     @staticmethod
+    def non_blocking_tools() -> frozenset[str]:
+        """Tools the model may keep speaking across instead of waiting."""
+        return _NON_BLOCKING_TOOLS
+
+    @staticmethod
     def tool_declarations() -> list[dict[str, Any]]:
         return [
             {
                 "name": name,
                 "description": _TOOL_DESCRIPTIONS[name],
                 "parameters": _gemini_schema(model.model_json_schema()),
-                # Gemini 3.8 Live otherwise treats function calls as non-blocking.
-                # A grounded answer must wait for retrieval evidence.
-                "behavior": "BLOCKING",
+                "behavior": (
+                    "NON_BLOCKING" if name in _NON_BLOCKING_TOOLS else "BLOCKING"
+                ),
             }
             for name, model in _TOOL_MODELS.items()
             if name != "revise_search"

@@ -425,3 +425,96 @@ async def test_repeated_speculation_on_the_same_prefix_is_not_rerun():
     assert len(engine.calls) == 1
 
 
+@pytest.mark.asyncio
+async def test_speech_during_retrieval_is_audited_against_the_evidence():
+    """The model speaks while retrieval runs, so its filler is audited.
+
+    Naming the criteria it just sent is safe. Claiming an outcome before the
+    tool response arrives is not, and must be reported rather than silently
+    accepted as part of a working conversation.
+    """
+    session = RealtimeAgentSession(FakeEngine(), session_id="voice-filler-audit")
+    session.note_tool_activity("tool.started", {"call_id": "call-1", "name": "search_candidates"})
+
+    grounded = session.observe_speaker_output("Searching for python engineers in Pune.")
+    assert grounded["kind"] == "acknowledgement"
+    assert grounded["grounded"] is True
+
+    # Output transcription arrives in chunks, so the sentence is accumulated.
+    session.observe_speaker_output("I found")
+    session.observe_speaker_output("three strong matches")
+
+    closing = session.note_tool_activity("tool.completed", {"call_id": "call-1"})
+    assert closing["kind"] == "violation"
+    assert closing["grounded"] is False
+    assert closing["tool"] == "search_candidates"
+    assert session.filler_stats["violations"] == 1
+    assert session.filler_stats["acknowledgements"] == 0
+
+
+@pytest.mark.asyncio
+async def test_a_claim_split_across_transcript_chunks_is_still_caught():
+    """A chunk boundary must not hide a claim.
+
+    Classifying each chunk on its own would see "I found" as a violation and
+    "three strong matches" as clean, which is the wrong answer twice.
+    """
+    session = RealtimeAgentSession(FakeEngine(), session_id="voice-filler-chunks")
+    session.note_tool_activity("tool.started", {"call_id": "call-2", "name": "interrupt_search"})
+    session.observe_speaker_output("12")
+    session.observe_speaker_output("candidates matched")
+
+    closing = session.note_tool_activity("tool.completed", {"call_id": "call-2"})
+
+    assert closing["kind"] == "violation"
+    assert closing["reason"] == "states_a_result_count_before_evidence"
+
+
+@pytest.mark.asyncio
+async def test_speech_outside_a_tool_call_is_not_audited():
+    """Ordinary conversation between turns is not a filler claim."""
+    session = RealtimeAgentSession(FakeEngine(), session_id="voice-filler-idle")
+
+    assert session.observe_speaker_output("I found three strong matches.") is None
+    assert session.filler_stats["violations"] == 0
+
+
+@pytest.mark.asyncio
+async def test_silent_background_retrieval_is_recorded_as_dead_air():
+    """A non-blocking retrieval the model never acknowledged is the failure this
+    mechanism exists to remove, so it is counted rather than ignored."""
+    session = RealtimeAgentSession(FakeEngine(), session_id="voice-filler-silent")
+    session.note_tool_activity("tool.started", {"call_id": "call-3", "name": "search_candidates"})
+
+    closing = session.note_tool_activity("tool.completed", {"call_id": "call-3"})
+
+    assert closing["kind"] == "empty"
+    assert session.filler_stats["silent_retrievals"] == 1
+
+
+@pytest.mark.asyncio
+async def test_a_blocking_lookup_going_silent_is_not_counted_as_dead_air():
+    """Only background retrieval can leave dead air worth measuring."""
+    session = RealtimeAgentSession(FakeEngine(), session_id="voice-filler-lookup")
+    session.note_tool_activity("tool.started", {"call_id": "call-4", "name": "list_skills"})
+
+    session.note_tool_activity("tool.completed", {"call_id": "call-4"})
+
+    assert session.filler_stats["silent_retrievals"] == 0
+
+
+@pytest.mark.asyncio
+async def test_a_leaked_candidate_name_is_caught_with_the_previous_result_in_scope():
+    """After a search the known names are in scope, so naming one mid-retrieval
+    is detectable."""
+    engine = FakeEngine()
+    session = RealtimeAgentSession(engine, session_id="voice-filler-name")
+    await session.tools.dispatch("search_candidates", {"query": "python engineer", "city": "Pune"})
+
+    session.note_tool_activity("tool.started", {"call_id": "call-5", "name": "interrupt_search"})
+    session.observe_speaker_output("Ada looks like a strong fit.")
+    closing = session.note_tool_activity("tool.completed", {"call_id": "call-5"})
+
+    assert closing["kind"] == "violation"
+    assert closing["reason"] == "names_a_candidate_before_evidence"
+    assert closing["matched_name"] == "Ada"

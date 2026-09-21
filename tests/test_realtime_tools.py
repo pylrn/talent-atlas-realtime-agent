@@ -66,4 +66,29 @@ def test_tool_declarations_do_not_expose_sql_or_credentials() -> None:
     assert "raw_sql" not in serialized
     assert "api_key" not in serialized
     assert "additionalproperties" not in serialized
-    assert all(item["behavior"] == "BLOCKING" for item in declarations)
+
+
+def test_retrieval_tools_are_non_blocking_and_lookups_stay_blocking() -> None:
+    """The model must be able to speak across retrieval, and only retrieval.
+
+    A blocking retrieval call is what produces dead air in a voice agent, so
+    the slow tools run in the background. Every other tool is a bounded lookup
+    whose latency is shorter than a filler sentence would be, and `list_skills`
+    gates plan construction, so those still wait.
+    """
+    declarations = {item["name"]: item for item in RealtimeToolDispatcher.tool_declarations()}
+
+    assert declarations["search_candidates"]["behavior"] == "NON_BLOCKING"
+    assert declarations["interrupt_search"]["behavior"] == "NON_BLOCKING"
+    for name in (
+        "inspect_candidate",
+        "compare_candidates",
+        "format_current_answer",
+        "cancel_current_action",
+        "list_skills",
+    ):
+        assert declarations[name]["behavior"] == "BLOCKING", name
+
+    assert RealtimeToolDispatcher.non_blocking_tools() == frozenset(
+        {"search_candidates", "interrupt_search"}
+    )

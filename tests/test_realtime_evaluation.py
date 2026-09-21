@@ -44,3 +44,28 @@ def test_realtime_evaluation_proves_retrieval_starts_before_end_of_speech():
     assert speculative["calls_for_settled_plan"] == 0
     assert speculative["candidate_ids"]
 
+
+def test_realtime_evaluation_proves_the_agent_never_goes_silent_or_guesses():
+    """Retrieval is non-blocking, so the model speaks while it runs.
+
+    The evaluation must show both halves of that: the conversation continues
+    during the wait, and nothing it says in the wait is an ungrounded claim.
+    """
+    report = run_evaluation()
+    filler = report["scenarios"]["filler_budget"]
+    behavior = report["scenarios"]["tool_behavior"]
+
+    # Only retrieval is allowed to run in the background.
+    assert behavior["non_blocking"] == ["interrupt_search", "search_candidates"]
+    assert "list_skills" in behavior["blocking"]
+
+    # Naming the criteria just sent is safe; claiming an outcome is not.
+    assert filler["grounded_kind"] == "acknowledgement"
+    assert filler["grounded"] is True
+    assert filler["ungrounded_kind"] == "violation"
+    assert filler["ungrounded"] is False
+    assert filler["violations"] == 1
+    assert filler["acknowledgements"] == 1
+    # A background retrieval nobody acknowledged is recorded as dead air.
+    assert filler["silent_retrievals"] == 1
+

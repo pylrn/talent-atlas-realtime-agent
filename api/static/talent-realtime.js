@@ -143,6 +143,9 @@
     if (event.type === "tool.rejected" || event.type === "tool.failed" || event.type === "tool.cancelled") {
       appendToolActivity(payload, event.type.replace("tool.", ""));
     }
+    if (event.type === "filler.violation") {
+      appendFillerWarning(payload);
+    }
     if (event.type === "node.updated" && payload.node) {
       state.nodes.set(payload.node.node_id, payload.node);
       if (state.revisions.indexOf(payload.node.revision_id) === -1) state.revisions.push(payload.node.revision_id);
@@ -301,6 +304,25 @@
     } else {
       badge.textContent = status;
     }
+    thread.scrollTop = thread.scrollHeight;
+  }
+
+  function appendFillerWarning(report) {
+    // Retrieval is non-blocking, so the agent speaks while it runs. When that
+    // speech asserts an outcome retrieval has not returned yet, the claim is
+    // shown rather than quietly accepted as part of a working conversation.
+    var thread = byId("thread");
+    if (!thread) return;
+    var card = document.createElement("div");
+    card.className = "realtime-filler-warning";
+    var title = document.createElement("strong");
+    title.textContent = report.provisional ? "Ungrounded filler (live)" : "Ungrounded filler";
+    var detail = document.createElement("span");
+    detail.textContent = "Stated an outcome before retrieval returned: " +
+      String(report.reason || "unverified claim").replace(/_/g, " ") + ".";
+    card.appendChild(title);
+    card.appendChild(detail);
+    thread.appendChild(card);
     thread.scrollTop = thread.scrollHeight;
   }
 
