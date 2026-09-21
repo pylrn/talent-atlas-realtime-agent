@@ -151,48 +151,14 @@ class GoogleGenAILiveTransport:
         )
 
     async def receive(self) -> AsyncIterator[LivePacket]:
-        async for response in self._session.receive():
-            server_content = getattr(response, "server_content", None)
-            if server_content is not None:
-                input_tx = getattr(server_content, "input_transcription", None)
-                if input_tx and getattr(input_tx, "text", None):
-                    yield LivePacket(
-                        kind="input_transcript",
-                        data={"text": input_tx.text, "final": bool(getattr(server_content, "turn_complete", False))},
-                    )
-                output_tx = getattr(server_content, "output_transcription", None)
-                if output_tx and getattr(output_tx, "text", None):
-                    yield LivePacket(kind="output_transcript", data={"text": output_tx.text})
-                if getattr(server_content, "interrupted", False):
-                    yield LivePacket(kind="interrupted", data={"reason": "barge_in"})
-                model_turn = getattr(server_content, "model_turn", None)
-                for part in getattr(model_turn, "parts", None) or []:
-                    inline_data = getattr(part, "inline_data", None)
-                    if inline_data and getattr(inline_data, "data", None):
-                        yield LivePacket(kind="audio", binary=inline_data.data)
-
-            tool_call = getattr(response, "tool_call", None)
-            for function_call in getattr(tool_call, "function_calls", None) or []:
-                yield LivePacket(
-                    kind="tool_call",
-                    data={
-                        "call_id": str(getattr(function_call, "id", "")),
-                        "name": str(getattr(function_call, "name", "")),
-                        "arguments": dict(getattr(function_call, "args", None) or {}),
-                    },
-                )
-            resumption = getattr(response, "session_resumption_update", None)
-            if resumption and getattr(resumption, "new_handle", None):
-                yield LivePacket(
-                    kind="session_resumption",
-                    data={"handle": resumption.new_handle},
-                )
-            go_away = getattr(response, "go_away", None)
-            if go_away is not None:
-                yield LivePacket(
-                    kind="go_away",
-                    data={"time_left": str(getattr(go_away, "time_left", ""))},
-                )
+        # google-genai's AsyncSession.receive() yields one complete model turn
+        # and then stops. A long-lived voice socket must call it again for the
+        # next turn; otherwise the first exchange works and later user audio is
+        # uploaded but never processed.
+        while True:
+            async for response in self._session.receive():
+                for packet in _packets_from_response(response):
+                    yield packet
 
     async def close(self) -> None:
         await self._context_manager.__aexit__(None, None, None)
@@ -201,3 +167,50 @@ class GoogleGenAILiveTransport:
             result = close()
             if hasattr(result, "__await__"):
                 await result
+
+
+def _packets_from_response(response: Any) -> list[LivePacket]:
+    """Translate one google-genai LiveServerMessage into provider-neutral packets."""
+    packets: list[LivePacket] = []
+    server_content = getattr(response, "server_content", None)
+    if server_content is not None:
+        input_tx = getattr(server_content, "input_transcription", None)
+        if input_tx and getattr(input_tx, "text", None):
+            packets.append(LivePacket(
+                kind="input_transcript",
+                data={"text": input_tx.text, "final": bool(getattr(server_content, "turn_complete", False))},
+            ))
+        output_tx = getattr(server_content, "output_transcription", None)
+        if output_tx and getattr(output_tx, "text", None):
+            packets.append(LivePacket(kind="output_transcript", data={"text": output_tx.text}))
+        if getattr(server_content, "interrupted", False):
+            packets.append(LivePacket(kind="interrupted", data={"reason": "barge_in"}))
+        model_turn = getattr(server_content, "model_turn", None)
+        for part in getattr(model_turn, "parts", None) or []:
+            inline_data = getattr(part, "inline_data", None)
+            if inline_data and getattr(inline_data, "data", None):
+                packets.append(LivePacket(kind="audio", binary=inline_data.data))
+
+    tool_call = getattr(response, "tool_call", None)
+    for function_call in getattr(tool_call, "function_calls", None) or []:
+        packets.append(LivePacket(
+            kind="tool_call",
+            data={
+                "call_id": str(getattr(function_call, "id", "")),
+                "name": str(getattr(function_call, "name", "")),
+                "arguments": dict(getattr(function_call, "args", None) or {}),
+            },
+        ))
+    resumption = getattr(response, "session_resumption_update", None)
+    if resumption and getattr(resumption, "new_handle", None):
+        packets.append(LivePacket(
+            kind="session_resumption",
+            data={"handle": resumption.new_handle},
+        ))
+    go_away = getattr(response, "go_away", None)
+    if go_away is not None:
+        packets.append(LivePacket(
+            kind="go_away",
+            data={"time_left": str(getattr(go_away, "time_left", ""))},
+        ))
+    return packets

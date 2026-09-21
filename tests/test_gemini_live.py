@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+from types import SimpleNamespace
 
 import pytest
 
-from pipeline.gemini_live import GeminiLiveBridge, LivePacket
+from pipeline.gemini_live import GeminiLiveBridge, GoogleGenAILiveTransport, LivePacket
 from pipeline.realtime_tools import RealtimeToolDispatcher
 
 
@@ -148,6 +149,39 @@ async def test_bridge_closes_transport() -> None:
     await bridge.close()
 
     assert transport.closed is True
+
+
+@pytest.mark.asyncio
+async def test_google_transport_reopens_receive_for_each_conversation_turn() -> None:
+    class TurnSession:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def receive(self):
+            self.calls += 1
+            yield SimpleNamespace(
+                server_content=SimpleNamespace(
+                    input_transcription=None,
+                    output_transcription=SimpleNamespace(text=f"turn-{self.calls}"),
+                    model_turn=None,
+                    interrupted=False,
+                    turn_complete=True,
+                ),
+                tool_call=None,
+                session_resumption_update=None,
+                go_away=None,
+            )
+
+    transcript = GoogleGenAILiveTransport(None, None, TurnSession())
+    packets = transcript.receive()
+
+    first = await anext(packets)
+    second = await anext(packets)
+    await packets.aclose()
+
+    assert first.kind == "output_transcript"
+    assert first.data["text"] == "turn-1"
+    assert second.data["text"] == "turn-2"
 
 
 async def _append(target: list, kind: str, data: dict) -> None:
