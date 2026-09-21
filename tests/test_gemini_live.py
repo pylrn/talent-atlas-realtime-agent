@@ -103,37 +103,50 @@ async def test_bridge_dispatches_correlated_tool_call_and_returns_result() -> No
 
 
 @pytest.mark.asyncio
-async def test_bridge_keeps_receiving_and_cancels_work_on_barge_in() -> None:
-    release = asyncio.Event()
+async def test_bridge_preserves_in_flight_work_on_barge_in() -> None:
+    barge_ins: list[str] = []
+    cancel_calls: list[str] = []
 
     async def search(payload: dict) -> dict:
-        await release.wait()
-        return {"revision_id": "rev-cancelled"}
+        await asyncio.sleep(0.05)
+        return {"revision_id": "rev-preserved"}
 
     async def cancel(payload: dict) -> dict:
-        release.set()
+        cancel_calls.append(payload["reason"])
         return {"cancelled": True, "reason": payload["reason"]}
+
+    async def note_barge_in(payload: dict) -> dict:
+        barge_ins.append(payload["reason"])
+        return {"barge_in_acknowledged": True, "reason": payload["reason"], "cancelled": False}
 
     transport = FakeTransport([
         LivePacket(
             kind="tool_call",
-            data={"call_id": "call-2", "name": "search_candidates", "arguments": {"query": "python"}},
+            data={"call_id": "call-3", "name": "search_candidates", "arguments": {"query": "python"}},
         ),
         LivePacket(kind="interrupted", data={"reason": "barge_in"}),
     ])
     events: list[tuple[str, dict]] = []
     bridge = GeminiLiveBridge(
         transport,
-        RealtimeToolDispatcher({"search_candidates": search, "cancel_current_action": cancel}),
+        RealtimeToolDispatcher({
+            "search_candidates": search,
+            "cancel_current_action": cancel,
+            "note_barge_in": note_barge_in,
+        }),
         on_event=lambda kind, data: _append(events, kind, data),
         on_audio=lambda data: _append_audio([], data),
     )
 
-    await asyncio.wait_for(bridge.run(), timeout=1)
+    await asyncio.wait_for(bridge.run(), timeout=2)
 
     kinds = [kind for kind, _ in events]
-    assert kinds.index("audio.interrupted") < kinds.index("tool.completed")
-    assert transport.tool_responses[0][0] == "call-2"
+    assert "audio.interrupted" in kinds
+    assert barge_ins == ["barge_in"]
+    assert cancel_calls == []
+    assert "tool.cancelled" not in kinds
+    assert transport.tool_responses == [("call-3", "search_candidates", {"revision_id": "rev-preserved"})]
+
 
 
 @pytest.mark.asyncio

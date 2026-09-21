@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
 
 import pytest
@@ -83,6 +84,23 @@ class FakeEngine:
             clarify=None,
             relaxations_applied=self.relaxations,
         )
+
+
+class GatedEngine(FakeEngine):
+    """FakeEngine that blocks inside the search until the test releases it."""
+
+    def __init__(self, gate: asyncio.Event) -> None:
+        super().__init__()
+        self.gate = gate
+        self.started = asyncio.Event()
+        self.completed = False
+
+    async def smart_search(self, **kwargs):
+        self.started.set()
+        await self.gate.wait()
+        response = await super().smart_search(**kwargs)
+        self.completed = True
+        return response
 
 
 @pytest.mark.asyncio
@@ -205,3 +223,84 @@ async def test_session_events_include_complete_node_updates():
     assert any(event.type == "node.updated" for event in events)
     assert all(event.session_id == "voice-3" for event in events)
     assert session.snapshot()["nodes"]
+
+
+@pytest.mark.asyncio
+async def test_returning_to_an_earlier_plan_reuses_cached_evidence():
+    engine = FakeEngine()
+    session = RealtimeAgentSession(engine, session_id="voice-reuse")
+
+    first = await session.tools.dispatch("search_candidates", {
+        "query": "python backend engineer",
+        "city": "Pune",
+        "top_k": 5,
+    })
+    await session.tools.dispatch("revise_search", {"city": "Bengaluru"})
+    assert len(engine.calls) == 2
+
+    restored = await session.tools.dispatch("revise_search", {"city": "Pune"})
+
+    # No third retrieval: the identical composite fingerprint is served from cache.
+    assert len(engine.calls) == 2
+    assert restored["served_from_cache"] is True
+    assert sorted(restored["reused_branches"]) == ["bm25", "skills", "sql", "vector"]
+    assert restored["executed_branches"] == []
+    assert restored["reused_from_revision_id"] == first["revision_id"]
+    assert [candidate["candidate_id"] for candidate in restored["candidates"]] == ["c-1"]
+
+    # Every stage is still visible, but marked reused and linked to its origin.
+    for kind in ("plan", "vector", "bm25", "skills", "sql", "fusion", "rerank", "ground", "answer"):
+        node = session.graph.nodes[f"{kind}-{restored['revision_id']}"]
+        assert node.status == "reused"
+        assert node.reused_from == f"{kind}-{first['revision_id']}"
+
+    assert session.reuse_stats["reused_revisions"] == 1
+    assert session.reuse_stats["executed_branches"] == 8
+
+
+@pytest.mark.asyncio
+async def test_barge_in_preserves_in_flight_search_instead_of_cancelling():
+    gate = asyncio.Event()
+    engine = GatedEngine(gate)
+    session = RealtimeAgentSession(engine, session_id="voice-barge-in")
+
+    task = asyncio.create_task(session.tools.dispatch("search_candidates", {
+        "query": "python backend engineer",
+        "city": "Pune",
+        "top_k": 5,
+    }))
+    await engine.started.wait()
+
+    acknowledgement = await session.tools.note_barge_in(reason="barge_in")
+
+    assert acknowledgement["cancelled"] is False
+    assert acknowledgement["in_flight_search"] == "preserved"
+
+    gate.set()
+    result = await asyncio.wait_for(task, timeout=5)
+
+    assert result["count"] == 1
+    assert engine.completed is True
+    assert session.reuse_stats["executed_branches"] == 4
+
+
+@pytest.mark.asyncio
+async def test_explicit_cancel_still_stops_in_flight_work():
+    gate = asyncio.Event()
+    engine = GatedEngine(gate)
+    session = RealtimeAgentSession(engine, session_id="voice-cancel")
+
+    task = asyncio.create_task(session.tools.dispatch("search_candidates", {
+        "query": "python backend engineer",
+        "city": "Pune",
+        "top_k": 5,
+    }))
+    await engine.started.wait()
+
+    cancelled = await session.tools.cancel_active(reason="user_requested")
+
+    assert cancelled["cancelled"] is True
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert engine.completed is False
+

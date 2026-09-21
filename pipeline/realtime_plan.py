@@ -56,6 +56,7 @@ class SearchPlanRevision(BaseModel):
     excluded_skills: list[str] = Field(default_factory=list)
     keyword_policy: str = "auto"
     branch_fingerprints: dict[str, str] = Field(default_factory=dict)
+    plan_fingerprint: str = ""
 
     @model_validator(mode="after")
     def normalize_and_fingerprint(self) -> "SearchPlanRevision":
@@ -88,6 +89,11 @@ class SearchPlanRevision(BaseModel):
                 "preferred_locations": self.should_locations,
             }),
         }
+        # A composite key over every branch. Two revisions with the same
+        # composite key are guaranteed to produce identical retrieval work, so
+        # the session may serve a previously computed result without touching
+        # the database at all.
+        self.plan_fingerprint = _fingerprint(self.branch_fingerprints)
         return self
 
     @classmethod
@@ -95,7 +101,9 @@ class SearchPlanRevision(BaseModel):
         return cls(query=query, **values)
 
     def patch(self, **changes: Any) -> "SearchPlanRevision":
-        values = self.model_dump(exclude={"revision_id", "parent_revision_id", "branch_fingerprints"})
+        values = self.model_dump(
+            exclude={"revision_id", "parent_revision_id", "branch_fingerprints", "plan_fingerprint"}
+        )
         values.update(changes)
         return SearchPlanRevision(
             **values,
@@ -111,7 +119,9 @@ class RevisionDiff(BaseModel):
 
 
 def _comparable(revision: SearchPlanRevision) -> dict[str, Any]:
-    return revision.model_dump(exclude={"revision_id", "parent_revision_id", "branch_fingerprints"})
+    return revision.model_dump(
+        exclude={"revision_id", "parent_revision_id", "branch_fingerprints", "plan_fingerprint"}
+    )
 
 
 def diff_revisions(

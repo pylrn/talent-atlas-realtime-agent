@@ -15,7 +15,7 @@ from typing import Any
 from pipeline.agent_session import AgentSession
 from pipeline.agent_tools import do_list_skills_batch, do_run_search
 from pipeline.realtime_events import EventEnvelope, TraceGraph
-from pipeline.realtime_plan import SearchPlanRevision, diff_revisions
+from pipeline.realtime_plan import BRANCHES, SearchPlanRevision, diff_revisions
 from pipeline.realtime_tools import RealtimeToolDispatcher
 
 
@@ -56,6 +56,18 @@ class RealtimeAgentSession:
         self.answer_format = "brief"
         self._generation = 0
         self._active_search_task: asyncio.Task[dict[str, Any]] | None = None
+        # A superseded revision keeps running so its evidence stays reusable.
+        # At most one detached search is retained at a time.
+        self._detached_search_task: asyncio.Task[dict[str, Any]] | None = None
+        # plan fingerprint -> {"revision_id", "result", "nodes"}. A hit means
+        # every branch input is identical, so the stored evidence is still exact.
+        self._revision_cache: dict[str, dict[str, Any]] = {}
+        self.reuse_stats: dict[str, int] = {
+            "revisions": 0,
+            "reused_revisions": 0,
+            "reused_branches": 0,
+            "executed_branches": 0,
+        }
         self.candidate_loader = candidate_loader or self._default_candidate_loader
         self.tools = RealtimeToolDispatcher({
             "search_candidates": self._search_candidates,
@@ -65,6 +77,7 @@ class RealtimeAgentSession:
             "format_current_answer": self._format_current_answer,
             "cancel_current_action": self._cancel_current_action,
             "list_skills": self._list_skills,
+            "note_barge_in": self._note_barge_in,
         })
 
     async def _search_candidates(self, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -93,6 +106,31 @@ class RealtimeAgentSession:
         top_k: int,
     ) -> dict[str, Any]:
         diff = diff_revisions(previous, revision)
+        cached = self._revision_cache.get(revision.plan_fingerprint)
+
+        if cached is not None:
+            # The composite fingerprint covers every branch input, so an exact
+            # match means the stored evidence is still correct. Serve it without
+            # touching the database and report it as a genuine reuse.
+            self._generation += 1
+            started = time.perf_counter()
+            self.current_candidates = list(cached["result"].get("candidates") or [])
+            self._emit_reused_graph(revision, diff, cached)
+            self.reuse_stats["revisions"] += 1
+            self.reuse_stats["reused_revisions"] += 1
+            self.reuse_stats["reused_branches"] += len(BRANCHES)
+            return {
+                **cached["result"],
+                "revision_id": revision.revision_id,
+                "parent_revision_id": revision.parent_revision_id,
+                "plan": revision.model_dump(mode="json", exclude={"branch_fingerprints"}),
+                "reused_branches": list(BRANCHES),
+                "executed_branches": [],
+                "served_from_cache": True,
+                "reused_from_revision_id": cached["revision_id"],
+                "duration_ms": round((time.perf_counter() - started) * 1000, 3),
+            }
+
         plan_id = f"plan-{revision.revision_id}"
         self.graph.upsert_node(
             node_id=plan_id,
@@ -106,10 +144,15 @@ class RealtimeAgentSession:
             },
         )
 
-        await self._cancel_active(reason="superseded_by_new_revision")
+        self._detach_active(reason="superseded_by_new_revision")
         self._generation += 1
         generation = self._generation
-        task = asyncio.create_task(self._run_canonical_search(revision, top_k=top_k))
+        task = asyncio.create_task(self._run_and_record(
+            revision,
+            top_k=top_k,
+            diff=diff.model_dump(mode="json"),
+            generation=generation,
+        ))
         self._active_search_task = task
         try:
             result = await task
@@ -119,7 +162,7 @@ class RealtimeAgentSession:
                 kind="plan",
                 status="cancelled",
                 revision_id=revision.revision_id,
-                details={"reason": "superseded_or_interrupted", "diff": diff.model_dump(mode="json")},
+                details={"reason": "explicitly_cancelled", "diff": diff.model_dump(mode="json")},
             )
             raise
         finally:
@@ -129,10 +172,72 @@ class RealtimeAgentSession:
         if generation != self._generation:
             raise asyncio.CancelledError
 
-        candidates = result["candidates"]
-        self.current_candidates = candidates
-        self._emit_pipeline_graph(revision, diff.model_dump(mode="json"), result)
+        self.current_candidates = result["candidates"]
+        self.reuse_stats["revisions"] += 1
         return result
+
+    async def _run_and_record(
+        self,
+        revision: SearchPlanRevision,
+        *,
+        top_k: int,
+        diff: dict[str, Any],
+        generation: int,
+    ) -> dict[str, Any]:
+        """Run one revision, then always record it — even if it was superseded.
+
+        Recording happens here rather than in `_execute_revision` so a superseded
+        search still lands in the revision cache. That is what lets a later
+        revision return to an earlier plan and answer instantly instead of
+        re-running the corpus.
+        """
+        result = await self._run_canonical_search(revision, top_k=top_k)
+        superseded = generation != self._generation
+        captured = self._emit_pipeline_graph(revision, diff, result, superseded=superseded)
+        self._revision_cache[revision.plan_fingerprint] = {
+            "revision_id": revision.revision_id,
+            "result": result,
+            "nodes": captured,
+        }
+        self.reuse_stats["executed_branches"] += len(BRANCHES)
+        if superseded:
+            self.graph.emit(
+                "search.recovered",
+                payload={
+                    "revision_id": revision.revision_id,
+                    "message": "Superseded search finished and its evidence was cached for reuse.",
+                    "fingerprint": revision.plan_fingerprint,
+                },
+                revision_id=revision.revision_id,
+            )
+        return result
+
+    def _detach_active(self, *, reason: str) -> None:
+        """Let a superseded search finish instead of cancelling it.
+
+        Cancelling on every revision is what makes an interruptible agent feel
+        like it restarts. The in-flight branches are already paid for, so they are
+        allowed to complete and be cached. A second supersede cancels the older
+        detached search to keep background work bounded to one revision.
+        """
+        task = self._active_search_task
+        self._active_search_task = None
+        if task is None or task.done():
+            return
+        previous = self._detached_search_task
+        if previous is not None and not previous.done():
+            previous.cancel()
+        self._detached_search_task = task
+        self.graph.emit("search.detached", payload={"reason": reason, "policy": "completed_work_is_cached"})
+        task.add_done_callback(self._discard_detached)
+
+    def _discard_detached(self, task: asyncio.Task[dict[str, Any]]) -> None:
+        if self._detached_search_task is task:
+            self._detached_search_task = None
+        if not task.cancelled():
+            # Consume any exception so a detached failure is never an unretrieved
+            # task exception warning.
+            task.exception()
 
     async def _run_canonical_search(self, revision: SearchPlanRevision, *, top_k: int) -> dict[str, Any]:
         started = time.perf_counter()
@@ -189,7 +294,9 @@ class RealtimeAgentSession:
             "relaxations_applied": canonical.get("relaxations_applied") or [],
             "recovery": canonical.get("recovery"),
             "reused_branches": [],
-            "executed_branches": ["sql", "vector", "bm25", "skills"],
+            # A fresh canonical run always executes every branch. Reuse is decided
+            # one level up, by comparing composite plan fingerprints.
+            "executed_branches": list(BRANCHES),
             "failed_branches": [],
             "degraded": bool(canonical.get("recovery")),
             "duration_ms": round((time.perf_counter() - started) * 1000, 3),
@@ -206,25 +313,44 @@ class RealtimeAgentSession:
         revision: SearchPlanRevision,
         diff: dict[str, Any],
         result: dict[str, Any],
-    ) -> None:
+        *,
+        superseded: bool = False,
+    ) -> dict[str, dict[str, Any]]:
+        """Materialise the execution graph for one revision and capture it.
+
+        The returned capture lets the same graph be replayed later as a reuse
+        instead of being recomputed from the corpus.
+        """
         policy = result.get("retrieval_policy") or {}
         timings = policy.get("timings_ms") or {}
         counts = policy.get("row_counts") or {}
         revision_id = revision.revision_id
-        plan_id = f"plan-{revision_id}"
-        self.graph.upsert_node(
-            node_id=plan_id,
-            kind="plan",
-            status="completed",
-            revision_id=revision_id,
-            details={
-                "plan": result["plan"],
-                "canonical_spec": result.get("canonical_spec") or {},
-                "relaxations_applied": result.get("relaxations_applied") or [],
-                "diff": diff,
-                "orchestrator": "canonical_search_pipeline",
-            },
-        )
+        captured: dict[str, dict[str, Any]] = {}
+
+        def emit(kind: str, details: dict[str, Any], parent_kinds: list[str]) -> None:
+            self.graph.upsert_node(
+                node_id=f"{kind}-{revision_id}",
+                kind=kind,
+                status="completed",
+                revision_id=revision_id,
+                parent_ids=[f"{parent}-{revision_id}" for parent in parent_kinds],
+                details=details,
+            )
+            captured[kind] = {
+                "node_id": f"{kind}-{revision_id}",
+                "details": details,
+                "parent_kinds": list(parent_kinds),
+            }
+
+        emit("plan", {
+            "plan": result["plan"],
+            "canonical_spec": result.get("canonical_spec") or {},
+            "relaxations_applied": result.get("relaxations_applied") or [],
+            "diff": diff,
+            "orchestrator": "canonical_search_pipeline",
+            "fingerprint": revision.plan_fingerprint,
+            "superseded": superseded,
+        }, [])
         branch_specs = {
             "vector": ("dense_rows", "dense_ms"),
             "bm25": ("keyword_rows", "keyword_ms"),
@@ -232,10 +358,11 @@ class RealtimeAgentSession:
             "sql": ("filtered_candidates", "count_ms"),
         }
         for branch, (count_key, timing_key) in branch_specs.items():
-            details = {
+            details: dict[str, Any] = {
                 "candidate_count": int(counts.get(count_key) or 0),
                 "duration_ms": float(timings.get(timing_key) or 0.0),
                 "source": "canonical_search_telemetry",
+                "fingerprint": revision.branch_fingerprints.get(branch),
             }
             if branch == "bm25":
                 details["policy"] = policy.get("keyword") or {}
@@ -249,79 +376,76 @@ class RealtimeAgentSession:
                     "excluded_skills": revision.excluded_skills,
                 }
                 details["relaxations_applied"] = result.get("relaxations_applied") or []
-            self.graph.upsert_node(
-                node_id=f"{branch}-{revision_id}",
-                kind=branch,
-                status="completed",
-                revision_id=revision_id,
-                parent_ids=[plan_id],
-                details=details,
-            )
+            emit(branch, details, ["plan"])
 
         candidates = result["candidates"]
-        branch_ids = [f"{branch}-{revision_id}" for branch in branch_specs]
-        fusion_id = f"fusion-{revision_id}"
-        self.graph.upsert_node(
-            node_id=fusion_id,
-            kind="fusion",
-            status="completed",
-            revision_id=revision_id,
-            parent_ids=branch_ids,
-            details={
-                "formula": "weighted reciprocal rank fusion from canonical pipeline",
-                "candidate_count": len(result.get("candidate_ids") or candidates),
-                "candidate_ids": result.get("candidate_ids") or [],
-                "candidates": candidates,
-                "source": "canonical_search_pipeline",
-            },
-        )
-        ranking_timings = policy.get("ranking_timings_ms") or {}
-        rerank_id = f"rerank-{revision_id}"
-        self.graph.upsert_node(
-            node_id=rerank_id,
-            kind="rerank",
-            status="completed",
-            revision_id=revision_id,
-            parent_ids=[fusion_id],
-            details={
-                "candidate_count": len(candidates),
-                "applied": any(candidate.get("rerank_score") is not None for candidate in candidates),
-                "timings_ms": ranking_timings,
-                "candidates": candidates,
-                "source": "canonical_search_pipeline",
-            },
-        )
-        evidence = [
-            {
-                "candidate_id": candidate["candidate_id"],
-                "name": candidate.get("name"),
-                "evidence": candidate.get("best_evidence") or "",
-                "retrieval_paths": candidate.get("retrieval_paths") or [],
-            }
-            for candidate in candidates
-        ]
-        ground_id = f"ground-{revision_id}"
-        self.graph.upsert_node(
-            node_id=ground_id,
-            kind="ground",
-            status="completed",
-            revision_id=revision_id,
-            parent_ids=[rerank_id],
-            details={"candidate_count": len(candidates), "evidence": evidence, "candidates": candidates},
-        )
-        self.graph.upsert_node(
-            node_id=f"answer-{revision_id}",
-            kind="answer",
-            status="completed",
-            revision_id=revision_id,
-            parent_ids=[ground_id],
-            details={
-                "format": self.answer_format,
-                "candidate_count": len(candidates),
-                "candidate_ids": [candidate["candidate_id"] for candidate in candidates],
-                "instruction": result["answer_rule"],
-            },
-        )
+        emit("fusion", {
+            "formula": "weighted reciprocal rank fusion from canonical pipeline",
+            "candidate_count": len(result.get("candidate_ids") or candidates),
+            "candidate_ids": result.get("candidate_ids") or [],
+            "candidates": candidates,
+            "source": "canonical_search_pipeline",
+        }, list(branch_specs))
+
+        emit("rerank", {
+            "candidate_count": len(candidates),
+            "applied": any(candidate.get("rerank_score") is not None for candidate in candidates),
+            "timings_ms": policy.get("ranking_timings_ms") or {},
+            "candidates": candidates,
+            "source": "canonical_search_pipeline",
+        }, ["fusion"])
+
+        emit("ground", {
+            "candidate_count": len(candidates),
+            "evidence": [
+                {
+                    "candidate_id": candidate["candidate_id"],
+                    "name": candidate.get("name"),
+                    "evidence": candidate.get("best_evidence") or "",
+                    "retrieval_paths": candidate.get("retrieval_paths") or [],
+                }
+                for candidate in candidates
+            ],
+            "candidates": candidates,
+        }, ["rerank"])
+
+        emit("answer", {
+            "format": self.answer_format,
+            "candidate_count": len(candidates),
+            "candidate_ids": [candidate["candidate_id"] for candidate in candidates],
+            "instruction": result["answer_rule"],
+        }, ["ground"])
+        return captured
+
+    def _emit_reused_graph(
+        self,
+        revision: SearchPlanRevision,
+        diff: Any,
+        cached: dict[str, Any],
+    ) -> None:
+        """Replay a cached revision as reused nodes linked back to their origin.
+
+        The graph still shows every stage, but each node is marked `reused` and
+        points at the revision that actually produced the evidence, so the UI can
+        distinguish preserved work from a fresh retrieval.
+        """
+        revision_id = revision.revision_id
+        for kind, node in cached["nodes"].items():
+            details = dict(node["details"])
+            if kind == "plan":
+                details["plan"] = revision.model_dump(mode="json", exclude={"branch_fingerprints"})
+                details["diff"] = diff.model_dump(mode="json")
+                details["superseded"] = False
+                details["served_from_cache"] = True
+            self.graph.upsert_node(
+                node_id=f"{kind}-{revision_id}",
+                kind=kind,
+                status="reused",
+                revision_id=revision_id,
+                parent_ids=[f"{parent}-{revision_id}" for parent in node["parent_kinds"]],
+                reused_from=node["node_id"],
+                details=details,
+            )
 
     async def _inspect_candidate(self, arguments: dict[str, Any]) -> dict[str, Any]:
         result = await self.candidate_loader([arguments["candidate_id"]])
@@ -359,17 +483,53 @@ class RealtimeAgentSession:
             limit_per_query=arguments.get("limit_per_query", 8),
         )
 
-    async def _cancel_active(self, *, reason: str) -> bool:
-        task = self._active_search_task
-        if task is None or task.done():
-            return False
-        self._generation += 1
-        task.cancel()
-        await asyncio.gather(task, return_exceptions=True)
+    async def _note_barge_in(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Record an interruption without discarding in-flight retrieval.
+
+        Theme 5 asks an agent to recover from interruptions rather than restart.
+        A barge-in is a conversational event, not an instruction to abandon work,
+        so the running search is left alone and stays available for reuse.
+        """
+        reason = str(arguments.get("reason") or "barge_in")
         revision = self.current_plan
-        if revision is not None:
-            self.graph.emit("search.cancelled", payload={"reason": reason}, revision_id=revision.revision_id)
-        return True
+        in_flight = self._active_search_task is not None and not self._active_search_task.done()
+        revision_id = revision.revision_id if revision else None
+        self.graph.emit(
+            "conversation.barge_in",
+            payload={
+                "reason": reason,
+                "in_flight_search": "preserved" if in_flight else "idle",
+                "policy": "Interruptions revise the plan; completed work is kept and reusable.",
+            },
+            revision_id=revision_id,
+        )
+        return {
+            "barge_in_acknowledged": True,
+            "reason": reason,
+            "cancelled": False,
+            "in_flight_search": "preserved" if in_flight else "idle",
+            "next_step": (
+                "Call interrupt_search with only the fields the recruiter changed. "
+                "Only call cancel_current_action when the recruiter explicitly abandons the task."
+            ),
+        }
+
+    async def _cancel_active(self, *, reason: str) -> bool:
+        cancelled = False
+        for attribute in ("_active_search_task", "_detached_search_task"):
+            task = getattr(self, attribute)
+            setattr(self, attribute, None)
+            if task is None or task.done():
+                continue
+            self._generation += 1
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+            cancelled = True
+        if cancelled:
+            revision = self.current_plan
+            if revision is not None:
+                self.graph.emit("search.cancelled", payload={"reason": reason}, revision_id=revision.revision_id)
+        return cancelled
 
     async def _default_candidate_loader(self, candidate_ids: list[str]) -> dict[str, Any]:
         pool = getattr(self.engine, "pool", None)
@@ -384,7 +544,7 @@ class RealtimeAgentSession:
         return await do_get_candidate_details(pool, candidate_ids, limit=len(candidate_ids))
 
     def snapshot(self) -> dict[str, Any]:
-        return self.graph.snapshot()
+        return {**self.graph.snapshot(), "reuse_stats": dict(self.reuse_stats)}
 
     async def close(self) -> None:
         await self._cancel_active(reason="session_closed")

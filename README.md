@@ -3,9 +3,10 @@
 Talent Atlas is a conversational recruiting search system over PostgreSQL and
 pgvector. Gemini Live handles audio and natural conversation while an
 application-owned realtime harness validates typed tool calls, creates immutable
-search revisions, runs SQL, vector, keyword and exact-skill branches, cancels
-stale work, reuses unchanged branches, fuses rankings, reranks a bounded pool,
-and returns grounded candidate evidence.
+search revisions, runs SQL, vector, keyword and exact-skill branches, preserves
+superseded work instead of discarding it, serves a repeated plan from a
+fingerprint-keyed revision cache with zero retrieval, fuses rankings, reranks a
+bounded pool, and returns grounded candidate evidence.
 
 The recruiter stays in the original `/talent` interface. The execution graph is
 hidden under **Activity** until someone wants to inspect the fork/join workflow,

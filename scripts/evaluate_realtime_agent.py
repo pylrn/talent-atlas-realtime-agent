@@ -10,7 +10,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from pipeline.realtime_coordinator import BranchResult, RealtimeCoordinator
-from pipeline.realtime_plan import SearchPlanRevision
+from pipeline.realtime_plan import BRANCHES, SearchPlanRevision
 from pipeline.realtime_session import RealtimeAgentSession
 from pipeline.realtime_tools import ToolRejected
 
@@ -38,10 +38,15 @@ def _candidate(candidate_id: str, name: str) -> SimpleNamespace:
 
 
 class EvaluationEngine:
-    def __init__(self) -> None:
+    def __init__(self, *, gate: asyncio.Event | None = None) -> None:
         self.calls: list[str] = []
+        self.gate = gate
+        self.started = asyncio.Event()
 
     async def smart_search(self, **kwargs: Any) -> SimpleNamespace:
+        if self.gate is not None:
+            self.started.set()
+            await self.gate.wait()
         filters = kwargs.get("explicit_filters") or {}
         results = [_candidate("c-1", "Ada")] if filters.get("city") == "pune" else [_candidate("c-2", "Grace")]
         self.calls.append("canonical")
@@ -73,6 +78,11 @@ async def _evaluate() -> dict[str, Any]:
     calls_after_initial = len(engine.calls)
     revised = await session.tools.dispatch("revise_search", {"city": "Bengaluru"})
     calls_after_revision = len(engine.calls)
+    # Returning to a plan that was already executed must be served from the
+    # revision cache. This is the behaviour the harness previously reported as
+    # reuse without ever performing it.
+    restored = await session.tools.dispatch("revise_search", {"city": "Pune"})
+    calls_after_restore = len(engine.calls)
     formatted = await session.tools.dispatch("format_current_answer", {"format": "bullets"})
 
     rejected = False
@@ -84,6 +94,19 @@ async def _evaluate() -> dict[str, Any]:
         })
     except ToolRejected:
         rejected = True
+
+    # Barge-in must preserve in-flight retrieval rather than cancelling it.
+    barge_gate = asyncio.Event()
+    barge_engine = EvaluationEngine(gate=barge_gate)
+    barge_session = RealtimeAgentSession(barge_engine, session_id="evaluation-barge-in")
+    barge_task = asyncio.create_task(barge_session.tools.dispatch(
+        "search_candidates",
+        {"query": "python platform engineer", "city": "Pune", "top_k": 5},
+    ))
+    await barge_engine.started.wait()
+    barge_ack = await barge_session.tools.note_barge_in(reason="barge_in")
+    barge_gate.set()
+    barge_result = await asyncio.wait_for(barge_task, timeout=5)
 
     gate = asyncio.Event()
     vector_started = asyncio.Event()
@@ -118,26 +141,53 @@ async def _evaluate() -> dict[str, Any]:
             "reused": revised["reused_branches"],
             "canonical_calls_added": calls_after_revision - calls_after_initial,
         },
+        "plan_reuse": {
+            "reused": restored["reused_branches"],
+            "executed": restored["executed_branches"],
+            "served_from_cache": restored["served_from_cache"],
+            "reused_from_revision_id": restored["reused_from_revision_id"],
+            "canonical_calls_added": calls_after_restore - calls_after_revision,
+            "candidate_ids": [candidate["candidate_id"] for candidate in restored["candidates"]],
+        },
+        "barge_in": {
+            "cancelled": barge_ack["cancelled"],
+            "in_flight_search": barge_ack["in_flight_search"],
+            "search_completed": barge_result["count"] >= 0,
+            "canonical_calls": len(barge_engine.calls),
+        },
         "presentation_only": {
             "format": formatted["format"],
             "retrieval_rerun": formatted["retrieval_rerun"],
-            "retrieval_calls_added": len(engine.calls) - calls_after_revision,
+            "retrieval_calls_added": len(engine.calls) - calls_after_restore,
         },
         "invalid_tool_arguments": {"rejected": rejected},
         "rapid_interruption": {
             "stale_cancelled": cancelled["vector"] == 1,
             "replacement_revision": second.revision_id,
         },
+        "reuse_stats": dict(session.reuse_stats),
     }
     passed = (
+        # A partial change still re-runs the canonical pipeline, and says so.
         scenarios["location_revision"]["canonical_calls_added"] == 1
         and revised["reused_branches"] == []
-        and revised["executed_branches"] == ["sql", "vector", "bm25", "skills"]
+        and revised["executed_branches"] == list(BRANCHES)
+        # Returning to an earlier plan costs nothing and is reported as reuse.
+        and scenarios["plan_reuse"]["canonical_calls_added"] == 0
+        and scenarios["plan_reuse"]["served_from_cache"] is True
+        and scenarios["plan_reuse"]["reused"] == list(BRANCHES)
+        and scenarios["plan_reuse"]["executed"] == []
+        and scenarios["plan_reuse"]["reused_from_revision_id"] == initial["revision_id"]
+        # An interruption preserves work instead of discarding it.
+        and scenarios["barge_in"]["cancelled"] is False
+        and scenarios["barge_in"]["in_flight_search"] == "preserved"
+        and scenarios["barge_in"]["search_completed"] is True
         and scenarios["presentation_only"]["retrieval_calls_added"] == 0
         and rejected
         and scenarios["rapid_interruption"]["stale_cancelled"]
     )
     await session.close()
+    await barge_session.close()
     await coordinator.close()
     return {"passed": passed, "scenarios": scenarios}
 

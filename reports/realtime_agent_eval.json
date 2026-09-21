@@ -1,0 +1,64 @@
+{
+  "passed": true,
+  "scenarios": {
+    "initial_search": {
+      "candidate_count": 1,
+      "executed": [
+        "vector",
+        "bm25",
+        "skills",
+        "sql"
+      ]
+    },
+    "location_revision": {
+      "candidate_count": 1,
+      "executed": [
+        "vector",
+        "bm25",
+        "skills",
+        "sql"
+      ],
+      "reused": [],
+      "canonical_calls_added": 1
+    },
+    "plan_reuse": {
+      "reused": [
+        "vector",
+        "bm25",
+        "skills",
+        "sql"
+      ],
+      "executed": [],
+      "served_from_cache": true,
+      "reused_from_revision_id": "rev_366fe5f664da4238b673cd74c2184580",
+      "canonical_calls_added": 0,
+      "candidate_ids": [
+        "c-1"
+      ]
+    },
+    "barge_in": {
+      "cancelled": false,
+      "in_flight_search": "preserved",
+      "search_completed": true,
+      "canonical_calls": 1
+    },
+    "presentation_only": {
+      "format": "bullets",
+      "retrieval_rerun": false,
+      "retrieval_calls_added": 0
+    },
+    "invalid_tool_arguments": {
+      "rejected": true
+    },
+    "rapid_interruption": {
+      "stale_cancelled": true,
+      "replacement_revision": "rev_968cdbd4934e41f59a29d76c346d169c"
+    },
+    "reuse_stats": {
+      "revisions": 3,
+      "reused_revisions": 1,
+      "reused_branches": 4,
+      "executed_branches": 8
+    }
+  }
+}

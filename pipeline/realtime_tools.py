@@ -139,9 +139,23 @@ class RealtimeToolDispatcher:
         return await callback(validated.model_dump(exclude_unset=True, mode="json"))
 
     async def cancel_active(self, *, reason: str = "barge_in") -> dict[str, Any]:
+        """Hard-cancel in-flight work. Reserved for explicit user cancellation."""
         callback = self.callbacks.get("cancel_current_action")
         if callback is None:
             return {"cancelled": False, "reason": "cancel_tool_unavailable"}
+        return await callback({"reason": reason})
+
+    async def note_barge_in(self, *, reason: str = "barge_in") -> dict[str, Any]:
+        """Record an interruption without discarding in-flight retrieval.
+
+        A barge-in is a conversational event. Treating it as a cancellation is
+        what makes an interruptible agent restart from scratch, so the default
+        behaviour here is to preserve the running search and let the next
+        revision decide what actually changed.
+        """
+        callback = self.callbacks.get("note_barge_in")
+        if callback is None:
+            return {"barge_in_acknowledged": True, "reason": reason, "cancelled": False}
         return await callback({"reason": reason})
 
     @staticmethod

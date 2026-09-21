@@ -59,8 +59,12 @@ class GeminiLiveBridge:
             elif packet.kind == "output_transcript":
                 await self.on_event("transcript.output", packet.data)
             elif packet.kind == "interrupted":
+                # Interruption is not cancellation. In-flight retrieval is left
+                # running so the next revision can reuse what already completed.
                 await self.on_event("audio.interrupted", packet.data)
-                await self.tools.cancel_active(reason="barge_in")
+                await self.tools.note_barge_in(
+                    reason=str(packet.data.get("reason") or "barge_in")
+                )
             elif packet.kind == "tool_call":
                 task = asyncio.create_task(self._handle_tool_call(packet.data))
                 self._tool_tasks.add(task)
