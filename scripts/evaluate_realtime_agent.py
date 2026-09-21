@@ -9,8 +9,8 @@ from collections import Counter
 from types import SimpleNamespace
 from typing import Any
 
-from pipeline.realtime_coordinator import BranchResult, RealtimeCoordinator
-from pipeline.realtime_plan import BRANCHES, SearchPlanRevision
+from pipeline.realtime_branches import BranchExecutor
+from pipeline.realtime_plan import BRANCHES, SearchPlanRevision, diff_revisions
 from pipeline.realtime_session import RealtimeAgentSession
 from pipeline.realtime_tools import RealtimeToolDispatcher, ToolRejected
 
@@ -169,28 +169,49 @@ async def _evaluate() -> dict[str, Any]:
 
     gate = asyncio.Event()
     vector_started = asyncio.Event()
+    ran: Counter[str] = Counter()
     cancelled: Counter[str] = Counter()
 
-    async def slow_runner(branch: str, plan: SearchPlanRevision) -> BranchResult:
-        try:
-            if branch == "vector" and plan.query == "first goal":
-                vector_started.set()
-                await gate.wait()
-        except asyncio.CancelledError:
-            cancelled[branch] += 1
-            raise
-        return BranchResult(branch=branch, candidates=[{"candidate_id": f"{branch}-{plan.query}"}])
+    # A rapid interruption must cancel only the branches whose inputs changed.
+    # The recruiter rewrote the question, so the dense branch is invalid and its
+    # in-flight work is stopped; the count branch never depended on the query and
+    # is not touched at all. This drives BranchExecutor directly, which is the
+    # same object the session owns in production.
+    executor = BranchExecutor()
 
-    coordinator = RealtimeCoordinator(slow_runner, session_id="interrupt-evaluation")
-    first = SearchPlanRevision.create(query="first goal")
-    stale = asyncio.create_task(coordinator.execute(first))
+    async def branch_runner(branch: str) -> list[dict[str, str]]:
+        ran[branch] += 1
+        if branch == "vector" and ran[branch] == 1:
+            vector_started.set()
+            try:
+                await gate.wait()
+            except asyncio.CancelledError:
+                cancelled[branch] += 1
+                raise
+        return [{"candidate_id": f"{branch}-row"}]
+
+    first = SearchPlanRevision.create(query="python backend engineer")
+    stale = asyncio.create_task(executor.acquire(
+        "vector",
+        first.branch_fingerprints["vector"],
+        invalidated=True,
+        runner=lambda: branch_runner("vector"),
+    ))
     await vector_started.wait()
-    second = first.patch(query="replacement goal")
-    await coordinator.execute(second)
-    try:
-        await stale
-    except asyncio.CancelledError:
-        pass
+
+    second = first.patch(query="data platform engineer")
+    replaced = diff_revisions(first, second).replaced
+    await asyncio.gather(*(
+        executor.acquire(
+            branch,
+            second.branch_fingerprints[branch],
+            invalidated=branch in replaced,
+            runner=lambda branch=branch: branch_runner(branch),
+        )
+        for branch in BRANCHES
+    ))
+    await asyncio.gather(stale, return_exceptions=True)
+    gate.set()
 
     scenarios = {
         "initial_search": {"candidate_count": initial["count"], "executed": initial["executed_branches"]},
@@ -260,6 +281,11 @@ async def _evaluate() -> dict[str, Any]:
         },
         "rapid_interruption": {
             "stale_cancelled": cancelled["vector"] == 1,
+            "cancelled_branches": sorted(
+                branch for branch, decision in executor.decisions.items() if decision == "cancelled"
+            ),
+            "invalidated_branches": sorted(replaced),
+            "branch_cancellations": executor.stats["branches_cancelled"],
             "replacement_revision": second.revision_id,
         },
         "reuse_stats": dict(session.reuse_stats),
@@ -296,16 +322,24 @@ async def _evaluate() -> dict[str, Any]:
         and scenarios["filler_budget"]["violations"] == 1
         and scenarios["filler_budget"]["acknowledgements"] == 1
         and scenarios["filler_budget"]["silent_retrievals"] == 1
-        # Only retrieval is non-blocking; lookups still wait for their answer.
-        and scenarios["tool_behavior"]["non_blocking"] == ["interrupt_search", "search_candidates"]
+        # Only work the model can narrate across is non-blocking: retrieval, and
+        # adopting a role image. A write must block, because the model may not
+        # claim an effect it has not seen land, and a clarification must block
+        # because the whole point is to stop and ask.
+        and scenarios["tool_behavior"]["non_blocking"]
+        == ["interrupt_search", "search_candidates", "use_role_image"]
         and scenarios["tool_behavior"]["blocking"] == [
+            "add_to_shortlist",
             "cancel_current_action",
             "compare_candidates",
             "format_current_answer",
             "inspect_candidate",
             "list_skills",
+            "request_clarification",
         ]
         and scenarios["rapid_interruption"]["stale_cancelled"]
+        and scenarios["rapid_interruption"]["cancelled_branches"] == ["vector"]
+        and scenarios["rapid_interruption"]["branch_cancellations"] == 1
         # A goal change starts a clean plan, names what it dropped, and keeps
         # the session context; a refinement stays on the same goal.
         and scenarios["goal_change"]["first_goal"] == "python backend engineer"
@@ -325,7 +359,6 @@ async def _evaluate() -> dict[str, Any]:
     await spec_session.close()
     await filler_session.close()
     await goal_session.close()
-    await coordinator.close()
     return {"passed": passed, "scenarios": scenarios}
 
 

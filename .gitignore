@@ -20,6 +20,7 @@ venv/
 .playwright-mcp/
 .superpowers/
 .runtime/
+.workbuddy-ai/
 data/recruitment_dataset/transformed_10000.jsonl
 data/recruitment_dataset/eval_cases_10000.jsonl
 data/recruitment_dataset/manifest_10000.json

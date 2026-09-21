@@ -55,8 +55,14 @@ def test_realtime_evaluation_proves_the_agent_never_goes_silent_or_guesses():
     filler = report["scenarios"]["filler_budget"]
     behavior = report["scenarios"]["tool_behavior"]
 
-    # Only retrieval is allowed to run in the background.
-    assert behavior["non_blocking"] == ["interrupt_search", "search_candidates"]
+    # Only work that the model can narrate across may run in the background:
+    # retrieval, and adopting a role image (which is retrieval with a picture
+    # for a query). Anything that answers a question stays blocking.
+    assert behavior["non_blocking"] == [
+        "interrupt_search",
+        "search_candidates",
+        "use_role_image",
+    ]
     assert "list_skills" in behavior["blocking"]
 
     # Naming the criteria just sent is safe; claiming an outcome is not.

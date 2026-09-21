@@ -14,13 +14,24 @@ from typing import Any
 
 from pipeline.agent_session import AgentSession
 from pipeline.agent_tools import do_list_skills_batch, do_run_search
+from pipeline.realtime_ack import acknowledge
+from pipeline.realtime_branches import BranchExecutor
 from pipeline.realtime_events import EventEnvelope, TraceGraph
 from pipeline.realtime_filler import classify_filler
 from pipeline.realtime_goals import GoalLedger, dropped_constraints
-from pipeline.realtime_plan import BRANCHES, SearchPlanRevision, diff_revisions
+from pipeline.realtime_plan import BRANCHES, RevisionDiff, SearchPlanRevision, diff_revisions
 from pipeline.realtime_speculation import is_speculatable, plan_from_partial
-from pipeline.realtime_tools import RealtimeToolDispatcher
-
+from pipeline.realtime_state import (
+    INTENT_BY_TOOL,
+    BranchActivity,
+    SnapshotJournal,
+    StateSnapshot,
+    build_snapshot,
+    slots_from_revision,
+    unset_slots,
+)
+from pipeline.realtime_tools import RealtimeToolDispatcher, ToolRejected
+from pipeline.realtime_vision import RoleImage, apply_role_image, parse_role_description
 
 CandidateLoader = Callable[[list[str]], Awaitable[dict[str, Any]]]
 
@@ -32,6 +43,27 @@ SPECULATIVE_TOP_K = 8
 # Bridge events that end a tool call, and therefore close its speech window.
 TOOL_TERMINAL_EVENTS = frozenset(
     {"tool.completed", "tool.failed", "tool.rejected", "tool.cancelled"}
+)
+
+# The session status a tool leaves behind once it completes. Everything not
+# listed here finishes in `ready`: the evidence is in hand.
+STATUS_AFTER_TOOL = {
+    "format_current_answer": "answered",
+    "cancel_current_action": "cancelled",
+    "request_clarification": "clarifying",
+}
+
+# A clarification and a final answer are their own lifecycle moments, not
+# ordinary completions, so they get their own phase.
+PHASE_AFTER_TOOL = {
+    "format_current_answer": "final",
+    "request_clarification": "clarification",
+}
+
+# Tools whose completion means new evidence exists, so the snapshot carries the
+# diff and branch activity that produced it.
+RETRIEVAL_TOOLS = frozenset(
+    {"search_candidates", "interrupt_search", "revise_search", "use_role_image"}
 )
 
 
@@ -108,16 +140,167 @@ class RealtimeAgentSession:
         # Goal history sits above the plan: a refinement patches the active
         # plan, a replacement starts a clean one and carries session context.
         self.goals = GoalLedger()
-        self.tools = RealtimeToolDispatcher({
-            "search_candidates": self._search_candidates,
-            "revise_search": self._revise_search,
-            "inspect_candidate": self._inspect_candidate,
-            "compare_candidates": self._compare_candidates,
-            "format_current_answer": self._format_current_answer,
-            "cancel_current_action": self._cancel_current_action,
-            "list_skills": self._list_skills,
-            "note_barge_in": self._note_barge_in,
-        })
+        # Branch-level lifecycle. A revision cancels only the branches whose
+        # fingerprints it changed and keeps the ones that are still valid.
+        self.branches = BranchExecutor()
+        # Explicit, published state. Every tool call, interruption, clarification
+        # and final answer leaves one self-contained snapshot behind, so nobody
+        # has to reconstruct what the session believes from a stream of events.
+        self.state_journal = SnapshotJournal()
+        self.state: StateSnapshot | None = None
+        # Facts the most recent retrieval produced, read by the snapshot hook.
+        self.last_run: dict[str, Any] = {}
+        # What the most recent tool wants the snapshot to say.
+        self.last_note: str | None = None
+        # The most recent fast-path acknowledgement, measured end to end.
+        self.last_acknowledgement: dict[str, Any] | None = None
+        # Role images the recruiter shared. The image outlives the turn that
+        # introduced it, so a later "ignore the degree requirement" acts on a
+        # role the session already holds instead of asking for it again.
+        self.role_images: dict[str, RoleImage] = {}
+        self.active_role_image: RoleImage | None = None
+        # Which image the current plan was actually built from, so a newly
+        # attached image is recognised as a different role.
+        self.plan_role_image_id: str | None = None
+        # Where the current state came from: the transcript, a role image, or
+        # both. Published with every snapshot so a listener can tell.
+        self.evidence_sources: list[str] = []
+        self.last_role_outcome: dict[str, Any] | None = None
+        # The shortlist is the only stored state this session owns. It exists so
+        # there is a real side effect to make idempotent and cancellable.
+        self.shortlist: list[str] = []
+        self.tools = RealtimeToolDispatcher(
+            {
+                "search_candidates": self._search_candidates,
+                "interrupt_search": self._revise_search,
+                "inspect_candidate": self._inspect_candidate,
+                "compare_candidates": self._compare_candidates,
+                "format_current_answer": self._format_current_answer,
+                "cancel_current_action": self._cancel_current_action,
+                "list_skills": self._list_skills,
+                "note_barge_in": self._note_barge_in,
+                "request_clarification": self._request_clarification,
+                "add_to_shortlist": self._add_to_shortlist,
+                "use_role_image": self._use_role_image,
+            },
+            state_hook=self._tool_state_hook,
+        )
+
+    # ── Published state ──────────────────────────────────────────────────────
+
+    def publish_state(
+        self,
+        *,
+        intent: str,
+        phase: str,
+        status: str,
+        tool: str | None = None,
+        revision: SearchPlanRevision | None = None,
+        changed_fields: list[str] | tuple[str, ...] = (),
+        branches: BranchActivity | None = None,
+        evidence_sources: list[str] | None = None,
+        candidate_count: int | None = None,
+        note: str | None = None,
+        authoritative: bool = True,
+    ) -> dict[str, Any]:
+        """Publish one self-contained snapshot of what the session believes.
+
+        Emitted on every transition rather than only on completion, because the
+        state a turn *started* from is what makes an interruption legible: after
+        a barge-in the listener needs to know whether the city filter was
+        dropped, kept, or never applied.
+        """
+        target = revision if revision is not None else self.current_plan
+        snapshot = build_snapshot(
+            session_id=self.session_id,
+            sequence=self.state_journal.next_sequence(),
+            phase=phase,  # type: ignore[arg-type]
+            intent=intent,  # type: ignore[arg-type]
+            status=status,  # type: ignore[arg-type]
+            tool=tool,
+            revision=target,
+            changed_fields=changed_fields,
+            branches=branches or BranchActivity(),
+            evidence_sources=(
+                self.evidence_sources if evidence_sources is None else evidence_sources
+            ),
+            candidate_count=candidate_count,
+            note=note,
+            authoritative=authoritative,
+        )
+        self.state = self.state_journal.append(snapshot)
+        self.graph.emit(
+            "state.snapshot",
+            payload=snapshot.model_dump(mode="json"),
+            revision_id=target.revision_id if target is not None else None,
+        )
+        return snapshot.model_dump(mode="json")
+
+    def _tool_state_hook(
+        self,
+        *,
+        phase: str,
+        name: str,
+        arguments: dict[str, Any],
+        result: dict[str, Any] | None,
+        error: Any,
+    ) -> dict[str, Any]:
+        """Publish a matched pair of snapshots around every tool call."""
+        intent = self._intent_for(name, arguments)
+        if phase == "requested":
+            # A new call invalidates whatever the last one wanted to say.
+            self.last_note = None
+            return self.publish_state(
+                intent=intent,
+                phase="requested",
+                status="planning",
+                tool=name,
+                note=f"{name} requested.",
+            )
+        if phase == "failed":
+            return self.publish_state(
+                intent=intent,
+                phase="failed",
+                status="failed",
+                tool=name,
+                note=self.last_note or _failure_note(name, error),
+            )
+        status = STATUS_AFTER_TOOL.get(name, "ready")
+        retrieval = name in RETRIEVAL_TOOLS
+        return self.publish_state(
+            intent=intent,
+            phase=PHASE_AFTER_TOOL.get(name, "completed"),
+            status=status,  # type: ignore[arg-type]
+            tool=name,
+            changed_fields=self.last_run.get("changed_fields") if retrieval else (),
+            branches=self.last_run.get("branches") if retrieval else None,
+            candidate_count=(
+                self.last_run.get("candidate_count") if retrieval else len(self.current_candidates)
+            ),
+            note=self.last_note or f"{name} finished.",
+        )
+
+    @staticmethod
+    def _intent_for(name: str, arguments: dict[str, Any] | None) -> str:
+        if name in {"interrupt_search", "revise_search"}:
+            return "replace" if (arguments or {}).get("intent") == "replace" else "refine"
+        return INTENT_BY_TOOL.get(name, "search")
+
+    def _record_run(
+        self,
+        result: dict[str, Any],
+        *,
+        changed_fields: list[str] | tuple[str, ...],
+        branches: BranchActivity,
+        candidate_count: int,
+    ) -> dict[str, Any]:
+        """Remember the facts a completed-retrieval snapshot needs, then pass on."""
+        self.last_run = {
+            "changed_fields": sorted(str(field) for field in changed_fields),
+            "branches": branches,
+            "candidate_count": candidate_count,
+        }
+        return result
 
     async def _search_candidates(self, arguments: dict[str, Any]) -> dict[str, Any]:
         values = dict(arguments)
@@ -161,6 +344,26 @@ class RealtimeAgentSession:
         cache_key = self._cache_key(revision, top_k)
         cached = self._revision_cache.get(cache_key)
 
+        # ── Fast path ────────────────────────────────────────────────────────
+        # A grounded acknowledgement is available before any I/O, because it
+        # describes the instruction rather than the result. Publishing it first
+        # is what lets the agent answer within a few hundred milliseconds
+        # without ever claiming a completion it cannot support.
+        fast_started = time.perf_counter()
+        acknowledgement = acknowledge(
+            previous,
+            revision,
+            changed_fields=sorted(diff.changed_fields),
+            replaces_goal=replaces_goal,
+        )
+        acknowledgement["latency_ms"] = round((time.perf_counter() - fast_started) * 1000, 3)
+        self.last_acknowledgement = acknowledgement
+        self.graph.emit(
+            "acknowledgement.ready",
+            payload=acknowledgement,
+            revision_id=revision.revision_id,
+        )
+
         if cached is not None:
             # The composite fingerprint covers every branch input and the result
             # size, so an exact match means the stored evidence is still correct.
@@ -175,18 +378,24 @@ class RealtimeAgentSession:
             from_speculation = bool(cached.get("speculative"))
             if from_speculation:
                 self.speculation_stats["speculation_hits"] += 1
-            return self._with_session_context({
-                **cached["result"],
-                "revision_id": revision.revision_id,
-                "parent_revision_id": revision.parent_revision_id,
-                "plan": revision.model_dump(mode="json", exclude={"branch_fingerprints"}),
-                "reused_branches": list(BRANCHES),
-                "executed_branches": [],
-                "served_from_cache": True,
-                "served_from_speculation": from_speculation,
-                "reused_from_revision_id": cached["revision_id"],
-                "duration_ms": round((time.perf_counter() - started) * 1000, 3),
-            }, revision, previous=previous, replaces_goal=replaces_goal)
+            return self._record_run(
+                self._with_session_context({
+                    **cached["result"],
+                    "revision_id": revision.revision_id,
+                    "parent_revision_id": revision.parent_revision_id,
+                    "plan": revision.model_dump(mode="json", exclude={"branch_fingerprints"}),
+                    "reused_branches": list(BRANCHES),
+                    "executed_branches": [],
+                    "served_from_cache": True,
+                    "served_from_speculation": from_speculation,
+                    "reused_from_revision_id": cached["revision_id"],
+                    "duration_ms": round((time.perf_counter() - started) * 1000, 3),
+                    "acknowledgement": acknowledgement,
+                }, revision, previous=previous, replaces_goal=replaces_goal),
+                changed_fields=sorted(diff.changed_fields),
+                branches=BranchActivity(reused=list(BRANCHES)),
+                candidate_count=len(self.current_candidates),
+            )
 
         plan_id = f"plan-{revision.revision_id}"
         self.graph.upsert_node(
@@ -208,7 +417,7 @@ class RealtimeAgentSession:
             revision,
             top_k=top_k,
             cache_key=cache_key,
-            diff=diff.model_dump(mode="json"),
+            revision_diff=diff,
             generation=generation,
         ))
         self._active_search_task = task
@@ -232,8 +441,16 @@ class RealtimeAgentSession:
 
         self.current_candidates = result["candidates"]
         self.reuse_stats["revisions"] += 1
-        return self._with_session_context(
-            result, revision, previous=previous, replaces_goal=replaces_goal
+        return self._record_run(
+            self._with_session_context(
+                {**result, "acknowledgement": acknowledgement},
+                revision,
+                previous=previous,
+                replaces_goal=replaces_goal,
+            ),
+            changed_fields=sorted(diff.changed_fields),
+            branches=BranchActivity.from_decisions(self.branches.decisions),
+            candidate_count=len(self.current_candidates),
         )
 
     def _with_session_context(
@@ -283,8 +500,57 @@ class RealtimeAgentSession:
         context = self.goals.context_for(candidate_ids)
         if replaced is not None:
             context["dropped_constraints"] = dropped
+        if self.active_role_image is not None:
+            # The image outlives the turn that introduced it. Restating it with
+            # every result is what stops the next turn answering as if the role
+            # had been spoken aloud and forgotten.
+            outcome = self.last_role_outcome or {}
+            context["role_image"] = {
+                "image_id": self.active_role_image.image_id,
+                "role_title": self.active_role_image.role_title,
+                "ignored": list(outcome.get("ignored") or []),
+                "unenforceable": list(outcome.get("unenforceable") or []),
+                "policy": (
+                    "This role came from an image the recruiter shared. Requirements "
+                    "listed as unenforceable must not be described as filters, and "
+                    "ignored requirements must not be reapplied."
+                ),
+            }
         self.goals.record_candidates(candidate_ids)
-        return {**result, "session_context": context}
+        return {**result, "session_context": context, "evidence_sources": list(self.evidence_sources)}
+
+    def _branch_provider(self, revision: SearchPlanRevision, diff: Any):
+        """Own branch lifecycle for one revision.
+
+        Returns None when the engine cannot run branches individually — a test
+        double, for instance — so the engine falls back to running them itself.
+        Otherwise the session decides per branch whether to reuse cached work,
+        preserve work that is still valid, or cancel and re-run it.
+        """
+        if not hasattr(self.engine, "retrieve_branch"):
+            return None
+        # No diff means no predecessor to compare against, so nothing can be
+        # reused and every branch is this revision's own work.
+        invalidated = set(BRANCHES) if diff is None else (set(diff.replaced) | set(diff.new))
+
+        async def provider(request: Any) -> Any:
+            fingerprint = revision.branch_fingerprints.get(request.branch, "")
+            return await self.branches.acquire(
+                request.branch,
+                fingerprint,
+                invalidated=request.branch in invalidated,
+                runner=lambda: self.engine.retrieve_branch(
+                    request.branch,
+                    request.spec,
+                    request.cfg,
+                    filter_sql=request.filter_sql,
+                    filter_params=request.filter_params,
+                    doc_types=request.doc_types,
+                    keyword_decision=request.keyword_decision,
+                ),
+            )
+
+        return provider
 
     @staticmethod
     def _cache_key(revision: SearchPlanRevision, top_k: int) -> str:
@@ -301,7 +567,7 @@ class RealtimeAgentSession:
         *,
         top_k: int,
         cache_key: str,
-        diff: dict[str, Any],
+        revision_diff: Any,
         generation: int,
     ) -> dict[str, Any]:
         """Run one revision, then always record it — even if it was superseded.
@@ -311,7 +577,8 @@ class RealtimeAgentSession:
         revision return to an earlier plan and answer instantly instead of
         re-running the corpus.
         """
-        result = await self._run_canonical_search(revision, top_k=top_k)
+        diff = revision_diff.model_dump(mode="json")
+        result = await self._run_canonical_search(revision, top_k=top_k, diff=revision_diff)
         superseded = generation != self._generation
         captured = self._emit_pipeline_graph(revision, diff, result, superseded=superseded)
         self._revision_cache[cache_key] = {
@@ -399,6 +666,14 @@ class RealtimeAgentSession:
         self._speculative_cache_key = cache_key
         self._speculative_task = asyncio.create_task(self._run_speculation(plan, cache_key))
         self.speculation_stats["speculations_started"] += 1
+        self.publish_state(
+            intent="search",
+            phase="requested",
+            status="retrieving",
+            revision=plan,
+            note="Speculative retrieval started from a settled prefix, before end of speech.",
+            authoritative=False,
+        )
         return {
             "speculated": True,
             "query": plan.query,
@@ -520,6 +795,9 @@ class RealtimeAgentSession:
             result = await self._run_canonical_search(
                 plan,
                 top_k=SPECULATIVE_TOP_K,
+                # A speculative run has no predecessor to diff against: it is a
+                # guess, so every branch is its own work.
+                diff=RevisionDiff(new=set(BRANCHES), changed_fields=set()),
                 agent_session=self._speculation_session(),
             )
         except asyncio.CancelledError:
@@ -548,6 +826,15 @@ class RealtimeAgentSession:
             "nodes": captured,
             "speculative": True,
         }
+        self.publish_state(
+            intent="search",
+            phase="completed",
+            status="ready",
+            revision=plan,
+            candidate_count=result["count"],
+            note="Speculative evidence is ready before end of speech.",
+            authoritative=False,
+        )
         self.graph.emit(
             "speculation.ready",
             payload={
@@ -606,6 +893,7 @@ class RealtimeAgentSession:
         revision: SearchPlanRevision,
         *,
         top_k: int,
+        diff: Any,
         agent_session: AgentSession | None = None,
     ) -> dict[str, Any]:
         started = time.perf_counter()
@@ -646,6 +934,7 @@ class RealtimeAgentSession:
             mode="agent-quality",
             top_k=max(1, min(top_k, 20)),
             search_engine=self.engine,
+            branch_provider=self._branch_provider(revision, diff),
         )
         candidates = [_canonical_candidate(candidate) for candidate in canonical.get("results", [])]
         return {
@@ -873,6 +1162,15 @@ class RealtimeAgentSession:
             },
             revision_id=revision_id,
         )
+        self.publish_state(
+            intent="interrupt",
+            phase="interrupted",
+            status="retrieving" if in_flight else ("ready" if revision is not None else "idle"),
+            note=(
+                "The recruiter interrupted. In-flight retrieval is preserved; only the "
+                "next revision decides what is actually invalid."
+            ),
+        )
         return {
             "barge_in_acknowledged": True,
             "reason": reason,
@@ -882,6 +1180,218 @@ class RealtimeAgentSession:
                 "Call interrupt_search with only the fields the recruiter changed. "
                 "Only call cancel_current_action when the recruiter explicitly abandons the task."
             ),
+        }
+
+    async def _request_clarification(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Ask for a missing criterion instead of guessing one.
+
+        The unset slots are recomputed here rather than trusted from the model,
+        so the question is about a slot that is genuinely empty.
+        """
+        question = str(arguments["question"])
+        slots_needed = [str(slot) for slot in arguments.get("slots_needed") or []]
+        current = slots_from_revision(self.current_plan)
+        still_unset = [slot for slot in unset_slots(current) if slot in set(slots_needed)]
+        revision_id = self.current_plan.revision_id if self.current_plan else None
+        self.last_note = (
+            f"Clarification requested on {', '.join(slots_needed)}."
+            if slots_needed
+            else "Clarification requested."
+        )
+        self.graph.emit(
+            "clarification.requested",
+            payload={
+                "question": question,
+                "slots_needed": slots_needed,
+                "unset_slots": still_unset,
+                "blocking": bool(arguments.get("blocking", True)),
+                "already_answered": [slot for slot in slots_needed if slot not in still_unset],
+            },
+            revision_id=revision_id,
+        )
+        return {
+            "asked": True,
+            "question": question,
+            "slots_needed": slots_needed,
+            "unset_slots": still_unset,
+            "rule": (
+                "Ask this question and wait for the answer. Do not run a search on a "
+                "guessed value for these slots, and do not present partial results as "
+                "the answer to the original request."
+            ),
+        }
+
+    async def _add_to_shortlist(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """The one state-changing tool.
+
+        Guarded on two sides. It refuses candidates this session never surfaced,
+        so a shortlist cannot be assembled from a hallucinated id; and the write
+        is committed through an await point, so a newer call in the same scope
+        can cancel it before the effect lands.
+        """
+        candidate_ids = [str(item) for item in arguments["candidate_ids"]]
+        allowed = {str(candidate["candidate_id"]) for candidate in self.current_candidates}
+        allowed |= set(self.goals.surfaced_candidate_ids())
+        unknown = [candidate_id for candidate_id in candidate_ids if candidate_id not in allowed]
+        if unknown:
+            raise ToolRejected(
+                "Refusing to shortlist candidates that were never surfaced in this "
+                f"session: {', '.join(unknown)}"
+            )
+
+        replace_existing = bool(arguments.get("replace_existing"))
+        await self._persist_shortlist(candidate_ids, replace=replace_existing)
+
+        if replace_existing:
+            self.shortlist = list(dict.fromkeys(candidate_ids))
+        else:
+            known = set(self.shortlist)
+            self.shortlist.extend(item for item in candidate_ids if item not in known)
+
+        self.last_note = (
+            f"Shortlist replaced with {len(candidate_ids)} candidate(s)."
+            if replace_existing
+            else f"Shortlist now holds {len(self.shortlist)} candidate(s)."
+        )
+        return {
+            "shortlist": list(self.shortlist),
+            "applied": candidate_ids,
+            "replace_existing": replace_existing,
+            "count": len(self.shortlist),
+            "side_effect": "shortlist_updated",
+            "rule": (
+                "Report the shortlist exactly as returned. Do not claim a candidate was "
+                "added if this call was cancelled or superseded."
+            ),
+        }
+
+    async def _persist_shortlist(self, candidate_ids: list[str], *, replace: bool) -> None:
+        """Commit a shortlist change. Overridden where the shortlist is stored.
+
+        Deliberately an await point even when nothing is stored: a side effect
+        that cannot be interrupted cannot be cancelled, and an uncancellable
+        write is the thing this tool exists to avoid.
+        """
+        await asyncio.sleep(0)
+
+    # ── Visual grounding ─────────────────────────────────────────────────────
+
+    def attach_role_image(
+        self,
+        image_id: str,
+        description: str,
+        *,
+        source: str = "transport",
+    ) -> dict[str, Any]:
+        """Record a role the recruiter shared as an image.
+
+        Synchronous and cheap: it stores what the vision step extracted and
+        publishes the state, but it does not search. Searching is a separate
+        decision the recruiter makes with "use this role", which is also what
+        lets them amend it before anything runs.
+        """
+        image = parse_role_description(
+            description,
+            image_id=str(image_id),
+            received_at_ms=round((time.perf_counter() - self.graph.started_at) * 1000, 3),
+            source=source,
+        )
+        self.role_images[image.image_id] = image
+        self.active_role_image = image
+        tag = f"image:{image.image_id}"
+        if tag not in self.evidence_sources:
+            self.evidence_sources.append(tag)
+        self.graph.emit(
+            "vision.role_attached",
+            payload={
+                "image_id": image.image_id,
+                "role_title": image.role_title,
+                "source": source,
+                "requirement_count": len(image.requirements),
+                "enforceable_slots": sorted(image.slots),
+                "unenforceable": image.unenforceable,
+                "policy": (
+                    "The image is context until the model calls use_role_image. "
+                    "Unenforceable requirements are never described as filters."
+                ),
+            },
+        )
+        self.publish_state(
+            intent="search",
+            phase="requested",
+            status="planning",
+            note=f"Role image {image.image_id} received.",
+        )
+        return {
+            "image_id": image.image_id,
+            "role_title": image.role_title,
+            "requirements": [item.model_dump(mode="json") for item in image.requirements],
+            "slots": image.slots,
+            "unenforceable": image.unenforceable,
+            "next_step": (
+                "Call use_role_image to search for this role. Pass ignore to leave out a "
+                "requirement the recruiter does not want applied."
+            ),
+        }
+
+    async def _use_role_image(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Adopt a shared role, optionally leaving named requirements out."""
+        requested = arguments.get("image_id")
+        image_id = str(requested) if requested else (
+            self.active_role_image.image_id if self.active_role_image is not None else None
+        )
+        image = self.role_images.get(image_id) if image_id else None
+        if image is None:
+            raise ToolRejected(
+                "No role image has been shared in this session. Ask the recruiter to "
+                "share the role again before searching for it."
+            )
+
+        outcome = apply_role_image(image, ignore=list(arguments.get("ignore") or []))
+        self.last_role_outcome = outcome
+
+        previous = self.current_plan
+        # Compare against the image the *current plan* was built from, not the
+        # newest image attached. Attaching a second image does not change what
+        # the session is currently searching for, and treating it as the same
+        # role would silently keep the first role's filters.
+        same_role = previous is not None and self.plan_role_image_id == image.image_id
+        values = dict(outcome["slots"])
+        if previous is None:
+            revision = SearchPlanRevision.create(
+                query=str(arguments.get("query") or image.role_title or "role from image"),
+                **values,
+            )
+        else:
+            revision = previous.patch(**values)
+        self.current_plan = revision
+        self.active_role_image = image
+        self.plan_role_image_id = image.image_id
+
+        ignored = len(outcome["ignored"])
+        self.last_note = (
+            f"Applied the role from image {image.image_id}"
+            + (f", leaving out {ignored} requirement(s)." if ignored else ".")
+        )
+        result = await self._execute_revision(
+            revision,
+            previous=previous,
+            top_k=int(arguments.get("top_k") or 8),
+            # A different image is a different goal. Re-applying the same image
+            # is an amendment to the goal the session is already pursuing.
+            replaces_goal=previous is not None and not same_role,
+        )
+        return {
+            **result,
+            "role_image": {
+                "image_id": image.image_id,
+                "role_title": image.role_title,
+                "applied": outcome["applied"],
+                "ignored": outcome["ignored"],
+                "unenforceable": outcome["unenforceable"],
+                "policy": outcome["policy"],
+            },
+            "role_slots": outcome["slots"],
         }
 
     async def _cancel_active(self, *, reason: str) -> bool:
@@ -919,6 +1429,18 @@ class RealtimeAgentSession:
             "reuse_stats": dict(self.reuse_stats),
             "speculation_stats": dict(self.speculation_stats),
             "filler_stats": dict(self.filler_stats),
+            "branch_stats": dict(self.branches.stats),
+            "state": self.state.model_dump(mode="json") if self.state is not None else None,
+            "state_history": self.state_journal.to_list(),
+            "shortlist": list(self.shortlist),
+            "evidence_sources": list(self.evidence_sources),
+            "role_images": sorted(self.role_images),
+            "tool_manifest": {
+                "revision": self.tools.registry.revision,
+                "tools": self.tools.registry.names(),
+                "state_modifying": sorted(self.tools.registry.state_modifying()),
+                "non_blocking": sorted(self.tools.registry.non_blocking()),
+            },
         }
 
     async def close(self) -> None:
@@ -927,6 +1449,15 @@ class RealtimeAgentSession:
         if speculative is not None:
             await asyncio.gather(speculative, return_exceptions=True)
         await self._cancel_active(reason="session_closed")
+
+
+def _failure_note(name: str, error: Any) -> str:
+    """A one-line reason a tool call did not complete."""
+    if isinstance(error, ToolRejected):
+        return f"{name} was rejected: {error}"
+    if error is None:
+        return f"{name} did not complete."
+    return f"{name} failed: {type(error).__name__}"
 
 
 def _canonical_candidate(candidate: dict[str, Any]) -> dict[str, Any]:

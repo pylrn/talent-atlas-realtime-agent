@@ -5,8 +5,14 @@ from types import SimpleNamespace
 
 import pytest
 
-from pipeline.realtime_plan import SearchPlanRevision
+from pipeline.realtime_plan import (
+    BRANCHES,
+    RevisionDiff,
+    SearchPlanRevision,
+    diff_revisions,
+)
 from pipeline.realtime_session import RealtimeAgentSession
+from pipeline.search import BranchRequest
 
 
 def _result(candidate_id: str, name: str, score: float = 0.8):
@@ -643,3 +649,109 @@ async def test_a_goal_replacement_emits_what_it_dropped():
         "must_skills": ["python"],
     }
     assert replaced[0].payload["carried_context"]["previously_surfaced"] == ["c-1"]
+
+
+class BranchEngine(FakeEngine):
+    """FakeEngine that also exposes the per-branch entry point.
+
+    With it the session owns branch lifecycle, so a revision can cancel only the
+    branches it invalidated instead of the engine running all of them blindly.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.branch_calls: list[str] = []
+
+    async def retrieve_branch(self, branch, spec, cfg, **kwargs):
+        self.branch_calls.append(branch)
+        return 12 if branch == "sql" else [{"candidate_id": f"{branch}-1"}]
+
+
+@pytest.mark.asyncio
+async def test_a_query_change_cancels_only_the_query_dependent_branches():
+    """The branch fingerprints decide the scope of an interruption.
+
+    A query change leaves the skill and eligibility inputs untouched, so those
+    branches keep the work already done for them instead of being re-run.
+    """
+    engine = BranchEngine()
+    session = RealtimeAgentSession(engine, session_id="voice-branch-scope")
+    first = SearchPlanRevision.create(query="python backend engineer", city="Pune")
+    second = first.patch(query="python platform engineer")
+    diff = diff_revisions(first, second)
+
+    assert diff.replaced == {"vector", "bm25"}, "fingerprints no longer track query dependence"
+
+    async def resolve(revision, revision_diff):
+        provider = session._branch_provider(revision, revision_diff)
+        assert provider is not None
+        for branch in ("vector", "bm25", "skills", "sql"):
+            await provider(BranchRequest(
+                branch=branch,
+                spec=None,
+                cfg={},
+                filter_sql="TRUE",
+                filter_params=[],
+            ))
+
+    await resolve(first, RevisionDiff(new=set(BRANCHES)))
+    assert engine.branch_calls == ["vector", "bm25", "skills", "sql"]
+
+    await resolve(second, diff)
+
+    assert session.branches.decisions["vector"] == "started"
+    assert session.branches.decisions["bm25"] == "started"
+    assert session.branches.decisions["skills"] == "reused"
+    assert session.branches.decisions["sql"] == "reused"
+    # Only the invalidated branches were queried a second time.
+    assert engine.branch_calls.count("vector") == 2
+    assert engine.branch_calls.count("skills") == 1
+    assert engine.branch_calls.count("sql") == 1
+
+
+@pytest.mark.asyncio
+async def test_a_city_change_reuses_no_branch_at_all():
+    """Every branch is filtered by the same eligibility clause, so a hard-filter
+    change leaves nothing reusable.
+
+    Selective cancellation must not pretend otherwise: reusing the vector branch
+    after the city changed would fuse rows fetched under the old filter, which
+    is a wrong answer rather than a slow one.
+    """
+    engine = BranchEngine()
+    session = RealtimeAgentSession(engine, session_id="voice-branch-city")
+    first = SearchPlanRevision.create(query="python backend engineer", city="Pune")
+    second = first.patch(city="Bengaluru")
+    diff = diff_revisions(first, second)
+
+    assert diff.replaced == {"vector", "bm25", "skills", "sql"}
+    assert diff.reused == set()
+
+    async def resolve(revision, revision_diff):
+        provider = session._branch_provider(revision, revision_diff)
+        assert provider is not None
+        for branch in BRANCHES:
+            await provider(BranchRequest(
+                branch=branch,
+                spec=None,
+                cfg={},
+                filter_sql="TRUE",
+                filter_params=[],
+            ))
+
+    await resolve(first, RevisionDiff(new=set(BRANCHES)))
+    await resolve(second, diff)
+
+    assert session.branches.stats["branches_reused"] == 0
+    for branch in BRANCHES:
+        assert session.branches.decisions[branch] == "started", branch
+        assert engine.branch_calls.count(branch) == 2, branch
+
+
+@pytest.mark.asyncio
+async def test_an_engine_without_the_branch_entry_point_still_works():
+    """A test double, or an engine that cannot run branches individually, must
+    fall back to the engine running them itself rather than breaking."""
+    session = RealtimeAgentSession(FakeEngine(), session_id="voice-branch-fallback")
+
+    assert session._branch_provider(SearchPlanRevision.create(query="x"), RevisionDiff()) is None
