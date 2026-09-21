@@ -127,6 +127,12 @@
   width: 2px;
 }
 
+.realtime-interrupted-note {
+  color: #8a969a;
+  font: 500 10px/1.4 "IBM Plex Mono", monospace;
+  white-space: nowrap;
+}
+
 .realtime-tool-card {
   align-items: center;
   align-self: start;

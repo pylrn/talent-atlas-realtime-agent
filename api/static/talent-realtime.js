@@ -24,7 +24,8 @@
     activeAssistantBubble: null,
     activeUserBubble: null,
     toolCards: new Map(),
-    pendingTranscriptTimers: []
+    pendingTranscriptTimers: [],
+    assistantSpeaking: false
   };
 
   var columns = [
@@ -105,6 +106,8 @@
     if (event.type === "session.ready") setVoiceState("Listening — interrupt any time");
     if (event.type === "transcript.input") {
       setVoiceState("Understanding");
+      if (state.assistantSpeaking) markAssistantInterrupted();
+      state.assistantSpeaking = false;
       state.activeAssistantBubble = null;
       clearPendingTranscripts();
       addRealtimeTranscript(payload.text, "user");
@@ -112,9 +115,12 @@
     }
     if (event.type === "transcript.output") {
       setVoiceState("Speaking — interrupt any time");
+      state.assistantSpeaking = true;
       queueAssistantTranscript(payload.text);
     }
     if (event.type === "audio.interrupted") {
+      markAssistantInterrupted();
+      state.assistantSpeaking = false;
       clearPlayback();
       clearPendingTranscripts();
       state.activeAssistantBubble = null;
@@ -173,6 +179,16 @@
   function clearPendingTranscripts() {
     state.pendingTranscriptTimers.forEach(function (timer) { window.clearTimeout(timer); });
     state.pendingTranscriptTimers = [];
+  }
+
+  function markAssistantInterrupted() {
+    var bubble = state.activeAssistantBubble;
+    if (!bubble || !bubble.isConnected || bubble.dataset.interrupted === "true") return;
+    bubble.dataset.interrupted = "true";
+    var note = document.createElement("span");
+    note.className = "realtime-interrupted-note";
+    note.textContent = " · interrupted";
+    bubble.appendChild(note);
   }
 
   function queueAssistantTranscript(text) {
@@ -463,7 +479,10 @@
     state.playbackSources.push(source);
     source.onended = function () {
       state.playbackSources = state.playbackSources.filter(function (item) { return item !== source; });
-      if (!state.playbackSources.length && state.active) setVoiceState("Listening — interrupt any time");
+      if (!state.playbackSources.length && state.active) {
+        state.assistantSpeaking = false;
+        setVoiceState("Listening — interrupt any time");
+      }
     };
   }
 
@@ -541,6 +560,7 @@
     state.audioContext = null;
     state.activeAssistantBubble = null;
     state.activeUserBubble = null;
+    state.assistantSpeaking = false;
     if (notify !== false && state.socket && state.socket.readyState === WebSocket.OPEN) {
       state.socket.send(JSON.stringify({ type: "session.stop" }));
       state.socket.close(1000, "user ended voice session");

@@ -50,6 +50,7 @@ def test_realtime_client_targets_talent_websocket_and_supports_audio():
     assert "queueAssistantTranscript" in script
     assert "realtime-tool-card" in script
     assert "clearPendingTranscripts" in script
+    assert "markAssistantInterrupted" in script
 
 
 def test_realtime_transcript_and_tool_styles_are_present():
@@ -57,6 +58,7 @@ def test_realtime_transcript_and_tool_styles_are_present():
 
     assert ".realtime-tool-card" in css
     assert ".realtime-tool-status[data-status=\"completed\"]" in css
+    assert ".realtime-interrupted-note" in css
     assert "white-space: pre-wrap" in css
 
 

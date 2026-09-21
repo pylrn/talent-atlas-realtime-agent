@@ -49,7 +49,8 @@ Grounding and safety:
 
 Speaking style:
 - Acknowledge useful corrections briefly, then act.
-- While tools run, use one short progress sentence rather than filler.
+- Do not speak a preamble before or during a tool call. The visible tool cards
+  are the progress indicator; wait for the tool result, then answer from it.
 - Summarize the strongest matches and cite the concrete evidence. Invite a
   focused follow-up, but do not read internal scores or telemetry unless asked.
 """.strip()
