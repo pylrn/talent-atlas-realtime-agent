@@ -176,8 +176,15 @@ class HybridSearchEngine:
         top_k: int | None = None,
         recruiter_id: str | None = None,
         config_overrides: dict[str, Any] | None = None,
+        prefetched: dict[str, list[dict[str, Any]]] | None = None,
     ) -> SearchResponse:
-        """Full pipeline returning SearchResponse (results + meta)."""
+        """Full pipeline returning SearchResponse (results + meta).
+
+        ``prefetched`` optionally supplies already-retrieved rows for branches
+        whose inputs are unchanged, so an interruptible caller can reuse work it
+        already paid for instead of re-running every branch. See
+        ``_full_pipeline``.
+        """
         override_keys = set((config_overrides or {}).keys())
         cfg     = get_config(mode, overrides=config_overrides or {})
         top_k   = top_k or cfg["final_top_k"]
@@ -302,12 +309,96 @@ class HybridSearchEngine:
         resp = await self._full_pipeline(spec, cfg, top_k, recruiter_prefs,
                                          recruiter_id=recruiter_id,
                                          recruiter_profile=recruiter_profile,
-                                         phase1_ms=phase1_ms, spec_dict=spec_dict)
+                                         phase1_ms=phase1_ms, spec_dict=spec_dict,
+                                         prefetched=prefetched)
         if preserved_clarify and not resp.clarify:
             resp.clarify = preserved_clarify
         return resp
 
     # ── Full pipeline ─────────────────────────────────────────────────────────
+
+    async def retrieve_branch(
+        self,
+        branch: str,
+        spec: CanonicalSearchSpec,
+        cfg: dict,
+        *,
+        filter_sql: str,
+        filter_params: list[Any],
+        doc_types: list[str] | None = None,
+        keyword_decision: KeywordPolicyDecision | None = None,
+        timings: dict[str, Any] | None = None,
+    ) -> Any:
+        """Run exactly one retrieval branch.
+
+        This is the single implementation of each branch query. The full
+        pipeline calls it through its per-branch wrappers, and an interruptible
+        caller calls it directly so it can run branches as separate tasks and
+        cancel only the ones a new revision invalidated. Duplicating the query
+        construction in the caller would let the two drift apart, which is why
+        it lives here.
+
+        Returns the retrieved rows for the retrieval branches, and the filtered
+        candidate count for the ``sql`` branch.
+        """
+        use_retrieval_cache = bool(
+            cfg.get("use_cache", True) and cfg.get("use_retrieval_cache", False)
+        )
+        include_content = not cfg.get("defer_chunk_content", True)
+
+        if branch == "sql":
+            return await self._count_filtered(
+                filter_sql,
+                filter_params,
+                timings=timings,
+                use_cache=use_retrieval_cache,
+            )
+
+        if branch == "vector":
+            return await retrieve_dense(
+                spec, filter_sql, filter_params, self.search_pool, self.embedder,
+                top_k=cfg["dense_top_k"],
+                doc_type_filter=doc_types or None,
+                include_content=include_content,
+                use_retrieval_cache=use_retrieval_cache,
+                timings=timings,
+            )
+
+        if branch == "skills":
+            return await retrieve_skill(
+                spec, filter_sql, filter_params, self.search_pool,
+                top_k=cfg["skill_top_k"],
+                include_content=include_content,
+                use_retrieval_cache=use_retrieval_cache,
+                timings=timings,
+            )
+
+        if branch == "bm25":
+            if keyword_decision is None:
+                raise ValueError("The bm25 branch needs a keyword policy decision")
+            try:
+                return await asyncio.wait_for(
+                    retrieve_bm25(
+                        spec, filter_sql, filter_params, self.search_pool,
+                        top_k=cfg["bm25_top_k"],
+                        doc_type_filter=doc_types or None,
+                        include_content=include_content,
+                        statement_timeout_ms=keyword_decision.timeout_ms,
+                        backend=cfg.get("bm25_backend", "fts"),
+                        overfetch_factor=cfg.get("bm25_overfetch_factor", 4),
+                        overfetch_min=cfg.get("bm25_overfetch_min", 60),
+                        use_retrieval_cache=use_retrieval_cache,
+                        timings=timings,
+                    ),
+                    timeout=(keyword_decision.timeout_ms / 1000.0) + 0.25,
+                )
+            except (asyncio.TimeoutError, asyncpg.exceptions.QueryCanceledError):
+                # A keyword timeout degrades recall; it does not fail the search.
+                if timings is not None:
+                    timings["timed_out"] = True
+                return []
+
+        raise ValueError(f"Unknown retrieval branch: {branch}")
 
     async def _full_pipeline(
         self,
@@ -319,7 +410,17 @@ class HybridSearchEngine:
         recruiter_profile: Any | None = None,
         phase1_ms: float = 0.0,
         spec_dict: dict | None = None,
+        prefetched: dict[str, list[dict[str, Any]]] | None = None,
     ) -> SearchResponse:
+        """Run the retrieval pipeline.
+
+        ``prefetched`` maps a branch name to rows that were already retrieved
+        for an identical branch input on an earlier revision. Such rows are the
+        same rows this call would have fetched, so the branch is skipped rather
+        than re-queried. Fusion, grouping, ranking and diversity are unchanged,
+        which is what keeps a partially reused search byte-identical to a cold
+        one. Passing None (the default) disables the seam entirely.
+        """
         relaxations: list[dict] = []
 
         # ── Phase 2: Retrieval (steps 8-11) ──────────────────────────────────
@@ -333,7 +434,8 @@ class HybridSearchEngine:
 
         # Resolve doc_type filter from search_targets
         doc_types = _resolve_doc_types(spec.search_targets)
-        use_retrieval_cache = bool(cfg.get("use_cache", True) and cfg.get("use_retrieval_cache", False))
+        # Each branch resolves the retrieval cache for itself in
+        # `retrieve_branch`, so it is not computed here.
         use_data_cache = bool(cfg.get("use_cache", True))
 
         # ── Step 10: Parallel retrieval ───────────────────────────────────────
@@ -357,6 +459,8 @@ class HybridSearchEngine:
         retrieval_db_timings: dict[str, Any] = {}
         retrieval_counts: dict[str, int] = {}
         hydration_passes: list[dict[str, Any]] = []
+        # Branches served from rows an earlier revision already fetched.
+        prefetched_branches: list[str] = []
 
         with _obs_span("search.retrieve", input={
             "spec": spec_payload(spec),
@@ -376,11 +480,12 @@ class HybridSearchEngine:
                 with _obs_span("search.retrieve.count", input={
                     "filter": filter_payload(filter_sql, filter_params, doc_types),
                 }):
-                    total = await self._count_filtered(
-                        filter_sql,
-                        filter_params,
+                    total = await self.retrieve_branch(
+                        "sql", spec, cfg,
+                        filter_sql=filter_sql,
+                        filter_params=filter_params,
+                        doc_types=doc_types,
                         timings=db_timing,
-                        use_cache=use_retrieval_cache,
                     )
                     elapsed = ms_since(started, _time.perf_counter)
                     retrieval_timings["count_ms"] = elapsed
@@ -405,11 +510,11 @@ class HybridSearchEngine:
                     "filter_param_count": len(filter_params),
                     "hnsw_ef_search_min": settings.hnsw_ef_search,
                 }):
-                    res = await retrieve_dense(
-                        spec, filter_sql, filter_params, self.search_pool, self.embedder,
-                        top_k=cfg["dense_top_k"], doc_type_filter=doc_types or None,
-                        include_content=not cfg.get("defer_chunk_content", True),
-                        use_retrieval_cache=use_retrieval_cache,
+                    res = await self.retrieve_branch(
+                        "vector", spec, cfg,
+                        filter_sql=filter_sql,
+                        filter_params=filter_params,
+                        doc_types=doc_types,
                         timings=db_timing,
                     )
                     elapsed = ms_since(started, _time.perf_counter)
@@ -454,23 +559,17 @@ class HybridSearchEngine:
                     "overfetch_factor": cfg.get("bm25_overfetch_factor", 4),
                     "overfetch_min": cfg.get("bm25_overfetch_min", 60),
                 }):
-                    try:
-                        res = await asyncio.wait_for(
-                            retrieve_bm25(
-                                spec, filter_sql, filter_params, self.search_pool,
-                                top_k=cfg["bm25_top_k"],
-                                doc_type_filter=doc_types or None,
-                                include_content=not cfg.get("defer_chunk_content", True),
-                                statement_timeout_ms=decision.timeout_ms,
-                                backend=backend,
-                                overfetch_factor=cfg.get("bm25_overfetch_factor", 4),
-                                overfetch_min=cfg.get("bm25_overfetch_min", 60),
-                                use_retrieval_cache=use_retrieval_cache,
-                                timings=db_timing,
-                            ),
-                            timeout=(decision.timeout_ms / 1000.0) + 0.25,
-                        )
-                    except (asyncio.TimeoutError, asyncpg.exceptions.QueryCanceledError):
+                    res = await self.retrieve_branch(
+                        "bm25", spec, cfg,
+                        filter_sql=filter_sql,
+                        filter_params=filter_params,
+                        doc_types=doc_types,
+                        keyword_decision=decision,
+                        timings=db_timing,
+                    )
+                    if db_timing.get("timed_out"):
+                        # retrieve_branch already recorded the timeout; the
+                        # keyword branch degrades to no rows rather than failing.
                         elapsed = ms_since(started, _time.perf_counter)
                         retrieval_timings["keyword_ms"] = elapsed
                         retrieval_db_timings["keyword"] = db_timing
@@ -537,11 +636,11 @@ class HybridSearchEngine:
                     "include_content": not cfg.get("defer_chunk_content", True),
                     "filter_param_count": len(filter_params),
                 }):
-                    res = await retrieve_skill(
-                        spec, filter_sql, filter_params, self.search_pool,
-                        top_k=cfg["skill_top_k"],
-                        include_content=not cfg.get("defer_chunk_content", True),
-                        use_retrieval_cache=use_retrieval_cache,
+                    res = await self.retrieve_branch(
+                        "skills", spec, cfg,
+                        filter_sql=filter_sql,
+                        filter_params=filter_params,
+                        doc_types=doc_types,
                         timings=db_timing,
                     )
                     elapsed = ms_since(started, _time.perf_counter)
@@ -617,18 +716,78 @@ class HybridSearchEngine:
                     })
                     return grouped
 
-            count_task = asyncio.create_task(ctx.run(_wrap_count))
-            dense_task = asyncio.create_task(ctx.run(_wrap_dense) if cfg["use_dense"] else ctx.run(_wrap_dense_skip))
-            skill_task = asyncio.create_task(ctx.run(_wrap_skill) if cfg["use_skill_exact"] else ctx.run(_wrap_skill_skip))
-            bm25_task = (
-                asyncio.create_task(ctx.run(_wrap_bm25, keyword_decision))
-                if cfg["use_bm25"] and keyword_decision.action == "run"
-                else (
-                    asyncio.create_task(ctx.run(_wrap_keyword_skip, keyword_decision))
-                    if keyword_decision.action == "skip"
-                    else None
-                )
-            )
+            def _prefetched_rows(
+                branch: str,
+                count_key: str,
+                timing_key: str,
+            ) -> Any | None:
+                """Return prefetched work for a branch, or None to run it.
+
+                The ``sql`` branch retrieves a count rather than rows, so its
+                prefetched value is the integer itself and the branch returns it
+                directly. Every other branch supplies rows.
+                """
+                value = (prefetched or {}).get(branch)
+                if value is None:
+                    return None
+                retrieval_timings[timing_key] = 0.0
+                retrieval_counts[count_key] = int(value) if branch == "sql" else len(value)
+                prefetched_branches.append(branch)
+                _obs_update_current_span(output={
+                    "retrieved_chunks": 0 if branch == "sql" else len(value),
+                    "elapsed_ms": 0.0,
+                    "prefetched": True,
+                    "reason": "branch_input_unchanged_since_earlier_revision",
+                })
+                return value
+
+            async def _branch(
+                branch: str,
+                count_key: str,
+                timing_key: str,
+                factory,
+            ):
+                rows = _prefetched_rows(branch, count_key, timing_key)
+                if rows is not None:
+                    return rows
+                return await factory()
+
+            def _bm25_factory():
+                # Read the decision at call time, not at definition time: on the
+                # "defer" path the policy is re-decided once the candidate count
+                # is known, and this factory is only invoked after that.
+                return _wrap_bm25(keyword_decision)
+
+            def _bm25_task():
+                """Build the keyword task, honouring a prefetched keyword branch.
+
+                Prefetched rows settle the question the policy is trying to
+                answer — whether a query needs to run at all — so they take
+                precedence over a "defer" or "skip" decision.
+                """
+                if not cfg["use_bm25"]:
+                    return None
+                if keyword_decision.action == "run" or (prefetched or {}).get("bm25") is not None:
+                    return asyncio.create_task(ctx.run(
+                        _branch, "bm25", "keyword_rows", "keyword_ms", _bm25_factory,
+                    ))
+                if keyword_decision.action == "skip":
+                    return asyncio.create_task(ctx.run(_wrap_keyword_skip, keyword_decision))
+                # "defer": the candidate count decides, so wait for it.
+                return None
+
+            count_task = asyncio.create_task(ctx.run(
+                _branch, "sql", "filtered_candidates", "count_ms", _wrap_count,
+            ))
+            dense_task = asyncio.create_task(ctx.run(
+                _branch, "vector", "dense_rows", "dense_ms",
+                _wrap_dense if cfg["use_dense"] else _wrap_dense_skip,
+            ))
+            skill_task = asyncio.create_task(ctx.run(
+                _branch, "skills", "skill_rows", "skill_ms",
+                _wrap_skill if cfg["use_skill_exact"] else _wrap_skill_skip,
+            ))
+            bm25_task = _bm25_task()
 
             total_scanned = await count_task
             retrieval_policy["keyword"]["candidate_count"] = total_scanned
@@ -638,13 +797,12 @@ class HybridSearchEngine:
                     **keyword_decision.to_dict(),
                     "backend": cfg.get("bm25_backend", "fts"),
                 }
-                if keyword_decision.action == "run":
-                    bm25_task = asyncio.create_task(ctx.run(_wrap_bm25, keyword_decision))
-                else:
-                    bm25_task = asyncio.create_task(ctx.run(_wrap_keyword_skip, keyword_decision))
+                bm25_task = _bm25_task()
 
             dense_rows, skill_rows = await asyncio.gather(dense_task, skill_task)
             bm25_rows = await bm25_task if bm25_task is not None else []
+            if prefetched_branches:
+                retrieval_policy["prefetched_branches"] = sorted(set(prefetched_branches))
 
             # ── Step 11: RRF fusion ───────────────────────────────────────────
             fusion_started = _time.perf_counter()
@@ -780,6 +938,8 @@ class HybridSearchEngine:
                 logger.info("Auto-relaxing empty search with %s", relaxations)
                 relaxed_cfg = dict(cfg)
                 relaxed_cfg["use_auto_relax"] = False
+                # No prefetched rows here: relaxing changes the hard filter, so
+                # every branch input differs and nothing cached still applies.
                 relaxed_resp = await self._full_pipeline(
                     relaxed_spec,
                     relaxed_cfg,

@@ -131,7 +131,7 @@ def test_smart_search_still_calls_planner_when_query_provided():
     sentinel_spec.semantic_query = "python developer"
     plan_mock = AsyncMock(return_value=sentinel_spec)
 
-    async def _fake_full(spec, cfg, top_k, recruiter_prefs, recruiter_id, recruiter_profile, phase1_ms, spec_dict):
+    async def _fake_full(spec, cfg, top_k, recruiter_prefs, recruiter_id, recruiter_profile, phase1_ms, spec_dict, prefetched=None):
         from pipeline.search import SearchResponse
         return SearchResponse(results=["c1"], spec=spec, spec_dict=spec_dict)
 
