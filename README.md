@@ -2,12 +2,13 @@
 
 > Samsung PRISM GenAI Hackathon Y2026 - Theme 05: Interruptible Real-Time Agents
 
-[Play the GitHub-hosted demo (4:59)](https://github.com/pylrn/talent-atlas-realtime-agent/blob/main/docs/hackathon/demo/Talent_Atlas_PRISM_Demo.mp4) |
-[Presentation](docs/hackathon/submission/Talent_Atlas_PRISM_Y2026_Presentation.pptx) |
-[Technical overview](docs/hackathon/TECHNICAL_OVERVIEW.md) |
-[Demo script](docs/hackathon/DEMO_SCRIPT.md) |
-[AI disclosure](AI_DISCLOSURE.md) |
-[Submission checklist](docs/hackathon/SUBMISSION_CHECKLIST.md)
+## Project links
+
+- **Demo:** [Play the GitHub-hosted video (4:59)](https://github.com/pylrn/talent-atlas-realtime-agent/blob/main/docs/hackathon/demo/Talent_Atlas_PRISM_Demo.mp4)
+- **Presentation:** [Download the Samsung PRISM deck](docs/hackathon/submission/Talent_Atlas_PRISM_Y2026_Presentation.pptx)
+- **Architecture:** [Read the technical overview](docs/hackathon/TECHNICAL_OVERVIEW.md)
+- **Demo guide:** [Follow the presentation script](docs/hackathon/DEMO_SCRIPT.md)
+- **AI disclosure:** [Review the project disclosure](AI_DISCLOSURE.md)
 
 [![Play the Talent Atlas demo](docs/hackathon/demo/Talent_Atlas_PRISM_Demo_Poster.jpg)](https://github.com/pylrn/talent-atlas-realtime-agent/blob/main/docs/hackathon/demo/Talent_Atlas_PRISM_Demo.mp4)
 
