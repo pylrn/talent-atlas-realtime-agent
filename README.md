@@ -2,14 +2,16 @@
 
 > Samsung PRISM GenAI Hackathon Y2026 - Theme 05: Interruptible Real-Time Agents
 
-[Watch the 4:59 demo](docs/hackathon/demo/Talent_Atlas_PRISM_Demo.mp4) |
+[Play the GitHub-hosted demo (4:59)](https://github.com/pylrn/talent-atlas-realtime-agent/blob/main/docs/hackathon/demo/Talent_Atlas_PRISM_Demo.mp4) |
 [Presentation](docs/hackathon/submission/Talent_Atlas_PRISM_Y2026_Presentation.pptx) |
 [Technical overview](docs/hackathon/TECHNICAL_OVERVIEW.md) |
 [Demo script](docs/hackathon/DEMO_SCRIPT.md) |
 [AI disclosure](AI_DISCLOSURE.md) |
 [Submission checklist](docs/hackathon/SUBMISSION_CHECKLIST.md)
 
-[![Talent Atlas demo](docs/hackathon/demo/Talent_Atlas_PRISM_Demo_Poster.jpg)](docs/hackathon/demo/Talent_Atlas_PRISM_Demo.mp4)
+[![Play the Talent Atlas demo](docs/hackathon/demo/Talent_Atlas_PRISM_Demo_Poster.jpg)](https://github.com/pylrn/talent-atlas-realtime-agent/blob/main/docs/hackathon/demo/Talent_Atlas_PRISM_Demo.mp4)
+
+**Demo video:** Click the preview to play the MP4 hosted directly in this GitHub repository.
 
 Talent Atlas is a conversational recruiting system that searches a transformed
 public candidate corpus with hybrid RAG. A recruiter can speak naturally,
@@ -27,7 +29,7 @@ auditable activity graph.
 |---|---|
 | Source code | `api/`, `pipeline/`, `db/`, `scripts/` |
 | Presentation | `docs/hackathon/submission/Talent_Atlas_PRISM_Y2026_Presentation.pptx` |
-| Demo video | `docs/hackathon/demo/Talent_Atlas_PRISM_Demo.mp4` (4:59) |
+| Demo video | [GitHub-hosted MP4 (4:59)](https://github.com/pylrn/talent-atlas-realtime-agent/blob/main/docs/hackathon/demo/Talent_Atlas_PRISM_Demo.mp4) |
 | AI disclosure | `AI_DISCLOSURE.md` |
 | Detailed README | This file |
 | Requirements | `requirements.txt`, `pyproject.toml` |
@@ -259,14 +261,3 @@ Dockerfile               reproducible application image
 docker-compose.yml       app, PostgreSQL/pgvector, and Redis
 docker-compose.langfuse.yml  optional local observability stack
 ```
-
-## Known limits
-
-- The corpus is transformed public demonstration data, not a production
-  recruiting dataset.
-- The deterministic interruption benchmark proves orchestration behavior, not
-  production-scale database throughput.
-- Ranking quality depends on the source data and local retrieval models.
-- Model output can still be wrong; detailed claims must remain bounded by
-  retrieved evidence.
-- Wake-word detection and speech-synthesis quality are outside Theme 05 scope.
