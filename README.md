@@ -119,11 +119,172 @@ The product strategy and official acceptance-gate mapping live in
 research brief is in
 [`docs/hackathon/research/research-report.md`](docs/hackathon/research/research-report.md).
 
-## Existing Search Core
+## How tool calling works
 
-Two-stage search engine for hiring platforms: **structured SQL filtering** → **semantic vector similarity**.
+The model is an **orchestrator**, not the search engine. It is shown a small,
+application-owned catalogue of capabilities. Each capability has a name, a
+natural-language description and a JSON Schema generated from a Pydantic model.
+That is how the model knows which tools exist, when each one is appropriate and
+which arguments it may send. The realtime system prompt adds the operating
+policy: resolve uncertain skill aliases first, search only through tools, use
+`interrupt_search` for corrections, inspect evidence before detailed claims and
+reserve `cancel_current_action` for a genuine cancellation.
 
-## Architecture
+```mermaid
+flowchart LR
+    U[Recruiter speech, text or role image] --> M[Gemini Live]
+    R[Tool registry] -->|name + description + JSON Schema + behavior| M
+    P[System prompt + current session state] --> M
+    M -->|tool name + JSON arguments + call_id| D[RealtimeToolDispatcher]
+    D --> V{Allowed and valid?}
+    V -->|no| X[Reject and emit failed event]
+    V -->|yes| H[Application callback]
+    H --> S[Revisioned hybrid search or bounded workflow action]
+    S --> E[Evidence + state snapshot + tool result]
+    E --> M
+    E --> UI[Conversation cards, ranked results and Activity graph]
+    M -->|grounded spoken answer| U
+```
+
+The provider receives declarations shaped like this; it never receives the
+Python callback, database connection or search object:
+
+```json
+{
+  "name": "search_candidates",
+  "description": "Start a new grounded candidate search from the recruiter's request.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string", "minLength": 2, "maxLength": 1000},
+      "country": {
+        "anyOf": [
+          {"type": "string", "maxLength": 120},
+          {"type": "null"}
+        ],
+        "default": null
+      },
+      "must_skills": {
+        "type": "array",
+        "items": {"type": "string"},
+        "maxItems": 20
+      },
+      "top_k": {"type": "integer", "minimum": 1, "maximum": 20}
+    },
+    "required": ["query"]
+  },
+  "behavior": "NON_BLOCKING"
+}
+```
+
+The model can propose only a tool name and JSON arguments. The server then:
+
+1. resolves the name against a per-session allow-listed registry;
+2. validates the arguments with strict Pydantic models (`extra="forbid"`),
+   length/range bounds, enums and cross-field validators;
+3. checks that a trusted application callback exists;
+4. classifies the call as read-only or state-modifying and blocking or
+   non-blocking;
+5. runs deterministic application code and returns bounded JSON evidence;
+6. correlates request, completion, rejection or cancellation by `call_id` and
+   publishes an authoritative state snapshot.
+
+The realtime catalogue exposes `search_candidates`, `interrupt_search`,
+`inspect_candidate`, `compare_candidates`, `format_current_answer`,
+`list_skills`, `request_clarification`, `use_role_image`,
+`cancel_current_action` and `add_to_shortlist`. Only `add_to_shortlist` changes
+stored state. Its calls are idempotent, recorded in an effect log and share a
+scope so a corrected selection supersedes an older in-flight write instead of
+racing it. A normal spoken interruption stops speech but preserves valid
+retrieval; the next `interrupt_search` call patches only changed fields and the
+revision fingerprints decide which retrieval branches can be reused.
+
+The typed text copilot uses the same pattern through PydanticAI. Decorated
+Python functions become tool schemas, the model supplies JSON arguments and
+each function delegates to a deterministic `do_*` helper. It has a wider
+workflow surface for saved searches, outreach and analysis, but search still
+goes through the same engine and returns the same candidate-result contract.
+The realtime voice manifest intentionally stays smaller and does not expose an
+SQL tool. The text copilot's optional database-query helper is separately
+restricted to `SELECT`, four candidate tables, a 50-row limit and a five-second
+timeout; writes and DDL are rejected in code.
+
+## JSON is the search contract
+
+The direct `POST /search` endpoint provides the wider configuration surface.
+Pydantic validates this JSON and compiles it into one canonical search
+specification: hard eligibility, soft preferences, lexical terms, semantic
+meaning and ranking configuration. JSON selects known behavior; it is data,
+not executable code.
+
+```json
+{
+  "query": "backend engineer for payment systems",
+  "mode": "agent-quality",
+  "country": "India",
+  "city": "Bengaluru",
+  "skills": ["python", "postgresql"],
+  "skills_match": "and",
+  "min_years_exp": 4,
+  "should": {
+    "skills": ["kubernetes", "aws"],
+    "themes": ["payment systems", "distributed systems"],
+    "roles": ["backend engineer"]
+  },
+  "skill_weights": {
+    "python": 1.0,
+    "postgresql": 0.9,
+    "kubernetes": 0.5
+  },
+  "keyword_policy": "auto",
+  "enable_reranking": true,
+  "reranker": "local-fast",
+  "top_k": 10,
+  "include_rank_explanation": true,
+  "config_overrides": {
+    "use_dense": true,
+    "use_bm25": true,
+    "use_skill_exact": true,
+    "use_cross_encoder": true,
+    "use_feature_ranker": true,
+    "use_mmr": true
+  }
+}
+```
+
+- `no-llm` skips backend LLM planning when the caller already supplied a
+  structured plan.
+- `fast` uses smaller retrieval windows and skips the cross-encoder.
+- `quality` uses broader retrieval and cross-encoder review.
+- `agent-quality` assumes the agent already structured the request, skips a
+  redundant planner call and spends the extra work on final ranking.
+- Hard fields such as `country`, `city`, experience and required `skills`
+  control SQL eligibility; `should` fields influence evidence and ranking
+  without silently excluding candidates.
+- `config_overrides` is an expert/debugging surface for reproducible stage
+  experiments. Normal clients use named modes instead of controlling every
+  internal switch.
+
+## Retrieval and evidence flow
+
+After validation, the search fans out into SQL eligibility/count, pgvector
+semantic retrieval, PostgreSQL text retrieval and exact canonical-skill
+retrieval. Reciprocal Rank Fusion combines their positions without pretending
+the raw scores share a scale. An optional cross-encoder reviews only a bounded
+pool, then feature ranking and diversity produce the final candidate order.
+Explanations are generated from the score that actually sorted the result and
+carry the matching chunks and retrieval paths used as evidence.
+
+![Talent Atlas Evidence Inspector showing the validated query fanning out into SQL, vector, keyword and skill retrieval before fusion, reranking and grounding](docs/hackathon/assets/evidence-inspector.png)
+
+Tool calls are visible in the conversation as status cards. The collapsible
+**Activity** inspector shows every search revision and lets a reviewer open a
+node's validated input, bounded results, evidence, timing and raw event. This is
+the public audit surface for what the model requested and what the application
+actually executed; hidden chain-of-thought is neither required nor exposed.
+
+<details>
+<summary>Original two-stage prototype</summary>
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -139,6 +300,7 @@ Two-stage search engine for hiring platforms: **structured SQL filtering** → *
 │              Ranked Results (< 100ms)                   │
 └─────────────────────────────────────────────────────────┘
 ```
+</details>
 
 ## Quick Start
 

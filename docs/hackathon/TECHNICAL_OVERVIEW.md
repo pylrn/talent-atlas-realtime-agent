@@ -74,6 +74,37 @@ has a `call_id`. Retries are visible; state-changing calls additionally use an
 idempotency key and an effect scope, ensuring that a duplicate request cannot
 apply twice and a corrected write can supersede an older one.
 
+The model learns the tool surface from four inputs supplied on every Live
+session:
+
+1. a registry-controlled tool name;
+2. a concise description of when that tool should be used;
+3. a JSON Schema generated from its Pydantic argument model;
+4. `BLOCKING` or `NON_BLOCKING` behavior plus the realtime system policy.
+
+It does not receive Python functions or database handles. A model response may
+only propose a registered name and JSON arguments. The dispatcher resolves the
+name, rejects unknown tools, validates arguments with `extra="forbid"`, checks
+for a trusted callback and only then invokes application code. Tool return JSON
+is sent both to Gemini for grounded synthesis and to the UI as observable tool
+and state events.
+
+```json
+{
+  "name": "interrupt_search",
+  "arguments": {
+    "clear_location": true,
+    "intent": "refine"
+  },
+  "call_id": "provider-issued-correlation-id"
+}
+```
+
+That example does not create a fresh independent search. It produces a child
+`SearchPlanRevision`, explicitly clears the location slots and retains the
+unmentioned skills, experience and role intent. Branch fingerprints then decide
+what can be preserved, reused, cancelled or restarted.
+
 The default model-facing tools are:
 
 | Tool | Purpose | Behaviour |
@@ -93,6 +124,14 @@ Scenario manifests can register previously unseen tools at runtime. Their JSON
 Schema is compiled into a strict Pydantic model, and each tool is classified as
 read-only or state-modifying before it can execute. External callbacks, rather
 than manifest text, provide the executable implementation.
+
+The separate typed text copilot uses PydanticAI decorators to generate schemas
+for a wider workflow catalogue. Those functions remain thin wrappers: each
+delegates to a deterministic `do_*` helper and returns JSON. The text copilot
+can choose a named search mode (`no-llm`, `fast`, `quality` or
+`agent-quality`), while Gemini Live receives the smaller realtime search schema
+and the application translates it into the same canonical search engine. This
+keeps provider-specific conversation logic outside retrieval and ranking.
 
 ### 4. Revision and interruption logic
 
@@ -176,7 +215,10 @@ deliverable is the FastAPI service plus its browser UI and Docker definition.
 ## Guardrails
 
 - Strict schemas reject unknown or malformed tool fields.
-- The LLM never receives arbitrary SQL execution capability.
+- The realtime voice model has no SQL tool. The typed text copilot's optional
+  database helper accepts only `SELECT`, allow-lists four candidate tables,
+  injects a 50-row limit and enforces a five-second timeout; writes and DDL are
+  rejected before execution.
 - Search and profile tools expose bounded records and approved evidence.
 - Only `add_to_shortlist` modifies stored state.
 - State-changing retries are idempotent and written to an effect log.
@@ -187,6 +229,8 @@ deliverable is the FastAPI service plus its browser UI and Docker definition.
 - Unenforceable image requirements are reported rather than silently treated as
   active filters.
 - API keys and database credentials come only from environment variables.
+
+![Evidence Inspector showing the fork-and-join retrieval graph and per-node audit tabs](assets/evidence-inspector.png)
 
 ## Verified status
 
