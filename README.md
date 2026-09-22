@@ -1,10 +1,18 @@
 # Talent Atlas — Interruptible Realtime Hybrid RAG
 
+> **Samsung PRISM GenAI Hackathon Y2026 · Theme 05 — Interruptible Real-Time Agents**
+
+[Submission checklist](docs/hackathon/SUBMISSION_CHECKLIST.md) ·
+[Technical overview](docs/hackathon/TECHNICAL_OVERVIEW.md) ·
+[Demo script](docs/hackathon/DEMO_SCRIPT.md) ·
+[AI disclosure](AI_DISCLOSURE.md) ·
+[Theme strategy](docs/hackathon/STRATEGY.md)
+
 Talent Atlas is a conversational recruiting search system over PostgreSQL and
 pgvector. Gemini Live handles audio and natural conversation while an
 application-owned realtime harness validates typed tool calls, creates immutable
 search revisions, runs SQL, vector, keyword and exact-skill branches, preserves
-superseded work instead of discarding it, serves a repeated plan from a
+unaffected work while cancelling only invalidated branches, serves a repeated plan from a
 fingerprint-keyed revision cache with zero retrieval, fuses rankings, reranks a
 bounded pool, and returns grounded candidate evidence.
 
@@ -19,13 +27,25 @@ The recruiter stays in the original `/talent` interface. The execution graph is
 hidden under **Activity** until someone wants to inspect the fork/join workflow,
 the exact bounded results, timings, inputs, evidence or raw event for each node.
 
+## Submission status
+
+The working prototype, reproducible setup, Docker configuration, test harness,
+draft presentation and AI disclosure are in this repository. The final team
+identity, five-minute demo link and polished presentation are intentionally
+marked as pending in the [submission checklist](docs/hackathon/SUBMISSION_CHECKLIST.md).
+This is a browser-based Python application, so an Android APK or distributable
+SDK is **not applicable**.
+
+Do not create the final `PRISM_GENAI_HACKATHON_Y2026` tag until the team details,
+presentation and demo-video link are present. Samsung judges the tagged commit.
+
 ## Verify it without a database
 
 The graded surface needs no PostgreSQL, no network access and no API key. This
 is the whole harness, the interruption benchmark and the agent evaluation:
 
 ```bash
-python -m pytest tests -q                            # 654 tests
+python -m pytest -q                                  # 670 tests
 python scripts/benchmark_realtime_interruptions.py   # 12 scenarios, exits non-zero on failure
 python scripts/evaluate_realtime_agent.py            # pass/fail gate, exits non-zero on failure
 ```
@@ -63,8 +83,10 @@ python scripts/import_recruitment_dataset.py --limit 10000 --load-db
 python scripts/verify_local_corpus.py --expected-candidates 10000
 ```
 
-`GOOGLE_API_KEY` and `GEMINI_LIVE_MODEL=gemini-3.8-live` are required only for
-voice. Typed search works without Gemini.
+`GOOGLE_API_KEY` powers the default search planner, typed copilot (`AGENT_MODEL`)
+and voice session (`GEMINI_LIVE_MODEL=gemini-3.8-live`). Direct typed search can
+still use its deterministic fallback without Gemini, and the copilot model can
+be changed to any configured provider.
 
 **If `docker compose up` fails with `mkdir /host_mnt/Volumes/...: file exists`,**
 the checkout is on an external macOS volume that Docker Desktop cannot bind-mount
@@ -86,10 +108,11 @@ network access:
 .venv/bin/python scripts/evaluate_realtime_agent.py
 ```
 
-The report is a pass/fail gate, not a log. It fails if an interruption cancels
-in-flight retrieval, if a repeated plan touches the database, if retrieval does
-not start before end of speech, if a lookup tool is made non-blocking, or if the
-agent claims an outcome during a background retrieval.
+The report is a pass/fail gate, not a log. It fails if a bare barge-in cancels
+still-valid retrieval, if a revised constraint leaves invalid branches running,
+if a repeated plan touches the database, if retrieval does not start before end
+of speech, if a lookup tool is made non-blocking, or if the agent claims an
+outcome during a background retrieval.
 
 The product strategy and official acceptance-gate mapping live in
 [`docs/hackathon/STRATEGY.md`](docs/hackathon/STRATEGY.md). The supporting

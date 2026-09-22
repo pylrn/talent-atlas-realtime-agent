@@ -3,10 +3,21 @@ from types import SimpleNamespace
 
 import pytest
 from pipeline.agent_stream import (
-    sse_event, text_start, text_delta, text_end,
+    sse_event, text_start, text_delta,
     tool_call_start, tool_call_end,
-    search_results_event, push_to_main_event, stack_updated_event, error_event,
+    search_results_event, stack_updated_event,
 )
+
+
+def test_cross_provider_fallback_uses_supported_gemini_model(monkeypatch):
+    from pipeline import agent_run
+
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+
+    assert agent_run._fallback_model("deepseek:deepseek-chat") == "google:gemini-3.6-flash"
 
 
 def _parse(raw: str) -> tuple[str, dict]:

@@ -416,7 +416,7 @@ def _fallback_model(model: str) -> str | None:
     if os.environ.get("DEEPSEEK_API_KEY"):
         candidates.append("deepseek:deepseek-chat")
     if os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY"):
-        candidates.append("google:gemini-2.0-flash")
+        candidates.append("google:gemini-3.6-flash")
     if os.environ.get("GROQ_API_KEY"):
         candidates.append("groq:llama-3.3-70b-versatile")
 

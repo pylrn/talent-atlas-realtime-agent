@@ -49,7 +49,7 @@ burst on the results) and 12 (near-total primary field). No two adjacent pages
 may share the same dominant colour class.
 
 **Accent discipline.** Lime is spent once per page, on the one thing that page is
-about. On 03 it is the `654`. On 06 it is the two cancelled branches. On 08 it is
+about. On 03 it is the `670`. On 06 it is the two cancelled branches. On 08 it is
 `applied`. If a page has lime in two places, one of them is wrong.
 
 ### 2.2 Gradients and translucency

@@ -16,6 +16,7 @@ class FakeTransport:
             self.packets.put_nowait(packet)
         self.packets.put_nowait(None)
         self.audio_sent: list[bytes] = []
+        self.media_sent: list[tuple[bytes, str]] = []
         self.text_sent: list[str] = []
         self.tool_responses: list[tuple[str, str, dict]] = []
         self.closed = False
@@ -25,6 +26,9 @@ class FakeTransport:
 
     async def send_text(self, text: str) -> None:
         self.text_sent.append(text)
+
+    async def send_media(self, data: bytes, mime_type: str) -> None:
+        self.media_sent.append((data, mime_type))
 
     async def send_tool_response(self, call_id: str, name: str, response: dict) -> None:
         self.tool_responses.append((call_id, name, response))
@@ -59,10 +63,12 @@ async def test_bridge_forwards_audio_text_transcripts_and_output_audio() -> None
 
     await bridge.send_audio(b"pcm-input")
     await bridge.send_text("typed fallback")
+    await bridge.send_media(b"png-input", "image/png")
     await bridge.run()
 
     assert transport.audio_sent == [b"pcm-input"]
     assert transport.text_sent == ["typed fallback"]
+    assert transport.media_sent == [(b"png-input", "image/png")]
     assert audio == [b"pcm-output"]
     assert [kind for kind, _ in events] == [
         "transcript.input",

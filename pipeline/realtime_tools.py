@@ -32,11 +32,12 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, create_model, model_validator
 
 from pipeline.realtime_state import CONSTRAINT_SLOTS
 
@@ -90,13 +91,18 @@ class ReviseSearchArgs(_ToolArgs):
     excluded_skills: list[str] | None = Field(default=None, max_length=20)
     keyword_policy: Literal["auto", "skip", "force"] | None = None
     top_k: int | None = Field(default=None, ge=1, le=20)
+    clear_location: bool = Field(
+        default=False,
+        description="Remove city, country, and preferred-location constraints together.",
+    )
     intent: Literal["refine", "replace"] = "refine"
 
     @model_validator(mode="after")
     def require_change(self) -> ReviseSearchArgs:
         # `intent` alone is not a change: it describes how to treat the other
         # fields, so a call that sets only intent has nothing to apply.
-        if not (self.model_fields_set - {"intent"}):
+        changed = self.model_fields_set - {"intent"}
+        if not changed or (changed == {"clear_location"} and not self.clear_location):
             raise ValueError("At least one search field must change")
         return self
 
@@ -168,12 +174,112 @@ class UseRoleImageArgs(_ToolArgs):
     """
 
     image_id: str | None = Field(default=None, max_length=80)
+    description: str | None = Field(
+        default=None,
+        max_length=12000,
+        description="Exact visible role text and requirements read from the shared image.",
+    )
     query: str | None = Field(default=None, min_length=2, max_length=1000)
     ignore: list[str] = Field(default_factory=list, max_length=12)
     top_k: int = Field(default=8, ge=1, le=20)
 
 
 ToolCallback = Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]
+
+
+def _manifest_annotation(schema: dict[str, Any]) -> Any:
+    """Translate the JSON-Schema subset used by scenario manifests."""
+    enum = schema.get("enum")
+    if isinstance(enum, list) and enum:
+        return Literal.__getitem__(tuple(enum))
+
+    raw_type = schema.get("type", "string")
+    nullable = isinstance(raw_type, list) and "null" in raw_type
+    type_name = next((item for item in raw_type if item != "null"), "string") \
+        if isinstance(raw_type, list) else raw_type
+    annotation: Any
+    if type_name == "integer":
+        annotation = int
+    elif type_name == "number":
+        annotation = float
+    elif type_name == "boolean":
+        annotation = bool
+    elif type_name == "array":
+        annotation = list[_manifest_annotation(schema.get("items") or {})]
+    elif type_name == "object":
+        annotation = dict[str, Any]
+    else:
+        annotation = str
+    return annotation | None if nullable else annotation
+
+
+def _manifest_args_model(name: str, schema: dict[str, Any]) -> type[_ToolArgs]:
+    """Compile one manifest's parameter schema into a strict Pydantic model."""
+    if schema.get("type", "object") != "object":
+        raise ValueError(f"Tool {name} parameters must be a JSON object schema")
+    properties = schema.get("properties") or {}
+    if not isinstance(properties, dict):
+        raise TypeError(f"Tool {name} properties must be an object")
+    required = set(schema.get("required") or [])
+    unknown_required = required - set(properties)
+    if unknown_required:
+        raise ValueError(
+            f"Tool {name} requires undeclared fields: {', '.join(sorted(unknown_required))}"
+        )
+
+    fields: dict[str, tuple[Any, Any]] = {}
+    for field_name, raw in properties.items():
+        if not isinstance(raw, dict):
+            raise TypeError(f"Tool {name}.{field_name} must be a JSON schema")
+        annotation = _manifest_annotation(raw)
+        default = ... if field_name in required else raw.get("default", None)
+        constraints: dict[str, Any] = {}
+        for source, target in (
+            ("minimum", "ge"), ("maximum", "le"),
+            ("minLength", "min_length"), ("maxLength", "max_length"),
+            ("minItems", "min_length"), ("maxItems", "max_length"),
+            ("pattern", "pattern"),
+        ):
+            if source in raw:
+                constraints[target] = raw[source]
+        fields[field_name] = (
+            annotation,
+            Field(default=default, description=raw.get("description"), **constraints),
+        )
+
+    model_name = "".join(part.title() for part in re.split(r"[^A-Za-z0-9]+", name)) + "Args"
+    return create_model(model_name or "ScenarioToolArgs", __base__=_ToolArgs, **fields)
+
+
+def tool_spec_from_manifest(declaration: dict[str, Any]) -> ToolSpec:
+    """Parse one evaluator-provided tool declaration without trusting defaults."""
+    name = str(declaration.get("name") or "").strip()
+    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_.-]{0,79}", name):
+        raise ValueError(f"Invalid scenario tool name: {name!r}")
+    description = str(declaration.get("description") or "Scenario tool").strip()
+    schema = declaration.get("parameters") or declaration.get("input_schema") or {
+        "type": "object", "properties": {},
+    }
+    if not isinstance(schema, dict):
+        raise TypeError(f"Tool {name} parameters must be an object")
+
+    raw_effect = declaration.get("effect") or declaration.get("effect_type")
+    if raw_effect is None and declaration.get("read_only") is False:
+        raw_effect = "state_modifying"
+    effect: ToolEffect = "state_modifying" if raw_effect == "state_modifying" else "read_only"
+    behavior = str(declaration.get("behavior") or "BLOCKING").upper()
+    scope = str(declaration.get("scope") or name) if effect == "state_modifying" else None
+    return ToolSpec(
+        name=name,
+        description=description,
+        args_model=_manifest_args_model(name, schema),
+        effect=effect,
+        blocking=behavior != "NON_BLOCKING",
+        scope=scope,
+        # Every scenario write is protected even when the manifest forgot to
+        # repeat the policy. Identical retries hash to the same automatic key.
+        idempotent=effect == "state_modifying",
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -212,7 +318,8 @@ def _default_tool_specs() -> tuple[ToolSpec, ...]:
                 "'replace' when the recruiter has changed what they are looking for rather "
                 "than a criterion within it; hard filters from the previous search are then "
                 "dropped instead of silently carried over. Pass null for a field that should "
-                "be removed."
+                "be removed. Use clear_location=true to remove city, country, and preferred "
+                "locations as one deliberate change."
             ),
             args_model=InterruptSearchArgs,
             blocking=False,
@@ -260,7 +367,8 @@ def _default_tool_specs() -> tuple[ToolSpec, ...]:
                 "Search for the role the recruiter shared as an image. Requirements the "
                 "index cannot enforce are returned as unenforceable and must never be "
                 "described as active filters. Pass ignore with a requirement category or "
-                "phrase when the recruiter says to leave one out."
+                "phrase when the recruiter says to leave one out. Include exact visible role "
+                "text in description when the image arrived through the Live session."
             ),
             args_model=UseRoleImageArgs,
             blocking=False,
@@ -418,6 +526,44 @@ class RealtimeToolDispatcher:
         if removed:
             self.callbacks.pop(name, None)
         return removed
+
+    def load_manifest(
+        self,
+        manifest: dict[str, Any] | list[dict[str, Any]],
+        *,
+        callbacks: dict[str, ToolCallback] | None = None,
+    ) -> dict[str, Any]:
+        """Register evaluator-provided tools for this session only.
+
+        The evaluation contract may wrap declarations in ``tools`` or
+        ``function_declarations``. Handlers come from the mock environment, not
+        from untrusted manifest data; a declaration without a handler remains
+        visible but is rejected if the model attempts to execute it.
+        """
+        if isinstance(manifest, list):
+            declarations = manifest
+        elif isinstance(manifest, dict):
+            declarations = manifest.get("tools") or manifest.get("function_declarations") or []
+        else:
+            raise TypeError("Scenario tool manifest must be an object or list")
+        if not isinstance(declarations, list):
+            raise TypeError("Scenario tool manifest declarations must be a list")
+
+        handlers = callbacks or {}
+        registered: list[str] = []
+        for declaration in declarations:
+            if not isinstance(declaration, dict):
+                raise TypeError("Every scenario tool declaration must be an object")
+            spec = tool_spec_from_manifest(declaration)
+            self.register_tool(spec, handlers.get(spec.name))
+            registered.append(spec.name)
+        return {
+            "manifest_revision": self.registry.revision,
+            "registered": registered,
+            "state_modifying": sorted(
+                name for name in registered if name in self.registry.state_modifying()
+            ),
+        }
 
     @classmethod
     def tool_declarations(cls, registry: ToolRegistry | None = None) -> list[dict[str, Any]]:

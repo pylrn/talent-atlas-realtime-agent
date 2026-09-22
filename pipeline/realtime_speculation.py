@@ -45,9 +45,26 @@ _LOCATION_LONG = re.compile(
     r"(?=\s+(?:with|who|and|plus|having)\b|[,.;]|$)",
     re.IGNORECASE,
 )
-_LOCATION_SHORT = re.compile(
-    r"\bin\s+([A-Z][A-Za-z.'-]*(?:\s+[A-Z][A-Za-z.'-]*){0,2})(?=[,.;]|$)"
+_LOCATION_CITY_COUNTRY = re.compile(
+    r"\bin\s+([A-Z][A-Za-z.'-]*(?:\s+[A-Z][A-Za-z.'-]*){0,2})\s*,\s*"
+    r"([A-Z][A-Za-z.'-]*(?:\s+[A-Z][A-Za-z.'-]*){0,2})"
+    r"(?=\s+(?:with|who|and|plus|having|for)\b|[.;]|$)"
 )
+_LOCATION_SHORT = re.compile(
+    r"\bin\s+([A-Z][A-Za-z.'-]*(?:\s+[A-Z][A-Za-z.'-]*){0,2})"
+    r"(?=\s+(?:with|who|and|plus|having|for)\b|[,.;]|$)"
+)
+
+# This parser only recovers cities. Country filters remain the conversation
+# model's responsibility, so a country-only phrase must never be mislabeled as
+# a city merely because it follows "in".
+_COUNTRY_TERMS = {
+    "argentina", "australia", "brazil", "canada", "china", "france",
+    "germany", "india", "ireland", "italy", "japan", "mexico",
+    "netherlands", "new zealand", "singapore", "south africa", "spain",
+    "sweden", "switzerland", "uae", "uk", "united arab emirates",
+    "united kingdom", "united states", "us", "usa",
+}
 
 
 def is_speculatable(text: str) -> bool:
@@ -75,8 +92,11 @@ def plan_from_partial(text: str) -> SearchPlanRevision | None:
         return None
 
     city = None
-    match = _LOCATION_LONG.search(clean) or _LOCATION_SHORT.search(clean)
+    pair = _LOCATION_CITY_COUNTRY.search(clean)
+    match = pair or _LOCATION_LONG.search(clean) or _LOCATION_SHORT.search(clean)
     if match:
-        city = normalize_location(match.group(1).strip(" .,'\""))
+        candidate = normalize_location(match.group(1).strip(" .,'\""))
+        if candidate not in _COUNTRY_TERMS:
+            city = candidate
 
     return SearchPlanRevision.create(query=clean, city=city)

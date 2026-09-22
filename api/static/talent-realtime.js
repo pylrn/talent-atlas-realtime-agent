@@ -135,7 +135,8 @@
     if (event.type === "tool.completed") {
       setVoiceState("Responding from evidence");
       appendToolActivity(payload, "completed");
-      if ((payload.name === "search_candidates" || payload.name === "interrupt_search" || payload.name === "revise_search") &&
+      if ((payload.name === "search_candidates" || payload.name === "interrupt_search" ||
+          payload.name === "revise_search" || payload.name === "use_role_image") &&
           payload.result && Array.isArray(payload.result.candidates) && window.TalentApp) {
         window.TalentApp.applyRealtimeResults(payload.result);
       }
@@ -170,6 +171,12 @@
     }
     if (event.type === "vision.role_attached") {
       appendRoleImage(payload);
+    }
+    if (event.type === "media.received") {
+      appendMediaReceipt(payload);
+    }
+    if (event.type === "slow_path.summary") {
+      appendSlowPathSummary(payload);
     }
     if (event.type === "search.cancelled") {
       appendCancellation(payload);
@@ -476,6 +483,36 @@
     }
   }
 
+  function appendMediaReceipt(payload) {
+    var card = threadCard("realtime-media-card");
+    if (!card) return;
+    var title = document.createElement("strong");
+    title.textContent = String(payload.mime_type || "media").indexOf("image/") === 0
+      ? "Role image received"
+      : "Audio attachment received";
+    var detail = document.createElement("span");
+    detail.textContent = String(payload.name || "attachment") + " · " +
+      Math.max(1, Math.round(Number(payload.size_bytes || 0) / 1024)) + " KB";
+    card.appendChild(title);
+    card.appendChild(detail);
+  }
+
+  function appendSlowPathSummary(payload) {
+    var card = threadCard("realtime-slow-path");
+    if (!card) return;
+    var title = document.createElement("strong");
+    title.textContent = "Slow path · evidence ready";
+    var detail = document.createElement("span");
+    detail.textContent = Number(payload.total_candidates || 0) + " candidates considered · " +
+      Number(payload.visible_candidates || 0) + " shown with full evidence.";
+    card.appendChild(title);
+    card.appendChild(detail);
+    var stages = payload.retrieval_stages || [];
+    if (stages.length) card.appendChild(chipRow(stages, "executed"));
+    var changed = payload.changed_fields || [];
+    if (changed.length) card.appendChild(chipRow(changed, "changed"));
+  }
+
   function appendCancellation(payload) {
     var card = threadCard("realtime-cancellation");
     if (!card) return;
@@ -767,6 +804,36 @@
     }
   }
 
+  function readFileAsBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        resolve(String(reader.result || "").split(",", 2)[1] || "");
+      };
+      reader.onerror = function () { reject(reader.error || new Error("Could not read attachment")); };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function sendRealtimeMedia(file) {
+    if (!file) return;
+    var allowed = ["image/png", "image/jpeg", "audio/wav", "audio/x-wav"];
+    if (allowed.indexOf(file.type) === -1) throw new Error("Use a PNG, JPEG, or WAV file");
+    if (file.size > 5 * 1024 * 1024) throw new Error("Attachment must be 5 MB or smaller");
+    setVoiceState("Sending " + (file.type.indexOf("image/") === 0 ? "role image" : "audio"));
+    var socket = await connectSocket();
+    var data = await readFileAsBase64(file);
+    var mediaId = "media_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+    socket.send(JSON.stringify({
+      type: "media.input",
+      media_id: mediaId,
+      name: file.name,
+      mime_type: file.type,
+      data: data
+    }));
+    setVoiceState(file.type.indexOf("image/") === 0 ? "Reading role image" : "Understanding audio");
+  }
+
   async function stopVoice(notify) {
     setVoiceUi(false);
     clearPendingTranscripts();
@@ -799,6 +866,14 @@
     if (!byId("voiceToggle")) return;
     byId("voiceToggle").addEventListener("click", function () { state.active ? stopVoice(true) : startVoice(); });
     byId("voiceStop").addEventListener("click", function () { stopVoice(true); });
+    byId("realtimeMediaButton").addEventListener("click", function () { byId("realtimeMediaInput").click(); });
+    byId("realtimeMediaInput").addEventListener("change", function (event) {
+      var file = event.target.files && event.target.files[0];
+      sendRealtimeMedia(file).catch(function (error) {
+        console.error(error);
+        setVoiceState(error.message || "Attachment failed");
+      }).finally(function () { event.target.value = ""; });
+    });
     byId("activityButton").addEventListener("click", function () { byId("activityInspector").hidden ? openInspector() : closeInspector(); });
     byId("activityClose").addEventListener("click", function () { state.pinned = false; byId("activityPin").setAttribute("aria-pressed", "false"); closeInspector(); });
     byId("activityPin").addEventListener("click", function () {

@@ -73,6 +73,7 @@ def test_tool_declarations_do_not_expose_sql_or_credentials() -> None:
     assert "revise_search" not in serialized
     assert "list_skills" in serialized
     assert "should_themes" in serialized
+    assert "clear_location" in serialized
     assert "raw_sql" not in serialized
     assert "api_key" not in serialized
     assert "additionalproperties" not in serialized
@@ -174,6 +175,69 @@ async def test_a_runtime_registered_tool_is_dispatchable_and_removable() -> None
     assert dispatcher.unregister_tool("send_email") is True
     with pytest.raises(ToolRejected, match="Unknown realtime tool"):
         await dispatcher.dispatch("send_email", {"reason": "intro"})
+
+
+@pytest.mark.asyncio
+async def test_a_scenario_manifest_builds_and_validates_an_unseen_tool() -> None:
+    calls: list[dict] = []
+
+    async def lookup(payload: dict) -> dict:
+        calls.append(payload)
+        return {"answer": f"manual page {payload['page']}"}
+
+    dispatcher = RealtimeToolDispatcher({})
+    loaded = dispatcher.load_manifest({"tools": [{
+        "name": "lookup_manual",
+        "description": "Read one page from the supplied manual.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "page": {"type": "integer", "minimum": 1},
+                "topic": {"type": "string", "minLength": 2},
+            },
+            "required": ["page"],
+        },
+        "effect": "read_only",
+        "behavior": "NON_BLOCKING",
+    }]}, callbacks={"lookup_manual": lookup})
+
+    assert loaded["registered"] == ["lookup_manual"]
+    assert "lookup_manual" in dispatcher.registry.non_blocking()
+    result = await dispatcher.dispatch("lookup_manual", {"page": 3, "topic": "battery"})
+    assert result["answer"] == "manual page 3"
+    assert calls == [{"page": 3, "topic": "battery"}]
+
+    with pytest.raises(ToolRejected, match="Invalid arguments"):
+        await dispatcher.dispatch("lookup_manual", {"page": 0})
+
+
+@pytest.mark.asyncio
+async def test_manifest_writes_are_idempotent_even_when_policy_is_omitted() -> None:
+    effects: list[str] = []
+
+    async def create_ticket(payload: dict) -> dict:
+        effects.append(payload["title"])
+        return {"ticket_id": "ticket-1"}
+
+    dispatcher = RealtimeToolDispatcher({})
+    dispatcher.load_manifest([{
+        "name": "create_ticket",
+        "description": "Create one support ticket.",
+        "input_schema": {
+            "type": "object",
+            "properties": {"title": {"type": "string", "minLength": 3}},
+            "required": ["title"],
+        },
+        "effect": "state_modifying",
+        "scope": "tickets",
+    }], callbacks={"create_ticket": create_ticket})
+
+    first = await dispatcher.dispatch("create_ticket", {"title": "screen issue"})
+    second = await dispatcher.dispatch("create_ticket", {"title": "screen issue"})
+
+    assert effects == ["screen issue"]
+    assert first["ticket_id"] == "ticket-1"
+    assert second["idempotent_replay"] is True
 
 
 @pytest.mark.asyncio

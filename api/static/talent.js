@@ -2489,7 +2489,12 @@
         retrieval_policy: toolResult && toolResult.retrieval_policy || {},
         relaxations_applied: toolResult && toolResult.relaxations_applied || []
       };
-      renderResults(candidates.length);
+      var totalAvailable = Math.max(
+        Number(toolResult && toolResult.count) || 0,
+        state.candidateIds.length,
+        candidates.length
+      );
+      renderResults(totalAvailable);
       if (state.results.length) requestAnimationFrame(function () { scrollResultsIntoView(state.results[0].id); });
     }
   });

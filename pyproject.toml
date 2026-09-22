@@ -9,7 +9,7 @@ include = ["pipeline*", "api*"]
 name = "hybrid-search"
 version = "0.1.0"
 description = "Two-stage hybrid search: structured SQL filtering + pgvector semantic search for hiring platforms"
-requires-python = ">=3.11"
+requires-python = ">=3.10,<3.13"
 dependencies = [
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.30.0",
@@ -46,7 +46,7 @@ extractors = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py310"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

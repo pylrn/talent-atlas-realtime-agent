@@ -30,7 +30,8 @@
   padding: 0 5px;
 }
 
-.voice-toggle {
+.voice-toggle,
+.media-toggle {
   align-items: center;
   background: #fff;
   border: 1.5px solid var(--rt-line);
@@ -46,19 +47,27 @@
   width: 46px;
 }
 
+.media-toggle svg {
+  display: block;
+  height: 19px;
+  width: 19px;
+}
+
 .voice-icon {
   display: block;
   height: 20px;
   width: 20px;
 }
 
-.voice-toggle:hover {
+.voice-toggle:hover,
+.media-toggle:hover {
   border-color: var(--rt-navy);
   color: var(--rt-navy);
   transform: translateY(-1px);
 }
 
-.voice-toggle:focus-visible {
+.voice-toggle:focus-visible,
+.media-toggle:focus-visible {
   outline: 3px solid rgba(207,95,56,.22);
   outline-offset: 2px;
 }
@@ -189,7 +198,9 @@
 .realtime-state-card,
 .realtime-clarification,
 .realtime-role-card,
-.realtime-cancellation {
+.realtime-cancellation,
+.realtime-media-card,
+.realtime-slow-path {
   align-self: start;
   background: #fff;
   border: 1px solid var(--rt-line);
@@ -224,11 +235,23 @@
   border-left: 3px solid var(--rt-rust);
 }
 
+.realtime-media-card {
+  background: #f7fafb;
+  border-left: 3px solid var(--rt-blue);
+}
+
+.realtime-slow-path {
+  background: #f4fbf8;
+  border-left: 3px solid var(--rt-green);
+}
+
 .realtime-ack strong,
 .realtime-state-card strong,
 .realtime-clarification strong,
 .realtime-role-card strong,
-.realtime-cancellation strong {
+.realtime-cancellation strong,
+.realtime-media-card strong,
+.realtime-slow-path strong {
   color: var(--rt-ink);
   font: 600 11px/1.2 Archivo, sans-serif;
   letter-spacing: .04em;
@@ -239,7 +262,9 @@
 .realtime-state-card span,
 .realtime-clarification span,
 .realtime-role-card span,
-.realtime-cancellation span {
+.realtime-cancellation span,
+.realtime-media-card span,
+.realtime-slow-path span {
   color: #4b5c68;
   font: 400 12px/1.45 Archivo, sans-serif;
 }
@@ -727,7 +752,7 @@
   .activity-head { padding: 17px 16px 14px; }
   .graph-scroll { padding: 16px; }
   .telemetry-panel { padding: 16px; }
-  .voice-toggle { flex-basis: 42px; height: 42px; width: 42px; }
+  .voice-toggle, .media-toggle { flex-basis: 42px; height: 42px; width: 42px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

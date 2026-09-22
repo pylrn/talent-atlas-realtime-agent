@@ -1307,14 +1307,31 @@ from pydantic_ai import Agent as _Agent
 
 
 def _get_llm_agent() -> _Agent:
-    """Pick the best available LLM provider, mirroring the main agent fallback order."""
+    """Use the configured copilot model, then fall back to an available provider."""
+    configured = _os.environ.get("AGENT_MODEL", "google:gemini-3.6-flash")
+    provider = configured.split(":", 1)[0]
+    provider_is_configured = (
+        provider == "google" and (_os.environ.get("GOOGLE_API_KEY") or _os.environ.get("GEMINI_API_KEY"))
+    ) or (provider == "deepseek" and _os.environ.get("DEEPSEEK_API_KEY")) or (
+        provider == "groq" and _os.environ.get("GROQ_API_KEY")
+    )
+    if provider_is_configured:
+        return _Agent(configured)
+    if _os.environ.get("GOOGLE_API_KEY") or _os.environ.get("GEMINI_API_KEY"):
+        return _Agent("google:gemini-3.6-flash")
     if _os.environ.get("DEEPSEEK_API_KEY"):
         return _Agent("deepseek:deepseek-chat")
-    if _os.environ.get("GOOGLE_API_KEY") or _os.environ.get("GEMINI_API_KEY"):
-        return _Agent("google:gemini-2.0-flash")
     if _os.environ.get("GROQ_API_KEY"):
         return _Agent("groq:llama-3.3-70b-versatile")
     raise RuntimeError("No LLM API key found (set DEEPSEEK_API_KEY, GOOGLE_API_KEY, or GROQ_API_KEY)")
+
+
+def _agent_result_text(result) -> str:
+    """Read text from current PydanticAI results while tolerating older releases."""
+    value = getattr(result, "output", None)
+    if value is None:
+        value = getattr(result, "data", "")
+    return str(value)
 
 async def do_update_shortlist(session, candidate_id: str, status: str) -> dict:
     """Status should be 'accepted', 'rejected', or 'held'."""
@@ -1371,13 +1388,14 @@ async def do_analyze_jd(jd_text: str) -> dict:
         f"{jd_text}"
     )
     res = await agent.run(prompt)
+    output = _agent_result_text(res)
     try:
-        raw = res.data.strip()
+        raw = output.strip()
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
         return json.loads(raw)
     except (json.JSONDecodeError, TypeError):
-        return {"analysis": res.data}
+        return {"analysis": output}
 
 
 async def do_draft_outreach(pool: asyncpg.Pool, candidate_id: str, role_context: str) -> dict:
@@ -1392,7 +1410,7 @@ async def do_draft_outreach(pool: asyncpg.Pool, candidate_id: str, role_context:
         f"Resume snippet: {detail['best_chunk'][:400]}"
     )
     res = await agent.run(prompt)
-    return {"draft": res.data, "candidate_name": detail["full_name"]}
+    return {"draft": _agent_result_text(res), "candidate_name": detail["full_name"]}
 
 
 async def do_generate_interview_questions(pool: asyncpg.Pool, candidate_id: str, role_context: str) -> dict:
@@ -1408,7 +1426,7 @@ async def do_generate_interview_questions(pool: asyncpg.Pool, candidate_id: str,
         "Focus on verifying the most important claims and probing likely gaps."
     )
     res = await agent.run(prompt)
-    return {"questions": res.data, "candidate_name": detail["full_name"]}
+    return {"questions": _agent_result_text(res), "candidate_name": detail["full_name"]}
 
 
 async def do_save_search(
@@ -1446,7 +1464,7 @@ async def do_compare_candidates(pool: asyncpg.Pool, id_a: str, id_b: str) -> dic
     return {
         "candidate_a": detail_a,
         "candidate_b": detail_b,
-        "comparison": res.data,
+        "comparison": _agent_result_text(res),
     }
 
 async def do_export_shortlist(pool, session) -> dict:

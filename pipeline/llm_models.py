@@ -27,6 +27,10 @@ LLM_MODEL_CATALOG = {
         },
     },
     "gemini": {
+        "gemini-3.6-flash": {
+            "description": "Current Flash model used by the typed copilot.",
+            "supports_thinking": True,
+        },
         "gemini-3.5-flash": {
             "description": "Newer Flash generation — ~2s avg, strong reasoning, tuned for agentic/coding.",
             "supports_thinking": True,

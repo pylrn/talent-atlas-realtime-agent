@@ -2,14 +2,13 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from pipeline.agent_tools import (
     do_run_search,
-    do_explain_poor_results,
     do_compare_iterations,
     do_get_candidate_detail,
     do_get_candidate_details,
     do_view_main_results,
     do_save_hint,
 )
-from pipeline.agent_session import AgentSession, StackEntry, RoleContext
+from pipeline.agent_session import AgentSession, StackEntry
 
 
 def _make_session() -> AgentSession:
@@ -24,6 +23,28 @@ def _make_entry(query="python dev", n_results=3) -> StackEntry:
                          for i in range(n_results)],
         agent_reasoning="initial search",
     )
+
+
+def test_auxiliary_agent_prefers_configured_model(monkeypatch):
+    from pipeline import agent_tools
+
+    created = []
+    monkeypatch.setenv("AGENT_MODEL", "google:gemini-3.6-flash")
+    monkeypatch.setenv("GOOGLE_API_KEY", "test-key")
+    monkeypatch.setattr(agent_tools, "_Agent", lambda model: created.append(model) or model)
+
+    assert agent_tools._get_llm_agent() == "google:gemini-3.6-flash"
+    assert created == ["google:gemini-3.6-flash"]
+
+
+def test_agent_result_text_supports_current_and_legacy_pydantic_ai_results():
+    from pipeline import agent_tools
+
+    current = type("CurrentResult", (), {"output": "current output"})()
+    legacy = type("LegacyResult", (), {"data": "legacy output"})()
+
+    assert agent_tools._agent_result_text(current) == "current output"
+    assert agent_tools._agent_result_text(legacy) == "legacy output"
 
 
 @pytest.mark.asyncio

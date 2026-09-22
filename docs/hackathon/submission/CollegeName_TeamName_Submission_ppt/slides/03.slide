@@ -38,7 +38,7 @@
                         color: '#97C459',
                         marginTop: 6,
                     }}>
-                        654
+                        670
                     </Text>
                     <Text style={{ fontFamily: 'Inter', fontSize: 20, fontWeight: 600, color: '#0B1F1A', marginTop: 14 }}>
                         tests pass

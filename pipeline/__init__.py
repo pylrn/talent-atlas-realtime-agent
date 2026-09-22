@@ -6,9 +6,6 @@ Loads from .env file and environment variables.
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
-from pipeline.llm_models import DEFAULT_LLM_MODELS
-
-
 class Settings(BaseSettings):
     """Application settings loaded from environment."""
 
@@ -39,18 +36,18 @@ class Settings(BaseSettings):
 
     # ─── Dormant Planner / Rerank Experiments ─
     # The public Smart-search path is disabled, but benchmark scripts can still use these.
-    llm_provider: str = "deepseek"
-    llm_model: str = "deepseek-chat"
+    llm_provider: str = "gemini"
+    llm_model: str = "gemini-2.5-flash-lite"
     reranker_model: str = "local-fast"
 
     # ─── Per-mode LLM overrides (UI-configurable) ─
     # Each pair defaults to "" which means: fall back to llm_provider / llm_model above.
     # Fast mode prioritises latency, quality mode prioritises planning depth, insights
     # drives the post-search AI summary call.
-    fast_llm_provider:     str = "deepseek"
-    fast_llm_model:        str = "deepseek-chat"
-    quality_llm_provider:  str = "deepseek"
-    quality_llm_model:     str = "deepseek-chat"
+    fast_llm_provider:     str = "gemini"
+    fast_llm_model:        str = "gemini-2.5-flash-lite"
+    quality_llm_provider:  str = "gemini"
+    quality_llm_model:     str = "gemini-2.5-flash-lite"
     insights_llm_provider: str = ""
     insights_llm_model:    str = ""
     insights_verify_grounding: bool = False

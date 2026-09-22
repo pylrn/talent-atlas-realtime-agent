@@ -33,7 +33,9 @@ from pipeline.realtime_events import EventEnvelope
 from pipeline.realtime_state import StateSnapshot
 from pipeline.realtime_tools import ToolRejected
 
-InboundKind = Literal["transcript", "interrupt", "tool_call", "user_text", "role_image"]
+InboundKind = Literal[
+    "transcript", "interrupt", "tool_call", "tool_manifest", "user_text", "role_image"
+]
 
 OutboundKind = Literal[
     "call",
@@ -85,6 +87,7 @@ class InboundEvent:
     call_id: str | None = None
     name: str = ""
     arguments: dict[str, Any] = field(default_factory=dict)
+    manifest: dict[str, Any] | list[dict[str, Any]] | None = None
     reason: str = "barge_in"
     image_id: str = ""
     turn_id: str | None = None
@@ -138,6 +141,15 @@ class InboundEvent:
             timestamp_ms=timestamp_ms,
         )
 
+    @classmethod
+    def tool_manifest(
+        cls,
+        manifest: dict[str, Any] | list[dict[str, Any]],
+        *,
+        timestamp_ms: float = 0.0,
+    ) -> InboundEvent:
+        return cls(kind="tool_manifest", manifest=manifest, timestamp_ms=timestamp_ms)
+
 
 @dataclass(slots=True)
 class OutboundMessage:
@@ -173,8 +185,14 @@ class RealtimeProtocolAdapter:
     ``call_id``.
     """
 
-    def __init__(self, session: Any) -> None:
+    def __init__(
+        self,
+        session: Any,
+        *,
+        tool_handlers: dict[str, Any] | None = None,
+    ) -> None:
         self.session = session
+        self.tool_handlers = dict(tool_handlers or {})
         self._sequence = 0
         # call_id -> the arguments it was first seen with, so a repeat is
         # reported as a duplicate instead of silently looking like a new call.
@@ -219,6 +237,19 @@ class RealtimeProtocolAdapter:
             await self.session.tools.note_barge_in(reason=event.reason)
         elif event.kind == "role_image":
             self.session.attach_role_image(event.image_id, event.text, source=event.reason)
+        elif event.kind == "tool_manifest":
+            result = self.session.tools.load_manifest(
+                event.manifest or [], callbacks=self.tool_handlers
+            )
+            messages = self.drain()
+            messages.append(self._message(
+                "acknowledgement",
+                payload={
+                    **result,
+                    "text": f"Loaded {len(result['registered'])} scenario tools.",
+                },
+            ))
+            return messages
         elif event.kind == "tool_call":
             return await self._dispatch(event)
         elif event.kind == "user_text":

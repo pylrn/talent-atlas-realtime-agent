@@ -19,6 +19,7 @@ class LivePacket:
 
 class LiveTransport(Protocol):
     async def send_audio(self, data: bytes) -> None: ...
+    async def send_media(self, data: bytes, mime_type: str) -> None: ...
     async def send_text(self, text: str) -> None: ...
     async def send_tool_response(self, call_id: str, name: str, response: dict[str, Any]) -> None: ...
     def receive(self) -> AsyncIterator[LivePacket]: ...
@@ -46,6 +47,9 @@ class GeminiLiveBridge:
 
     async def send_audio(self, data: bytes) -> None:
         await self.transport.send_audio(data)
+
+    async def send_media(self, data: bytes, mime_type: str) -> None:
+        await self.transport.send_media(data, mime_type)
 
     async def send_text(self, text: str) -> None:
         await self.transport.send_text(text)
@@ -151,6 +155,17 @@ class GoogleGenAILiveTransport:
         await self._session.send_realtime_input(
             audio=types.Blob(data=data, mime_type="audio/pcm;rate=16000")
         )
+
+    async def send_media(self, data: bytes, mime_type: str) -> None:
+        from google.genai import types
+
+        blob = types.Blob(data=data, mime_type=mime_type)
+        if mime_type.startswith("image/"):
+            await self._session.send_realtime_input(video=blob)
+        elif mime_type in {"audio/wav", "audio/x-wav"}:
+            await self._session.send_realtime_input(media=blob)
+        else:
+            raise ValueError(f"Unsupported Live media type: {mime_type}")
 
     async def send_text(self, text: str) -> None:
         await self._session.send_realtime_input(text=text)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from realtime_fakes import FakeEngine, make_session
 
 from pipeline.realtime_protocol import (
     InboundEvent,
@@ -10,17 +11,17 @@ from pipeline.realtime_protocol import (
     RealtimeProtocolAdapter,
 )
 
-from realtime_fakes import FakeEngine, make_session
-
 
 def _adapter(**kwargs):
     session = make_session(kwargs.pop("engine", None), session_id=kwargs.pop("session_id", "proto"))
-    return session, RealtimeProtocolAdapter(session)
+    return session, RealtimeProtocolAdapter(
+        session, tool_handlers=kwargs.pop("tool_handlers", None)
+    )
 
 
 @pytest.mark.asyncio
 async def test_a_tool_call_produces_a_call_and_a_snapshot() -> None:
-    session, adapter = _adapter()
+    _, adapter = _adapter()
 
     messages = await adapter.submit(InboundEvent.tool_call(
         "search_candidates", {"query": "python engineer", "top_k": 5}, call_id="call-1"
@@ -34,7 +35,7 @@ async def test_a_tool_call_produces_a_call_and_a_snapshot() -> None:
 
 @pytest.mark.asyncio
 async def test_an_interrupt_is_a_state_change_not_a_cancellation() -> None:
-    session, adapter = _adapter()
+    _, adapter = _adapter()
 
     messages = await adapter.submit(InboundEvent.interrupt(reason="barge_in"))
 
@@ -63,7 +64,7 @@ async def test_malformed_arguments_come_back_as_a_rejection() -> None:
 
 @pytest.mark.asyncio
 async def test_a_retried_call_id_is_reported_as_a_duplicate() -> None:
-    session, adapter = _adapter()
+    _, adapter = _adapter()
     event = InboundEvent.tool_call(
         "search_candidates", {"query": "python engineer", "top_k": 5}, call_id="call-dup"
     )
@@ -104,9 +105,36 @@ async def test_a_role_image_becomes_session_context() -> None:
 
 
 @pytest.mark.asyncio
+async def test_a_manifest_input_makes_an_unseen_scenario_tool_callable() -> None:
+    async def read_sensor(payload: dict) -> dict:
+        return {"reading": payload["sensor_id"], "ok": True}
+
+    _, adapter = _adapter(tool_handlers={"read_sensor": read_sensor})
+    manifest_messages = await adapter.submit(InboundEvent.tool_manifest({"tools": [{
+        "name": "read_sensor",
+        "description": "Read a device sensor.",
+        "parameters": {
+            "type": "object",
+            "properties": {"sensor_id": {"type": "string", "minLength": 2}},
+            "required": ["sensor_id"],
+        },
+        "read_only": True,
+    }]}))
+    call_messages = await adapter.submit(InboundEvent.tool_call(
+        "read_sensor", {"sensor_id": "temp-1"}, call_id="call-unseen"
+    ))
+
+    assert manifest_messages[-1].kind == "acknowledgement"
+    assert manifest_messages[-1].payload["registered"] == ["read_sensor"]
+    calls = [message for message in call_messages if message.kind == "call"]
+    assert calls[-1].payload["result"]["reading"] == "temp-1"
+    assert calls[-1].payload["result"]["ok"] is True
+
+
+@pytest.mark.asyncio
 async def test_every_message_carries_a_timestamp_on_the_session_timeline() -> None:
     """Two clocks would make every latency measurement a guess."""
-    session, adapter = _adapter()
+    _, adapter = _adapter()
 
     await adapter.submit(InboundEvent.tool_call(
         "search_candidates", {"query": "python engineer", "top_k": 5}, call_id="call-1"
@@ -124,7 +152,7 @@ async def test_every_message_carries_a_timestamp_on_the_session_timeline() -> No
 @pytest.mark.asyncio
 async def test_the_final_snapshot_is_never_a_speculative_guess() -> None:
     """A turn must not close on evidence that was only ever a guess."""
-    session, adapter = _adapter()
+    _, adapter = _adapter()
 
     await adapter.submit(InboundEvent.transcript("Find python engineers in Pune"))
 
@@ -133,7 +161,7 @@ async def test_the_final_snapshot_is_never_a_speculative_guess() -> None:
 
 @pytest.mark.asyncio
 async def test_the_final_snapshot_is_the_authoritative_state() -> None:
-    session, adapter = _adapter()
+    _, adapter = _adapter()
 
     await adapter.submit(InboundEvent.tool_call(
         "search_candidates", {"query": "python engineer", "top_k": 5}, call_id="call-1"

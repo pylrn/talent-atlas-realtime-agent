@@ -98,6 +98,8 @@ def test_talent_settings_exposes_user_config_controls_and_backend_endpoints():
 
     assert "deepseek:deepseek-v4-flash" in html
     assert "deepseek:deepseek-v4-pro" in html
+    assert "google:gemini-3.6-flash" in html
+    assert "google:gemini-2.0-flash" not in html
     assert 'fetch("/agent/model"' in js
     assert '"/personalization"' in js
     assert '"/memory"' in js

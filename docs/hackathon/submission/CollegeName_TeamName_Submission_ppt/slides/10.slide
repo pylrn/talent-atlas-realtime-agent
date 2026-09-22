@@ -134,7 +134,7 @@
                     <Box style={{ flexDirection: 'row', alignItems: 'center', height: 38, borderBottom: '1px solid #E1F5EE' }}>
                         <Text style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: 600, color: '#0B1F1A', width: 150 }}>Runtime</Text>
                         <Text style={{ fontFamily: 'Inter', fontSize: 15, color: '#6B7280', flex: 1, paddingLeft: 16 }}>
-                            Python 3.13 · pydantic v2 · Docker Compose
+                            Python 3.11 · pydantic v2 · Docker Compose
                         </Text>
                     </Box>
                     <Box style={{ flexDirection: 'row', alignItems: 'center', height: 38 }}>

@@ -160,6 +160,47 @@ async def test_search_uses_canonical_pipeline_once_with_structured_contract():
 
 
 @pytest.mark.asyncio
+async def test_initial_search_recovers_explicit_spoken_city_omitted_by_model():
+    engine = FakeEngine()
+    session = RealtimeAgentSession(engine, session_id="voice-spoken-city")
+    session.observe_transcript(
+        "Find accounting candidates in Bangalore, India with five years experience",
+        final=True,
+    )
+
+    result = await session.tools.dispatch("search_candidates", {
+        "query": "accounting candidates",
+        "country": "India",
+        "min_years_exp": 5,
+        "top_k": 8,
+    })
+
+    assert result["plan"]["city"] == "bangalore"
+    assert result["plan"]["country"] == "india"
+    assert engine.calls[0]["explicit_filters"]["city"] == "bangalore"
+
+
+@pytest.mark.asyncio
+async def test_spoken_city_repair_does_not_reappear_after_location_is_cleared():
+    session = RealtimeAgentSession(FakeEngine(), session_id="voice-city-clear")
+    session.observe_transcript(
+        "Find accounting candidates in Bangalore, India with five years experience",
+        final=True,
+    )
+    await session.tools.dispatch("search_candidates", {
+        "query": "accounting candidates",
+        "country": "India",
+        "min_years_exp": 5,
+        "top_k": 8,
+    })
+
+    result = await session.tools.dispatch("interrupt_search", {"clear_location": True})
+
+    assert result["plan"]["city"] is None
+    assert result["plan"]["country"] is None
+
+
+@pytest.mark.asyncio
 async def test_realtime_search_exposes_relaxation_to_agent_and_graph():
     relaxation = {
         "field": "location",
@@ -200,6 +241,81 @@ async def test_location_revision_reruns_canonical_pipeline_and_links_revision():
     assert engine.calls[1]["explicit_filters"]["city"] == "bangalore"
     plan_node = session.graph.nodes[f"plan-{second['revision_id']}"]
     assert "city" in plan_node.details["diff"]["changed_fields"]
+
+
+@pytest.mark.asyncio
+async def test_revision_preserves_requested_result_window_instead_of_visible_count():
+    engine = FakeEngine()
+    session = RealtimeAgentSession(engine, session_id="voice-result-window")
+
+    await session.tools.dispatch("search_candidates", {
+        "query": "accounting auditing financial reporting",
+        "city": "Bangalore",
+        "top_k": 12,
+    })
+    await session.tools.dispatch("interrupt_search", {"city": None})
+
+    assert engine.calls[0]["top_k"] == 12
+    assert engine.calls[1]["top_k"] == 12
+
+
+@pytest.mark.asyncio
+async def test_clear_location_removes_city_country_and_location_preferences():
+    engine = FakeEngine()
+    session = RealtimeAgentSession(engine, session_id="voice-clear-location")
+
+    await session.tools.dispatch("search_candidates", {
+        "query": "accounting auditing financial reporting",
+        "city": "Bangalore",
+        "country": "India",
+        "should_locations": ["remote"],
+        "top_k": 8,
+    })
+    result = await session.tools.dispatch("interrupt_search", {"clear_location": True})
+
+    assert result["plan"]["city"] is None
+    assert result["plan"]["country"] is None
+    assert result["plan"]["should_locations"] == []
+    assert set(session.last_run["changed_fields"]) >= {"city", "country", "should_locations"}
+
+
+@pytest.mark.asyncio
+async def test_compare_top_two_aliases_resolve_to_current_ranked_candidates():
+    session = RealtimeAgentSession(_OverlappingEngine(), session_id="voice-compare-top-two")
+    await session.tools.dispatch("search_candidates", {
+        "query": "python backend engineer",
+        "top_k": 8,
+    })
+
+    result = await session.tools.dispatch("compare_candidates", {
+        "candidate_ids": ["candidate-1", "candidate-2"],
+        "focus": "technical fit",
+    })
+
+    assert [candidate["candidate_id"] for candidate in result["candidates"]] == ["c-1", "c-2"]
+    assert result["resolved_candidate_ids"] == ["c-1", "c-2"]
+
+
+@pytest.mark.asyncio
+async def test_completed_search_emits_a_grounded_slow_path_summary():
+    session = RealtimeAgentSession(FakeEngine(), session_id="voice-slow-path")
+
+    result = await session.tools.dispatch("search_candidates", {
+        "query": "python machine learning engineer",
+        "city": "Hyderabad",
+        "top_k": 8,
+    })
+
+    events = []
+    while not session.events.empty():
+        events.append(session.events.get_nowait())
+    summaries = [event for event in events if event.type == "slow_path.summary"]
+    assert len(summaries) == 1
+    payload = summaries[0].payload
+    assert payload["revision_id"] == result["revision_id"]
+    assert payload["criteria"]["city"] == "hyderabad"
+    assert payload["retrieval_stages"] == ["vector", "bm25", "skills", "sql", "fusion", "rerank", "ground"]
+    assert payload["visible_candidates"] == len(result["candidates"])
 
 
 @pytest.mark.asyncio

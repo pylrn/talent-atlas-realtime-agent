@@ -11,6 +11,9 @@ def test_talent_page_loads_realtime_assets_and_controls():
     assert 'id="voiceHeard"' in html
     assert 'id="activityButton"' in html
     assert 'id="activityInspector"' in html
+    assert 'id="realtimeMediaButton"' in html
+    assert 'id="realtimeMediaInput"' in html
+    assert 'accept="image/png,image/jpeg,audio/wav"' in html
     assert 'id="executionGraph"' in html
     assert '/static/talent-realtime.css' in html
     assert '/static/talent-realtime.js' in html
@@ -44,6 +47,7 @@ def test_realtime_client_targets_talent_websocket_and_supports_audio():
     assert "data-telemetry-candidate" in talent_script
     assert "applyRealtimeResults" in talent_script
     assert 'payload.name === "search_candidates"' in script
+    assert 'payload.name === "use_role_image"' in script
     assert "candidate.feature_score != null" in talent_script
     assert "relaxations_applied" in talent_script
     assert "relaxationLabel" in talent_script
@@ -54,6 +58,17 @@ def test_realtime_client_targets_talent_websocket_and_supports_audio():
     assert "markAssistantInterrupted" in script
     assert "updateVoiceHeard" in script
     assert "Interrupt & Revise Search" in script
+    assert 'type: "media.input"' in script
+    assert "slow_path.summary" in script
+    assert "appendSlowPathSummary" in script
+
+
+def test_realtime_results_use_the_full_candidate_window_not_only_enriched_cards():
+    talent_script = (ROOT / "api/static/talent.js").read_text()
+
+    assert "totalAvailable" in talent_script
+    assert "state.candidateIds.length" in talent_script
+    assert "renderResults(totalAvailable)" in talent_script
 
 
 def test_realtime_transcript_and_tool_styles_are_present():

@@ -33,6 +33,22 @@ def test_plan_from_partial_extracts_query_and_location():
     assert plan.city == "pune"
 
 
+def test_plan_from_partial_extracts_city_from_city_country_pair():
+    plan = plan_from_partial(
+        "Find accounting candidates in Bangalore, India with five years experience"
+    )
+
+    assert plan is not None
+    assert plan.city == "bangalore"
+
+
+def test_plan_from_partial_does_not_mislabel_country_as_city():
+    plan = plan_from_partial("Find accounting candidates in India with five years experience")
+
+    assert plan is not None
+    assert plan.city is None
+
+
 def test_plan_from_partial_without_location_has_no_city():
     plan = plan_from_partial("find python engineers")
 

@@ -7,6 +7,7 @@ tools, cancellation, retrieval reuse and the evidence graph.
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 import uuid
 from collections.abc import Awaitable, Callable
@@ -98,6 +99,7 @@ class RealtimeAgentSession:
         )
         self.current_plan: SearchPlanRevision | None = None
         self.current_candidates: list[dict[str, Any]] = []
+        self._last_top_k = SPECULATIVE_TOP_K
         self.answer_format = "brief"
         self._generation = 0
         self._active_search_task: asyncio.Task[dict[str, Any]] | None = None
@@ -304,8 +306,17 @@ class RealtimeAgentSession:
 
     async def _search_candidates(self, arguments: dict[str, Any]) -> dict[str, Any]:
         values = dict(arguments)
-        top_k = int(values.pop("top_k", 8))
+        top_k = int(values.pop("top_k", self._last_top_k))
+        self._last_top_k = top_k
         previous = self.current_plan
+        if previous is None and not values.get("city") and self.transcript_buffer:
+            # Realtime models occasionally preserve the country but omit a city
+            # spoken in the same phrase ("Bangalore, India"). Recover only that
+            # explicit city on the initial search. Refinements never use this
+            # repair, so clearing location cannot resurrect stale transcript text.
+            spoken_plan = plan_from_partial(self.transcript_buffer)
+            if spoken_plan is not None and spoken_plan.city:
+                values["city"] = spoken_plan.city
         revision = previous.patch(**values) if previous is not None else SearchPlanRevision.create(**values)
         self.current_plan = revision
         return await self._execute_revision(revision, previous=previous, top_k=top_k)
@@ -315,7 +326,10 @@ class RealtimeAgentSession:
             raise ValueError("There is no active search to revise")
         values = dict(arguments)
         intent = str(values.pop("intent", "refine"))
-        top_k = int(values.pop("top_k", len(self.current_candidates) or 8))
+        top_k = int(values.pop("top_k", self._last_top_k))
+        self._last_top_k = top_k
+        if values.pop("clear_location", False):
+            values.update(city=None, country=None, should_locations=[])
         previous = self.current_plan
         if intent == "replace":
             # A different goal must not inherit hard filters the recruiter never
@@ -378,22 +392,27 @@ class RealtimeAgentSession:
             from_speculation = bool(cached.get("speculative"))
             if from_speculation:
                 self.speculation_stats["speculation_hits"] += 1
+            cached_result = {
+                **cached["result"],
+                "revision_id": revision.revision_id,
+                "parent_revision_id": revision.parent_revision_id,
+                "plan": revision.model_dump(mode="json", exclude={"branch_fingerprints"}),
+                "reused_branches": list(BRANCHES),
+                "executed_branches": [],
+                "served_from_cache": True,
+                "served_from_speculation": from_speculation,
+                "reused_from_revision_id": cached["revision_id"],
+                "duration_ms": round((time.perf_counter() - started) * 1000, 3),
+                "acknowledgement": acknowledgement,
+            }
+            cached_branches = BranchActivity(reused=list(BRANCHES))
+            self._emit_slow_path_summary(revision, diff, cached_result, cached_branches)
             return self._record_run(
-                self._with_session_context({
-                    **cached["result"],
-                    "revision_id": revision.revision_id,
-                    "parent_revision_id": revision.parent_revision_id,
-                    "plan": revision.model_dump(mode="json", exclude={"branch_fingerprints"}),
-                    "reused_branches": list(BRANCHES),
-                    "executed_branches": [],
-                    "served_from_cache": True,
-                    "served_from_speculation": from_speculation,
-                    "reused_from_revision_id": cached["revision_id"],
-                    "duration_ms": round((time.perf_counter() - started) * 1000, 3),
-                    "acknowledgement": acknowledgement,
-                }, revision, previous=previous, replaces_goal=replaces_goal),
+                self._with_session_context(
+                    cached_result, revision, previous=previous, replaces_goal=replaces_goal
+                ),
                 changed_fields=sorted(diff.changed_fields),
-                branches=BranchActivity(reused=list(BRANCHES)),
+                branches=cached_branches,
                 candidate_count=len(self.current_candidates),
             )
 
@@ -441,6 +460,8 @@ class RealtimeAgentSession:
 
         self.current_candidates = result["candidates"]
         self.reuse_stats["revisions"] += 1
+        branch_activity = BranchActivity.from_decisions(self.branches.decisions)
+        self._emit_slow_path_summary(revision, diff, result, branch_activity)
         return self._record_run(
             self._with_session_context(
                 {**result, "acknowledgement": acknowledgement},
@@ -449,7 +470,7 @@ class RealtimeAgentSession:
                 replaces_goal=replaces_goal,
             ),
             changed_fields=sorted(diff.changed_fields),
-            branches=BranchActivity.from_decisions(self.branches.decisions),
+            branches=branch_activity,
             candidate_count=len(self.current_candidates),
         )
 
@@ -937,15 +958,24 @@ class RealtimeAgentSession:
             branch_provider=self._branch_provider(revision, diff),
         )
         candidates = [_canonical_candidate(candidate) for candidate in canonical.get("results", [])]
+        candidate_ids = list(
+            canonical.get("candidate_ids") or [candidate["candidate_id"] for candidate in candidates]
+        )
+        visible_ids = {str(candidate.get("candidate_id")) for candidate in candidates}
+        deferred_candidate_ids = [
+            candidate_id for candidate_id in candidate_ids if str(candidate_id) not in visible_ids
+        ]
+        total_count = max(int(canonical.get("count") or 0), len(candidate_ids), len(candidates))
         return {
             "revision_id": revision.revision_id,
             "parent_revision_id": revision.parent_revision_id,
             "plan": revision.model_dump(mode="json", exclude={"branch_fingerprints"}),
             "canonical_spec": canonical.get("spec_summary") or {},
             "candidates": candidates,
-            "count": len(candidates),
-            "candidate_ids": canonical.get("candidate_ids") or [c["candidate_id"] for c in candidates],
-            "deferred_candidate_ids": canonical.get("deferred_candidate_ids") or [],
+            "count": total_count,
+            "visible_count": len(candidates),
+            "candidate_ids": candidate_ids,
+            "deferred_candidate_ids": deferred_candidate_ids,
             "retrieval_policy": canonical.get("retrieval_policy") or {},
             "phase_timings": canonical.get("phase_timings") or {},
             "relaxations_applied": canonical.get("relaxations_applied") or [],
@@ -1112,12 +1142,96 @@ class RealtimeAgentSession:
         return result
 
     async def _compare_candidates(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        result = await self.candidate_loader(arguments["candidate_ids"])
+        resolved_ids = self._resolve_candidate_references(arguments["candidate_ids"])
+        result = await self.candidate_loader(resolved_ids)
         return {
             "focus": arguments.get("focus"),
+            "resolved_candidate_ids": resolved_ids,
             "candidates": result.get("candidates", []),
             "comparison_rule": "Compare only returned profile fields and evidence; do not infer protected traits.",
         }
+
+    def _resolve_candidate_references(self, references: list[str]) -> list[str]:
+        """Resolve conversational ordinals against the current ranked result set."""
+        ranked = self.current_candidates
+        by_id = {
+            str(candidate.get("candidate_id")): str(candidate.get("candidate_id"))
+            for candidate in ranked
+            if candidate.get("candidate_id")
+        }
+        by_name = {
+            str(candidate.get("name") or "").strip().casefold(): str(candidate.get("candidate_id"))
+            for candidate in ranked
+            if candidate.get("name") and candidate.get("candidate_id")
+        }
+        ordinals = {
+            "first": 0, "1st": 0, "one": 0,
+            "second": 1, "2nd": 1, "two": 1,
+            "third": 2, "3rd": 2, "three": 2,
+            "fourth": 3, "4th": 3, "four": 3,
+            "fifth": 4, "5th": 4, "five": 4,
+        }
+        resolved: list[str] = []
+        unknown: list[str] = []
+        for reference in references:
+            raw = str(reference).strip()
+            folded = raw.casefold()
+            candidate_id = by_id.get(raw) or by_name.get(folded)
+            if candidate_id is None:
+                index: int | None = ordinals.get(folded)
+                if index is None:
+                    match = re.fullmatch(r"(?:candidate|top)[-_ ]?(\d+)", folded)
+                    if match:
+                        index = int(match.group(1)) - 1
+                if index is not None and 0 <= index < len(ranked):
+                    candidate_id = str(ranked[index].get("candidate_id"))
+            if not candidate_id:
+                unknown.append(raw)
+            elif candidate_id not in resolved:
+                resolved.append(candidate_id)
+        if unknown:
+            available = [
+                f"{index + 1}. {candidate.get('name') or candidate.get('candidate_id')}"
+                for index, candidate in enumerate(ranked[:6])
+            ]
+            raise ToolRejected(
+                f"Could not resolve candidate reference(s): {', '.join(unknown)}. "
+                f"Current ranked candidates: {'; '.join(available) or 'none'}."
+            )
+        return resolved
+
+    def _emit_slow_path_summary(
+        self,
+        revision: SearchPlanRevision,
+        diff: Any,
+        result: dict[str, Any],
+        branches: BranchActivity,
+    ) -> None:
+        """Publish an auditable decision trace without exposing model chain-of-thought."""
+        candidates = list(result.get("candidates") or [])
+        top_evidence = []
+        for candidate in candidates[:3]:
+            evidence = candidate.get("evidence") or candidate.get("explanation") or []
+            top_evidence.append({
+                "candidate_id": candidate.get("candidate_id"),
+                "name": candidate.get("name"),
+                "evidence": evidence[:2] if isinstance(evidence, list) else evidence,
+            })
+        self.graph.emit(
+            "slow_path.summary",
+            payload={
+                "revision_id": revision.revision_id,
+                "criteria": revision.model_dump(mode="json", exclude={"branch_fingerprints"}),
+                "changed_fields": sorted(diff.changed_fields),
+                "retrieval_stages": ["vector", "bm25", "skills", "sql", "fusion", "rerank", "ground"],
+                "branches": branches.model_dump(mode="json"),
+                "total_candidates": int(result.get("count") or len(candidates)),
+                "visible_candidates": len(candidates),
+                "top_evidence": top_evidence,
+                "policy": "Structured decision trace from tool inputs and retrieval telemetry; no hidden chain-of-thought.",
+            },
+            revision_id=revision.revision_id,
+        )
 
     async def _format_current_answer(self, arguments: dict[str, Any]) -> dict[str, Any]:
         self.answer_format = arguments["format"]
@@ -1341,6 +1455,13 @@ class RealtimeAgentSession:
             self.active_role_image.image_id if self.active_role_image is not None else None
         )
         image = self.role_images.get(image_id) if image_id else None
+        if image is None and image_id and arguments.get("description"):
+            self.attach_role_image(
+                image_id=image_id,
+                description=str(arguments["description"]),
+                source="gemini_live_vision",
+            )
+            image = self.role_images.get(image_id)
         if image is None:
             raise ToolRejected(
                 "No role image has been shared in this session. Ask the recruiter to "
@@ -1376,11 +1497,12 @@ class RealtimeAgentSession:
         result = await self._execute_revision(
             revision,
             previous=previous,
-            top_k=int(arguments.get("top_k") or 8),
+            top_k=int(arguments.get("top_k") or self._last_top_k),
             # A different image is a different goal. Re-applying the same image
             # is an amendment to the goal the session is already pursuing.
             replaces_goal=previous is not None and not same_role,
         )
+        self._last_top_k = int(arguments.get("top_k") or self._last_top_k)
         return {
             **result,
             "role_image": {

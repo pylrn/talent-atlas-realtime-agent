@@ -501,19 +501,17 @@
         <div class="form-grid">
           <label>Model
             <select id="agentModelSelect">
+              <optgroup label="Google Gemini">
+                <option value="google:gemini-3.6-flash">gemini-3.6-flash (recommended)</option>
+              </optgroup>
               <optgroup label="DeepSeek">
-                <option value="deepseek:deepseek-chat">deepseek-chat (recommended)</option>
+                <option value="deepseek:deepseek-chat">deepseek-chat</option>
                 <option value="deepseek:deepseek-reasoner">deepseek-reasoner</option>
               </optgroup>
               <optgroup label="Groq">
                 <option value="groq:llama-3.3-70b-versatile">llama-3.3-70b-versatile</option>
                 <option value="groq:llama-3.1-8b-instant">llama-3.1-8b-instant (fast)</option>
                 <option value="groq:gemma2-9b-it">gemma2-9b-it</option>
-              </optgroup>
-              <optgroup label="Google Gemini">
-                <option value="google:gemini-2.0-flash">gemini-2.0-flash</option>
-                <option value="google:gemini-1.5-flash">gemini-1.5-flash</option>
-                <option value="google:gemini-1.5-pro">gemini-1.5-pro</option>
               </optgroup>
             </select>
           </label>
