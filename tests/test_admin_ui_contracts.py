@@ -160,6 +160,7 @@ def test_search_results_render_ranking_explanation_dropdown():
     assert 'id="searchRankExplanation"' in html
     assert 'name="searchMode"' in html
     assert 'name="searchMode" value="no-llm"' in html
+    assert 'name="searchMode" value="agent-quality"' in html
     assert "No-LLM" in html
     assert '"no-llm":' in html
     assert "use_llm_planner:     false" in html
