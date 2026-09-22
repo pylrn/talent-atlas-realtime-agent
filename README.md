@@ -66,6 +66,12 @@ python scripts/verify_local_corpus.py --expected-candidates 10000
 `GOOGLE_API_KEY` and `GEMINI_LIVE_MODEL=gemini-3.8-live` are required only for
 voice. Typed search works without Gemini.
 
+**If `docker compose up` fails with `mkdir /host_mnt/Volumes/...: file exists`,**
+the checkout is on an external macOS volume that Docker Desktop cannot bind-mount
+from. Either move the checkout under `/Users`, or add the volume under
+Docker Desktop → Settings → Resources → File Sharing. The image itself builds
+fine either way; only the bind mounts are affected.
+
 **About `scripts/setup_external_runtime.sh`.** It keeps the multi-gigabyte model
 caches and the Postgres data directory inside an external-SSD checkout, and by
 default refuses to configure a runtime anywhere else. That default suits the

@@ -27,6 +27,13 @@ data/recruitment_dataset/manifest_10000.json
 server.log
 repomix-output.xml
 
+# Node (only jsdom is needed, for the optional UI verification)
+node_modules/
+package-lock.json
+
+# Local test scratch
+.pytest-tmp/
+
 # Docker
 pgdata/
 

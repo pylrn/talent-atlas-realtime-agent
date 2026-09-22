@@ -13,7 +13,7 @@ from pipeline.realtime_state import (
     unset_slots,
 )
 
-from realtime_fakes import BranchEngine, FakeEngine, make_session
+from realtime_fakes import BranchEngine, make_session
 
 
 def test_slots_name_every_constraint_including_the_empty_ones() -> None:
