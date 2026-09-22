@@ -4,15 +4,15 @@
 
 ## Project links
 
-- **Demo:** [Play the GitHub-hosted video (4:59)](https://github.com/pylrn/talent-atlas-realtime-agent/blob/main/docs/hackathon/demo/Talent_Atlas_PRISM_Demo.mp4)
+- **Demo:** [Watch the unlisted YouTube video (4:59)](https://youtu.be/0Df-gXn6DRM)
 - **Presentation:** [Download the Samsung PRISM deck](docs/hackathon/submission/Talent_Atlas_PRISM_Y2026_Presentation.pptx)
 - **Architecture:** [Read the technical overview](docs/hackathon/TECHNICAL_OVERVIEW.md)
 - **Demo guide:** [Follow the presentation script](docs/hackathon/DEMO_SCRIPT.md)
 - **AI disclosure:** [Review the project disclosure](AI_DISCLOSURE.md)
 
-[![Play the Talent Atlas demo](docs/hackathon/demo/Talent_Atlas_PRISM_Demo_Poster.jpg)](https://github.com/pylrn/talent-atlas-realtime-agent/blob/main/docs/hackathon/demo/Talent_Atlas_PRISM_Demo.mp4)
+[![Play the Talent Atlas demo](docs/hackathon/demo/Talent_Atlas_PRISM_Demo_Poster.jpg)](https://youtu.be/0Df-gXn6DRM)
 
-**Demo video:** Click the preview to play the MP4 hosted directly in this GitHub repository.
+**Demo video:** Click the preview to watch the unlisted YouTube upload. It is viewable only by people who have the link.
 
 Talent Atlas is a conversational recruiting system that searches a transformed
 public candidate corpus with hybrid RAG. A recruiter can speak naturally,
@@ -30,7 +30,7 @@ auditable activity graph.
 |---|---|
 | Source code | `api/`, `pipeline/`, `db/`, `scripts/` |
 | Presentation | `docs/hackathon/submission/Talent_Atlas_PRISM_Y2026_Presentation.pptx` |
-| Demo video | [GitHub-hosted MP4 (4:59)](https://github.com/pylrn/talent-atlas-realtime-agent/blob/main/docs/hackathon/demo/Talent_Atlas_PRISM_Demo.mp4) |
+| Demo video | [Unlisted YouTube video (4:59)](https://youtu.be/0Df-gXn6DRM) |
 | AI disclosure | `AI_DISCLOSURE.md` |
 | Detailed README | This file |
 | Requirements | `requirements.txt`, `pyproject.toml` |

@@ -27,9 +27,9 @@ above unless the form validation says otherwise.
 |---|---|---|
 | Source Code | Ready | `api/`, `pipeline/`, `db/`, `scripts/` |
 | Presentation | Ready for team details | `docs/hackathon/submission/Talent_Atlas_PRISM_Y2026_Presentation.pptx`; replace the team/college/member placeholders |
-| Video | Ready | `docs/hackathon/demo/Talent_Atlas_PRISM_Demo.mp4` (4:58.9, H.264/AAC) |
+| Video | Ready | [Unlisted YouTube video](https://youtu.be/0Df-gXn6DRM) (4:59) with the repository MP4 retained as a backup artifact |
 | AI Disclosure | Ready | `AI_DISCLOSURE.md` |
-| README | Ready | Root `README.md` with setup, architecture, testing and limitations |
+| README | Ready | Root `README.md` with setup, architecture, testing and submission links |
 | APK | N/A | Browser application; no Android deliverable is used or required |
 | SDK | N/A | Application prototype, not a distributed client SDK |
 | Requirements | Ready | `requirements.txt` and `pyproject.toml` |
