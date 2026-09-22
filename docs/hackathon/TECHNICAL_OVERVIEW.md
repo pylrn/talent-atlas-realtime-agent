@@ -207,7 +207,7 @@ The API's OpenAPI schema is available at `/docs` while the server is running.
 | Cache | In-memory or Redis 7 |
 | Observability | Langfuse and OpenTelemetry instrumentation |
 | Packaging | Docker and Docker Compose |
-| Verification | pytest, pytest-asyncio, Ruff and deterministic virtual-clock harness |
+| Verification | Deterministic virtual-clock benchmark, agent evaluation and pre-packaging test suite |
 
 There is no Android APK and no externally distributed SDK. The executable
 deliverable is the FastAPI service plus its browser UI and Docker definition.

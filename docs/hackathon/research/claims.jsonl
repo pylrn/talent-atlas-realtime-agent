@@ -1,6 +1,0 @@
-{"id":"C01","text":"SignalRAG should expose controller and evidence events directly in the demo.","evidence":["E01","E02"],"status":"adopted"}
-{"id":"C02","text":"Decomposition must be bounded and benchmarked rather than assumed to improve final ranking.","evidence":["E03","E04"],"status":"adopted"}
-{"id":"C03","text":"Grounding evaluation must verify real claim-to-chunk support.","evidence":["E05"],"status":"adopted"}
-{"id":"C04","text":"A lightweight revision state machine is preferable to a second autonomous agent for the first prototype.","evidence":["E01","E06"],"status":"adopted"}
-{"id":"C05","text":"The broader copilot can expose typed tools, while the live path retains a deterministic baseline for ablation.","evidence":["E07"],"status":"adopted"}
-{"id":"C06","text":"The public execution graph should mirror telemetry nesting.","evidence":["E08"],"status":"adopted"}

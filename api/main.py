@@ -81,7 +81,6 @@ from pipeline.metrics import metrics_snapshot
 from pipeline.llm_models import list_llm_models
 from pipeline.llm_models import gemini_model_supports_thinking
 from pipeline.observability import init_langfuse, shutdown_langfuse, init_otel
-from pipeline.live_rag import LiveRAGSession, TOOL_REGISTRY
 from pipeline.gemini_live import GeminiLiveBridge, GoogleGenAILiveTransport
 from pipeline.realtime_prompt import REALTIME_SYSTEM_PROMPT
 from pipeline.realtime_session import RealtimeAgentSession
@@ -245,7 +244,6 @@ TALENT_UI_FILE = Path(__file__).resolve().parent / "static" / "talent.html"
 TALENT_SETTINGS_UI_FILE = Path(__file__).resolve().parent / "static" / "talent-settings.html"
 TALENT_TOOL_RUNNER_UI_FILE = Path(__file__).resolve().parent / "static" / "talent-tool-runner.html"
 JOURNEY_UI_FILE = Path(__file__).resolve().parent / "static" / "project-story" / "index.html"
-LIVE_RAG_UI_FILE = Path(__file__).resolve().parent / "static" / "live-rag" / "index.html"
 MODEL_ENV_FILE = Path(".env")
 API_KEY_ENV_FIELDS = {
     "openai_api_key": "OPENAI_API_KEY",
@@ -312,8 +310,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Hybrid Search API",
-    description="Two-stage search: structured SQL filtering → semantic vector similarity",
+    title="Talent Atlas API",
+    description="Interruptible conversational agent over configurable hybrid talent search",
     version="0.2.0",
     lifespan=lifespan,
 )
@@ -326,8 +324,8 @@ app.add_middleware(
 )
 
 _static_dir = Path(__file__).resolve().parent / "static"
-_PUBLIC_DEMO_PATHS = {"/journey", "/live-rag", "/live-rag/api/tools", "/health"}
-_PUBLIC_DEMO_PREFIXES = ("/static/project-story/", "/static/live-rag/")
+_PUBLIC_DEMO_PATHS = {"/journey", "/health"}
+_PUBLIC_DEMO_PREFIXES = ("/static/project-story/",)
 
 
 @app.middleware("http")
@@ -706,84 +704,6 @@ async def project_journey_ui():
     return FileResponse(JOURNEY_UI_FILE, media_type="text/html")
 
 
-@app.get("/live-rag", include_in_schema=False)
-async def live_rag_ui():
-    """Serve the streaming Live RAG evaluation cockpit."""
-    if not LIVE_RAG_UI_FILE.exists():
-        raise HTTPException(status_code=404, detail="Live RAG UI file not found")
-    return FileResponse(LIVE_RAG_UI_FILE, media_type="text/html")
-
-
-@app.get("/live-rag/api/tools")
-async def live_rag_tools():
-    """Return the exact tools, triggers and guardrails shown by the demo UI."""
-    return {"tools": TOOL_REGISTRY, "count": len(TOOL_REGISTRY), "state_scope": "session-only"}
-
-
-@app.websocket("/live-rag/ws")
-async def live_rag_socket(websocket: WebSocket):
-    """Full-duplex transcript-to-evidence stream with superseded-work cancellation."""
-    await websocket.accept()
-    session = LiveRAGSession(app.state.search_engine)
-    active_task: asyncio.Task | None = None
-    send_lock = asyncio.Lock()
-
-    async def emit(event_type: str, payload: dict[str, Any]) -> None:
-        async with send_lock:
-            await websocket.send_json({
-                "type": event_type,
-                "session_id": session.session_id,
-                "timestamp_ms": round((time.perf_counter() - session.started_at) * 1000, 1),
-                **payload,
-            })
-
-    await emit("session.started", {
-        "message": "Ephemeral session created. No state will survive this socket.",
-        "tool_count": len(TOOL_REGISTRY),
-    })
-    try:
-        while True:
-            message = await websocket.receive_json()
-            message_type = message.get("type")
-            if message_type == "reset":
-                if active_task and not active_task.done():
-                    active_task.cancel()
-                session = LiveRAGSession(app.state.search_engine)
-                await emit("session.started", {
-                    "message": "Session reset. Previous transcript, evidence and citations were discarded.",
-                    "tool_count": len(TOOL_REGISTRY),
-                })
-                continue
-            if message_type != "transcript.chunk":
-                await emit("error", {"message": "Unsupported event type", "received": message_type})
-                continue
-
-            text = str(message.get("text") or "").strip()
-            if not text:
-                continue
-            await emit("transcript.delta", {
-                "text": text,
-                "is_final": bool(message.get("is_final")),
-                "source_elapsed_ms": message.get("elapsed_ms"),
-            })
-            if active_task and not active_task.done():
-                active_task.cancel()
-            active_task = asyncio.create_task(session.process(
-                text,
-                is_final=bool(message.get("is_final")),
-                emit=emit,
-            ))
-    except WebSocketDisconnect:
-        if active_task and not active_task.done():
-            active_task.cancel()
-    except Exception as exc:
-        logger.exception("Live RAG socket failed")
-        try:
-            await emit("error", {"message": str(exc)})
-        except Exception:
-            pass
-
-
 async def _extract_realtime_role_image(data: bytes, mime_type: str) -> str:
     """Read visible recruiting requirements from a shared frame for the slow path."""
     import httpx
@@ -920,6 +840,19 @@ async def talent_realtime_socket(websocket: WebSocket):
             command_type = command.get("type")
             if command_type == "session.start":
                 await start_bridge()
+            elif command_type == "session.pause":
+                runtime.graph.emit("session.paused", payload={
+                    "message": "Microphone paused; conversation and search context preserved.",
+                    "candidate_count": len(runtime.current_candidates),
+                })
+            elif command_type == "session.resume":
+                runtime.graph.emit("session.resumed", payload={
+                    "message": "Microphone resumed with the existing conversation context.",
+                    "candidate_count": len(runtime.current_candidates),
+                    "revision_id": (
+                        runtime.current_plan.revision_id if runtime.current_plan else None
+                    ),
+                })
             elif command_type == "session.stop":
                 break
             elif command_type == "session.reset":

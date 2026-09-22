@@ -1666,7 +1666,7 @@
       '<div class="rank-columns"><div class="rank-mini-panel"><strong>Rank</strong><div>#' + esc(explanation.rank_position || result.rank || "-") + ' · ' + esc(explanation.sort_basis || (hasScore ? "feature_score desc" : "agent selected order")) + '</div></div><div class="rank-mini-panel"><strong>Score used</strong><div>' + esc(hasScore ? formatScore(score100) + ' from ' + scoreBasis : 'No ranking score computed') + '</div></div></div>' +
       renderRetrievalPaths(explanation.retrieval_paths || result.retrieval_paths || []) +
       '<div class="rank-summary-note">' + esc(summary) + '</div>' +
-      '<div class="rank-columns">' + renderCheckList(checks.required, "Required", "No required checks returned.") + renderCheckList(checks.preferred, "Preferred", "No preferred checks returned.") + '</div>' +
+      '<div class="rank-columns">' + renderCheckList(checks.required, "Required", "No required checks returned.") + renderCheckList(checks.preferred, "Preferred", "No preferences were requested for this search.") + '</div>' +
       '<strong class="subtle">Confidence breakdown</strong><div class="rank-breakdown">' + (breakdown || '<div class="empty-state compact-empty">' + esc(hasScore ? 'No weighted scoring signals were available for this result.' : 'This card was selected from a DB/profile lookup, so weighted ranking signals were not computed.') + '</div>') + '</div>' +
       evidence +
       '</div></details>';
@@ -2311,6 +2311,9 @@
 
   async function newSession() {
     stopAgentResponse();
+    if (window.TalentRealtime && window.TalentRealtime.resetSession) {
+      await window.TalentRealtime.resetSession();
+    }
     await finalizeCurrentSession({ ended: true });
     state.sessionId = makeSessionId();
     localStorage.setItem("talent_session_id", state.sessionId);

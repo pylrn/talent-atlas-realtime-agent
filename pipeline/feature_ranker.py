@@ -71,12 +71,13 @@ def score_results(
 
     for r in results:
         signals = _compute_signals(r, spec, all_skills, must_count, should_count, recruiter_profile)
-        score   = sum(signals[k] * weights[k] for k in weights)
+        result_weights = _applicable_weights(weights, spec, r)
+        score   = sum(signals[k] * result_weights[k] for k in result_weights)
         # Normalise to 0-100
         r.feature_score   = round(min(100.0, max(0.0, score * 100)), 2)
         r.rank_score      = r.feature_score
         r.similarity_score = 1.0 - r.best_chunk_distance
-        r.ranking_signals  = _build_signal_list(signals, weights)
+        r.ranking_signals  = _build_signal_list(signals, result_weights)
         if r.feature_score > 0:
             r.sort_basis = "feature_score"
 
@@ -232,6 +233,26 @@ def _apply_recruiter_prefs(
                     continue
     total = sum(w.values()) or 1.0
     return {k: v / total for k, v in w.items()}
+
+
+def _applicable_weights(
+    weights: dict[str, float],
+    spec: CanonicalSearchSpec,
+    result: SearchResult,
+) -> dict[str, float]:
+    """Remove unavailable signals and renormalize the remaining evidence.
+
+    An absent preference category is not a failed preference. Likewise, the
+    candidates outside a bounded cross-encoder window were never reviewed by
+    that model and must not receive a zero text-quality score.
+    """
+    active = {name: weight for name, weight in weights.items() if weight > 0}
+    if not (spec.should.skills or spec.should.themes or spec.should.locations):
+        active.pop("should_match", None)
+    if result.rerank_score is None:
+        active.pop("cross_encoder", None)
+    total = sum(active.values()) or 1.0
+    return {name: weight / total for name, weight in active.items()}
 
 
 def _build_signal_list(signals: dict[str, float], weights: dict[str, float]) -> list[dict]:

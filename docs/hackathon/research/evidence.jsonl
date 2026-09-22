@@ -1,8 +1,0 @@
-{"id":"E01","sources":["S01","S02"],"claim":"Theme 4 requires early retrieval, multi-intent decomposition, fusion, stateful refinement, session-only memory and observable quality/latency/cost."}
-{"id":"E02","sources":["S02"],"claim":"Acceptance gates include >=80% early retrieval, >=70% multi-intent handling, >=85% citation support and complete trace coverage."}
-{"id":"E03","sources":["S03"],"claim":"Question decomposition followed by per-question retrieval and reranking can improve complex-query retrieval and answer quality."}
-{"id":"E04","sources":["S04"],"claim":"RAG Fusion can improve raw recall without improving final top-k quality and can add latency."}
-{"id":"E05","sources":["S05","S06","S07","S08"],"claim":"Retrieval, generation and citation support should be evaluated separately; citation presence alone is not sufficient evidence of grounding."}
-{"id":"E06","sources":["S09","S10"],"claim":"Stable partial intent can trigger useful speculative retrieval before end-of-utterance."}
-{"id":"E07","sources":["S11"],"claim":"Typed function signatures can provide validated model-facing tool schemas and runtime dependency injection."}
-{"id":"E08","sources":["S12"],"claim":"Session, trace and nested observation structure can represent controller, retrieval, fusion and generation stages."}

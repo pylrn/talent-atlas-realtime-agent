@@ -1,246 +1,133 @@
-# Talent Atlas — Interruptible Realtime Hybrid RAG
+# Talent Atlas
 
-> **Samsung PRISM GenAI Hackathon Y2026 · Theme 05 — Interruptible Real-Time Agents**
+> Samsung PRISM GenAI Hackathon Y2026 - Theme 05: Interruptible Real-Time Agents
 
-[Submission checklist](docs/hackathon/SUBMISSION_CHECKLIST.md) ·
-[Technical overview](docs/hackathon/TECHNICAL_OVERVIEW.md) ·
-[Demo script](docs/hackathon/DEMO_SCRIPT.md) ·
-[Video walkthrough](docs/hackathon/VIDEO_WALKTHROUGH.md) ·
-[AI disclosure](AI_DISCLOSURE.md) ·
-[Theme strategy](docs/hackathon/STRATEGY.md)
+[Watch the 4:59 demo](docs/hackathon/demo/Talent_Atlas_PRISM_Demo.mp4) |
+[Presentation](docs/hackathon/submission/Talent_Atlas_PRISM_Y2026_Presentation.pptx) |
+[Technical overview](docs/hackathon/TECHNICAL_OVERVIEW.md) |
+[Demo script](docs/hackathon/DEMO_SCRIPT.md) |
+[AI disclosure](AI_DISCLOSURE.md) |
+[Submission checklist](docs/hackathon/SUBMISSION_CHECKLIST.md)
 
-Talent Atlas is a conversational recruiting search system over PostgreSQL and
-pgvector. Gemini Live handles audio and natural conversation while an
-application-owned realtime harness validates typed tool calls, creates immutable
-search revisions, runs SQL, vector, keyword and exact-skill branches, preserves
-unaffected work while cancelling only invalidated branches, serves a repeated plan from a
-fingerprint-keyed revision cache with zero retrieval, fuses rankings, reranks a
-bounded pool, and returns grounded candidate evidence.
+[![Talent Atlas demo](docs/hackathon/demo/Talent_Atlas_PRISM_Demo_Poster.jpg)](docs/hackathon/demo/Talent_Atlas_PRISM_Demo.mp4)
 
-Retrieval starts before the recruiter stops talking. A settled prefix of the
-transcript warms the revision cache speculatively, so the model's own tool call
-is often served with no corpus work at all. Because retrieval runs in the
-background rather than blocking the turn, the agent keeps talking instead of
-going silent — and what it says during that window is audited, so it can name
-the criteria it just sent but never claim an outcome retrieval has not returned.
+Talent Atlas is a conversational recruiting system that searches a transformed
+public candidate corpus with hybrid RAG. A recruiter can speak naturally,
+interrupt the assistant, revise one requirement without losing the rest of the
+conversation, and inspect the evidence behind every result.
 
-The recruiter stays in the original `/talent` interface. The execution graph is
-hidden under **Activity** until someone wants to inspect the fork/join workflow,
-the exact bounded results, timings, inputs, evidence or raw event for each node.
+Gemini Live provides the full-duplex conversation layer. The application owns
+the agent harness: typed tools, validation, immutable search revisions,
+selective cancellation, hybrid retrieval, ranking, grounded answers, and the
+auditable activity graph.
 
-## Submission status
+## Submission package
 
-The working prototype, reproducible setup, Docker configuration, test harness,
-draft presentation and AI disclosure are in this repository. The final team
-identity, five-minute demo link and polished presentation are intentionally
-marked as pending in the [submission checklist](docs/hackathon/SUBMISSION_CHECKLIST.md).
-This is a browser-based Python application, so an Android APK or distributable
-SDK is **not applicable**.
+| Requirement | Repository artifact |
+|---|---|
+| Source code | `api/`, `pipeline/`, `db/`, `scripts/` |
+| Presentation | `docs/hackathon/submission/Talent_Atlas_PRISM_Y2026_Presentation.pptx` |
+| Demo video | `docs/hackathon/demo/Talent_Atlas_PRISM_Demo.mp4` (4:59) |
+| AI disclosure | `AI_DISCLOSURE.md` |
+| Detailed README | This file |
+| Requirements | `requirements.txt`, `pyproject.toml` |
+| Docker | `Dockerfile`, `docker-compose.yml` |
+| APK / SDK | Not applicable: browser application and Python service |
+| Judging tag | `PRISM_GENAI_HACKATHON_Y2026` |
 
-Do not create the final `PRISM_GENAI_HACKATHON_Y2026` tag until the team details,
-presentation and demo-video link are present. Samsung judges the tagged commit.
+## What makes it interruptible
 
-## Verify it without a database
+A normal voice assistant often treats each turn as one indivisible job. Talent
+Atlas treats a search as a revisioned plan whose branches declare what they
+depend on.
 
-The graded surface needs no PostgreSQL, no network access and no API key. This
-is the whole harness, the interruption benchmark and the agent evaluation:
-
-```bash
-python -m pytest -q                                  # 670 tests
-python scripts/benchmark_realtime_interruptions.py   # 12 scenarios, exits non-zero on failure
-python scripts/evaluate_realtime_agent.py            # pass/fail gate, exits non-zero on failure
-```
-
-The benchmark prints the headline numbers — first-acknowledgement latency
-against a 250 ms budget, which branches a query rewrite cancels, slot retention
-across a refinement, duplicate side effects, and whether the closing snapshot is
-grounded. Add `--output reports/realtime_benchmark.json` for the full report,
-including every check that ran.
-
-`reports/realtime_state_cards_preview.html` shows what the panel renders during
-an interruption. It is generated from the real handlers, so it cannot drift from
-the implementation:
-
-```bash
-npm install jsdom                                    # one optional dependency
-node scripts/verify_realtime_ui.js                   # 29 DOM checks
-node scripts/preview_realtime_cards.js               # regenerate the preview
-```
-
-## Run the full app
-
-```bash
-cd /path/to/this/checkout
-docker compose up -d                                 # postgres + redis + the app
-# Open http://127.0.0.1:8000/talent
-```
-
-The first build is heavy: it installs the CPU PyTorch wheel and bakes the two
-retrieval models into the image. Later starts are fast. The image ships the
-schema, not the data, so load the corpus once (it is a public dataset):
-
-```bash
-python scripts/import_recruitment_dataset.py --limit 10000 --load-db
-python scripts/verify_local_corpus.py --expected-candidates 10000
-```
-
-`GOOGLE_API_KEY` powers the default search planner, typed copilot (`AGENT_MODEL`)
-and voice session (`GEMINI_LIVE_MODEL=gemini-3.8-live`). Direct typed search can
-still use its deterministic fallback without Gemini, and the copilot model can
-be changed to any configured provider.
-
-**If `docker compose up` fails with `mkdir /host_mnt/Volumes/...: file exists`,**
-the checkout is on an external macOS volume that Docker Desktop cannot bind-mount
-from. Either move the checkout under `/Users`, or add the volume under
-Docker Desktop → Settings → Resources → File Sharing. The image itself builds
-fine either way; only the bind mounts are affected.
-
-**About `scripts/setup_external_runtime.sh`.** It keeps the multi-gigabyte model
-caches and the Postgres data directory inside an external-SSD checkout, and by
-default refuses to configure a runtime anywhere else. That default suits the
-machine this was built on; on a fresh clone either skip the script, or run it as
-`ALLOW_NON_SSD_RUNTIME=1 source scripts/setup_external_runtime.sh` to keep the
-runtime inside the checkout.
-
-Validate interruption, branch reuse, speculative prefetch and guardrails without
-network access:
-
-```bash
-.venv/bin/python scripts/evaluate_realtime_agent.py
-```
-
-The report is a pass/fail gate, not a log. It fails if a bare barge-in cancels
-still-valid retrieval, if a revised constraint leaves invalid branches running,
-if a repeated plan touches the database, if retrieval does not start before end
-of speech, if a lookup tool is made non-blocking, or if the agent claims an
-outcome during a background retrieval.
-
-The product strategy and official acceptance-gate mapping live in
-[`docs/hackathon/STRATEGY.md`](docs/hackathon/STRATEGY.md). The supporting
-research brief is in
-[`docs/hackathon/research/research-report.md`](docs/hackathon/research/research-report.md).
-
-## How tool calling works
-
-The model is an **orchestrator**, not the search engine. It is shown a small,
-application-owned catalogue of capabilities. Each capability has a name, a
-natural-language description and a JSON Schema generated from a Pydantic model.
-That is how the model knows which tools exist, when each one is appropriate and
-which arguments it may send. The realtime system prompt adds the operating
-policy: resolve uncertain skill aliases first, search only through tools, use
-`interrupt_search` for corrections, inspect evidence before detailed claims and
-reserve `cancel_current_action` for a genuine cancellation.
+- A bare barge-in stops generated speech without destroying valid retrieval.
+- A correction creates a child revision in the same session.
+- Changed fields invalidate only the branches that depended on them.
+- Unchanged filters, skills, and conversation evidence remain available.
+- Every tool request, cancellation, result, and state snapshot is correlated by
+  revision and call ID.
+- The assistant may acknowledge an instruction immediately, but it cannot claim
+  a candidate outcome until retrieved evidence exists.
 
 ```mermaid
 flowchart LR
-    U[Recruiter speech, text or role image] --> M[Gemini Live]
-    R[Tool registry] -->|name + description + JSON Schema + behavior| M
-    P[System prompt + current session state] --> M
-    M -->|tool name + JSON arguments + call_id| D[RealtimeToolDispatcher]
+    A[Microphone, text, image, or WAV] --> B[Gemini Live]
+    T[Typed tool manifest] --> B
+    B -->|tool name + JSON + call_id| D[Realtime dispatcher]
     D --> V{Allowed and valid?}
-    V -->|no| X[Reject and emit failed event]
-    V -->|yes| H[Application callback]
-    H --> S[Revisioned hybrid search or bounded workflow action]
-    S --> E[Evidence + state snapshot + tool result]
-    E --> M
-    E --> UI[Conversation cards, ranked results and Activity graph]
-    M -->|grounded spoken answer| U
+    V -->|No| X[Reject and publish failure]
+    V -->|Yes| R[Revisioned agent session]
+    R --> Q[Validated search plan]
+    Q --> S[SQL eligibility]
+    Q --> E[Vector meaning]
+    Q --> K[Keyword retrieval]
+    Q --> C[Exact skills]
+    S --> F[RRF fusion]
+    E --> F
+    K --> F
+    C --> F
+    F --> RR[Bounded reranking]
+    RR --> G[Grounded evidence]
+    G --> U[Results, voice answer, activity graph]
+    G --> B
 ```
 
-The provider receives declarations shaped like this; it never receives the
-Python callback, database connection or search object:
+## How tool calling works
+
+The model is the orchestrator, not the search engine. At session start it
+receives an application-owned tool catalogue. Every tool has:
+
+1. a stable name;
+2. a description of when it should be used;
+3. a JSON Schema generated from a Pydantic argument model;
+4. blocking or non-blocking behavior;
+5. read-only or state-modifying effect metadata.
+
+The model can propose only a tool name and JSON arguments. It never receives a
+database connection, SQL executor, or Python callback. The server resolves the
+name against the session allow-list, rejects unknown fields, applies length and
+range limits, verifies a trusted callback, and returns bounded JSON evidence.
+
+The realtime catalogue contains:
+
+| Tool | Purpose | Effect |
+|---|---|---|
+| `search_candidates` | Start a grounded hybrid search | Read-only, non-blocking |
+| `interrupt_search` | Patch the active plan and invalidate stale branches | Read-only, non-blocking |
+| `inspect_candidate` | Load bounded evidence for one result | Read-only, blocking |
+| `compare_candidates` | Compare candidates from the active result set | Read-only, blocking |
+| `format_current_answer` | Reformat already retrieved evidence | Read-only, blocking |
+| `list_skills` | Resolve wording to canonical skills | Read-only, blocking |
+| `request_clarification` | Ask only for genuinely missing criteria | Read-only, blocking |
+| `use_role_image` | Ground visible role requirements from an image | Read-only, non-blocking |
+| `cancel_current_action` | Cancel cancellable read-only work | Read-only, blocking |
+| `add_to_shortlist` | Persist a shortlist choice | Idempotent write |
+
+`add_to_shortlist` is the only realtime state-changing tool. It uses an
+idempotency key, an effect scope, and an audit log. Duplicate calls replay the
+stored outcome instead of applying twice, while a corrected in-flight write can
+be superseded safely.
+
+## Direct hybrid search contract
+
+`POST /search` exposes the same deterministic engine without the conversation
+layer. Pydantic compiles the JSON request into hard eligibility, soft
+preferences, lexical terms, semantic meaning, and ranking configuration.
 
 ```json
 {
-  "name": "search_candidates",
-  "description": "Start a new grounded candidate search from the recruiter's request.",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "query": {"type": "string", "minLength": 2, "maxLength": 1000},
-      "country": {
-        "anyOf": [
-          {"type": "string", "maxLength": 120},
-          {"type": "null"}
-        ],
-        "default": null
-      },
-      "must_skills": {
-        "type": "array",
-        "items": {"type": "string"},
-        "maxItems": 20
-      },
-      "top_k": {"type": "integer", "minimum": 1, "maximum": 20}
-    },
-    "required": ["query"]
-  },
-  "behavior": "NON_BLOCKING"
-}
-```
-
-The model can propose only a tool name and JSON arguments. The server then:
-
-1. resolves the name against a per-session allow-listed registry;
-2. validates the arguments with strict Pydantic models (`extra="forbid"`),
-   length/range bounds, enums and cross-field validators;
-3. checks that a trusted application callback exists;
-4. classifies the call as read-only or state-modifying and blocking or
-   non-blocking;
-5. runs deterministic application code and returns bounded JSON evidence;
-6. correlates request, completion, rejection or cancellation by `call_id` and
-   publishes an authoritative state snapshot.
-
-The realtime catalogue exposes `search_candidates`, `interrupt_search`,
-`inspect_candidate`, `compare_candidates`, `format_current_answer`,
-`list_skills`, `request_clarification`, `use_role_image`,
-`cancel_current_action` and `add_to_shortlist`. Only `add_to_shortlist` changes
-stored state. Its calls are idempotent, recorded in an effect log and share a
-scope so a corrected selection supersedes an older in-flight write instead of
-racing it. A normal spoken interruption stops speech but preserves valid
-retrieval; the next `interrupt_search` call patches only changed fields and the
-revision fingerprints decide which retrieval branches can be reused.
-
-The typed text copilot uses the same pattern through PydanticAI. Decorated
-Python functions become tool schemas, the model supplies JSON arguments and
-each function delegates to a deterministic `do_*` helper. It has a wider
-workflow surface for saved searches, outreach and analysis, but search still
-goes through the same engine and returns the same candidate-result contract.
-The realtime voice manifest intentionally stays smaller and does not expose an
-SQL tool. The text copilot's optional database-query helper is separately
-restricted to `SELECT`, four candidate tables, a 50-row limit and a five-second
-timeout; writes and DDL are rejected in code.
-
-## JSON is the search contract
-
-The direct `POST /search` endpoint provides the wider configuration surface.
-Pydantic validates this JSON and compiles it into one canonical search
-specification: hard eligibility, soft preferences, lexical terms, semantic
-meaning and ranking configuration. JSON selects known behavior; it is data,
-not executable code.
-
-```json
-{
-  "query": "backend engineer for payment systems",
-  "mode": "agent-quality",
-  "country": "India",
-  "city": "Bengaluru",
-  "skills": ["python", "postgresql"],
+  "query": "finance candidate",
+  "mode": "no-llm",
+  "skills": ["accounting", "auditing", "financial reporting"],
   "skills_match": "and",
-  "min_years_exp": 4,
+  "min_years_exp": 5,
   "should": {
-    "skills": ["kubernetes", "aws"],
-    "themes": ["payment systems", "distributed systems"],
-    "roles": ["backend engineer"]
-  },
-  "skill_weights": {
-    "python": 1.0,
-    "postgresql": 0.9,
-    "kubernetes": 0.5
+    "themes": ["forecasting", "financial controls"]
   },
   "keyword_policy": "auto",
   "enable_reranking": true,
-  "reranker": "local-fast",
-  "top_k": 10,
+  "top_k": 8,
   "include_rank_explanation": true,
   "config_overrides": {
     "use_dense": true,
@@ -253,212 +140,133 @@ not executable code.
 }
 ```
 
-- `no-llm` skips backend LLM planning when the caller already supplied a
-  structured plan.
-- `fast` uses smaller retrieval windows and skips the cross-encoder.
-- `quality` uses broader retrieval and cross-encoder review.
-- `agent-quality` assumes the agent already structured the request, skips a
-  redundant planner call and spends the extra work on final ranking.
-- Hard fields such as `country`, `city`, experience and required `skills`
-  control SQL eligibility; `should` fields influence evidence and ranking
-  without silently excluding candidates.
-- `config_overrides` is an expert/debugging surface for reproducible stage
-  experiments. Normal clients use named modes instead of controlling every
-  internal switch.
+- `no-llm` uses the supplied structure directly.
+- `fast` reduces retrieval windows and expensive review.
+- `quality` broadens retrieval and enables deeper reranking.
+- `agent-quality` assumes an agent already structured the request.
+- `must` constraints can remove a candidate; `should` preferences can only
+  influence rank.
 
-## Retrieval and evidence flow
+The engine fans out into SQL, vector, keyword, and exact-skill branches.
+Reciprocal Rank Fusion combines ranks without pretending their raw scores share
+a scale. A bounded cross-encoder and feature ranker review the strongest pool,
+then evidence is hydrated for the final candidates.
 
-After validation, the search fans out into SQL eligibility/count, pgvector
-semantic retrieval, PostgreSQL text retrieval and exact canonical-skill
-retrieval. Reciprocal Rank Fusion combines their positions without pretending
-the raw scores share a scale. An optional cross-encoder reviews only a bounded
-pool, then feature ranking and diversity produce the final candidate order.
-Explanations are generated from the score that actually sorted the result and
-carry the matching chunks and retrieval paths used as evidence.
+![Talent Atlas evidence graph](docs/hackathon/assets/evidence-inspector.png)
 
-![Talent Atlas Evidence Inspector showing the validated query fanning out into SQL, vector, keyword and skill retrieval before fusion, reranking and grounding](docs/hackathon/assets/evidence-inspector.png)
+The Activity drawer exposes the execution trace, not private chain-of-thought.
+It shows validated inputs, changed fields, branch decisions, durations,
+candidates, evidence, cancellations, and raw events.
 
-Tool calls are visible in the conversation as status cards. The collapsible
-**Activity** inspector shows every search revision and lets a reviewer open a
-node's validated input, bounded results, evidence, timing and raw event. This is
-the public audit surface for what the model requested and what the application
-actually executed; hidden chain-of-thought is neither required nor exposed.
+## Multimodal and session context
 
-<details>
-<summary>Original two-stage prototype</summary>
+The realtime WebSocket accepts microphone audio, text, PNG/JPEG role images,
+and WAV audio. Image text is treated as untrusted content and can only populate
+validated search slots. Requirements that the candidate schema cannot enforce
+are reported as unsupported instead of being presented as applied filters.
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Search Query                         │
-│  "Python dev with ML experience near Bangalore"        │
-├──────────────────────┬──────────────────────────────────┤
-│   Stage 1 (SQL)      │   Stage 2 (Vector)              │
-│   country='India'    │   embed(query) <=> chunks        │
-│   city='Bangalore'   │   cosine similarity              │
-│   'python' ∈ skills  │   HNSW index traversal           │
-│   ─── B-tree/GIN ─── │   ─── pgvector HNSW ───          │
-├──────────────────────┴──────────────────────────────────┤
-│              Ranked Results (< 100ms)                   │
-└─────────────────────────────────────────────────────────┘
-```
-</details>
+Voice transport can stop and resume inside the same Talent Atlas session. The
+active revision, ranked candidate IDs, and bounded evidence remain in the
+application-owned session, so a later request such as "explain the first result"
+does not depend on provider-side memory alone.
 
-## Quick Start
+## Demonstration data
 
-The app connects to whatever `DATABASE_URL` points at in `.env`. You can run
-against **local Docker Postgres** or **Supabase cloud** — pick one.
+The repository includes transformed public recruitment records for a realistic
+local demonstration. It is not production hiring data. Candidate names and
+contact fields are generated or transformed, and the application must not be
+used to make real employment decisions.
 
-### Option A — Local Docker Postgres
+The checked-in sample can be imported with:
 
 ```bash
-# 1. Start PostgreSQL + pgvector
-docker compose up -d
+python scripts/import_recruitment_dataset.py --limit 5000 --load-db
+python scripts/verify_local_corpus.py --expected-candidates 5000
+```
 
-# 2. Install Python deps
-pip install -e ".[dev]"
+The project was also exercised locally against a 10,000-record transformed
+corpus stored outside Git.
 
-# 3. Copy env and add your API key
+## Run locally
+
+### Docker
+
+```bash
 cp .env.example .env
-#    DATABASE_URL=postgresql://hybrid_user:hybrid_pass@localhost:5432/hiring_platform
-
-# 4. Seed test data (100 candidates with documents)
-python db/seed.py --candidates 100
-
-# 5. Start the API
-uvicorn api.main:app --reload
+# Add GOOGLE_API_KEY for Gemini Live voice and vision.
+docker compose up --build
 ```
 
-### Option B — Supabase cloud (current default in `.env`)
+Open:
 
-A 15k-candidate subset is already hosted on Supabase (free tier, ~362 MB). No
-Docker needed for the database — just point `.env` at the Supabase **session
-pooler** and start the app:
+- `http://127.0.0.1:8000/talent` - realtime conversational Talent Atlas;
+- `http://127.0.0.1:8000/ui` - direct configurable `/search` workspace;
+- `http://127.0.0.1:8000/docs` - OpenAPI and raw request/response contract;
+- `http://127.0.0.1:8000/journey` - project story and architecture;
+- `http://127.0.0.1:8000/health` - database and corpus health.
+
+### Python
 
 ```bash
-# .env (uses the IPv4 session pooler on port 5432 — NOT the IPv6 direct host):
-# DATABASE_URL=postgresql://postgres.<ref>:<pw>@aws-1-<region>.pooler.supabase.com:5432/postgres
-
-pip install -e ".[dev]"
-uvicorn api.main:app --reload          # embeddings still run locally
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+uvicorn api.main:app --host 127.0.0.1 --port 8010
 ```
 
-Verify either option: `curl -s http://localhost:8000/health` → expect
-`"candidates": 15000` (Supabase) or your seeded count (local).
+Primary configuration:
 
-> Migrating local data to a Supabase free-tier project (subset sizing, the
-> IPv6/pooler/timeout gotchas) is documented in
-> [docs/supabase_migration_runbook.md](docs/supabase_migration_runbook.md), with
-> a ready-to-run script at `scripts/migrate_subset_to_supabase.sh`.
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `REDIS_URL` | Optional shared cache |
+| `GOOGLE_API_KEY` | Gemini Live and vision |
+| `GEMINI_LIVE_MODEL` | Realtime model ID |
+| `AGENT_MODEL` | Typed copilot model |
+| `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | Optional trace export |
 
-## Embedding Providers
+Secrets are not stored in this repository.
 
-| Provider | Model | Dims | Cost/1M tokens | Notes |
-|----------|-------|------|----------------|-------|
-| **local** | all-MiniLM-L6-v2 | 384 | $0.00 | Zero cost, ~15ms/batch |
-| **local** | bge-small-en-v1.5 | 384 | $0.00 | Strong MTEB scores |
-| **gemini** | text-embedding-004 | 768 | $0.00 | Free tier generous |
-| **openai** | text-embedding-3-small | 1536 | $0.02 | Best price/quality |
-| **voyage** | voyage-3-lite | 512 | $0.02 | Fast + cheap |
-| **jina** | jina-embeddings-v3 | 1024 | $0.02 | OpenAI-compatible API |
-| **cohere** | embed-english-v3.0 | 1024 | $0.10 | Supports input types |
-| **openai** | text-embedding-3-large | 3072 | $0.13 | Highest quality |
+## Verification
 
-Switch provider in `.env`:
-```
-EMBEDDING_PROVIDER=local
-EMBEDDING_MODEL=all-MiniLM-L6-v2
-EMBEDDING_DIMENSIONS=384
-```
-
-### Benchmark Models
-```bash
-# Compare all providers you have keys for
-python scripts/benchmark.py --providers openai,gemini,local
-```
-
-### Benchmark Search Strategies
-```bash
-# Compare semantic, RRF, rerank, and optional LLM-planned strategies
-python3 scripts/benchmark_search_strategies.py
-```
-
-The search strategy benchmark writes:
-
-- `reports/search_strategy_benchmark.json`
-- `reports/search_strategy_benchmark.html`
-
-It compares `semantic`, `rrf`, `rrf_rerank`, `llm_rrf`, and `llm_rrf_rerank` using manual eval cases plus sampled imported cases from `data/recruitment_dataset/eval_cases_5000.jsonl`.
-
-Reported metrics include Top-1, Hit@3, Hit@10, MRR@10, nDCG@10, p50/p95/p99 latency, stage timings for planning/embedding/retrieval/rerank, planner accuracy where labels exist, and estimated LLM cost per 1,000 searches.
-
-Planner strategies are opt-in benchmark paths. If the selected LLM provider is not configured, the planner safely falls back to the original query and filters.
+Before packaging, the complete development suite passed with **674 tests**.
+The repository keeps the two judging-focused executable gates:
 
 ```bash
-# Smaller smoke run
-python3 scripts/benchmark_search_strategies.py \
-  --strategies rrf,llm_rrf,llm_rrf_rerank \
-  --imported-sample-size 10 \
-  --top-k 10
-
-# Use OpenAI instead of Gemini for the planner
-python3 scripts/benchmark_search_strategies.py --llm-provider openai
+python scripts/benchmark_realtime_interruptions.py
+python scripts/evaluate_realtime_agent.py
+docker compose config
 ```
 
-## API
+The benchmark covers speculative start, acknowledgement latency, bare
+barge-ins, selective cancellation, slot retention, revision reuse, malformed
+tools, dropped transport, duplicate writes, and grounded completion. Both
+Python scripts exit non-zero when a required invariant fails.
 
-### Search
-```bash
-curl -X POST http://localhost:8000/search \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "experienced ML engineer who has worked with transformer models",
-    "location": "Bangalore, India",
-    "min_years_exp": 3,
-    "min_salary": 90000,
-    "skills": ["python", "machine-learning"],
-    "top_k": 10
-  }'
+The edited submission video was validated as H.264/AAC, 1920x1206, 30 fps,
+**4:58.9**, with a decoded-stream integrity check before commit.
+
+## Repository layout
+
+```text
+api/                    FastAPI routes and browser interfaces
+pipeline/               retrieval, ranking, realtime session, tools, telemetry
+db/                     PostgreSQL schema and seed helpers
+data/                    transformed public demonstration sample
+scripts/                 import, smoke, benchmark, and evaluation commands
+docs/hackathon/          judging pack, deck, demo, and technical overview
+Dockerfile               reproducible application image
+docker-compose.yml       app, PostgreSQL/pgvector, and Redis
+docker-compose.langfuse.yml  optional local observability stack
 ```
 
-### Ingest a Document
-```bash
-curl -X POST http://localhost:8000/ingest \
-  -H "Content-Type: application/json" \
-  -d '{
-    "candidate_id": "uuid-here",
-    "doc_type": "transcript",
-    "title": "Technical Interview — Round 2",
-    "raw_text": "Full transcript text here..."
-  }'
-```
+## Known limits
 
-## Project Structure
-
-```
-hybrid-search/
-├── docker-compose.yml          # Postgres + PgBouncer
-├── pyproject.toml              # Python project config
-├── .env.example                # Environment template
-├── db/
-│   ├── migrations/             # SQL schema + indexes
-│   └── seed.py                 # Test data generator
-├── pipeline/
-│   ├── __init__.py             # Config (pydantic-settings)
-│   ├── chunker.py              # Token-aware text chunking
-│   ├── embedder.py             # 6 providers, 14+ models
-│   ├── database.py             # Connection pool manager
-│   ├── ingest.py               # Document ingestion pipeline
-│   └── search.py               # Two-stage hybrid search engine
-├── api/
-│   └── main.py                 # FastAPI endpoints
-└── scripts/
-    └── benchmark.py            # Model comparison tool
-```
-
-## Performance Targets
-
-| Metric | Target | How |
-|--------|--------|-----|
-| Search latency | < 100ms | ef_search=40, connection pooling, pre-filtered search space |
-| Embedding cost | $0/month | Use `local` provider with sentence-transformers |
-| Index memory | ~960MB/1M vectors | 384-dim with HNSW (all-MiniLM-L6-v2) |
+- The corpus is transformed public demonstration data, not a production
+  recruiting dataset.
+- The deterministic interruption benchmark proves orchestration behavior, not
+  production-scale database throughput.
+- Ranking quality depends on the source data and local retrieval models.
+- Model output can still be wrong; detailed claims must remain bounded by
+  retrieved evidence.
+- Wake-word detection and speech-synthesis quality are outside Theme 05 scope.

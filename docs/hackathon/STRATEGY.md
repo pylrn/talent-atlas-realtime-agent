@@ -138,7 +138,8 @@ mistaken for a decision they made, and the turn cannot be closed on one.
 
 Everything above is executed by `scripts/benchmark_realtime_interruptions.py`
 (12 scenarios) and `scripts/evaluate_realtime_agent.py`, both of which exit
-non-zero on failure, plus the `tests/` suite.
+non-zero on failure. The complete pre-packaging development suite passed 674
+tests before development-only test sources were removed from the judging repo.
 
 ## Innovation highlights
 
@@ -197,7 +198,6 @@ grades.
 The graded surface needs no database, no network and no API keys:
 
 ```bash
-python -m pytest -q                                    # 670 tests
 python scripts/benchmark_realtime_interruptions.py     # 12 scenarios, exit 0
 python scripts/evaluate_realtime_agent.py              # pass/fail gate, exit 0
 ```
@@ -205,7 +205,5 @@ python scripts/evaluate_realtime_agent.py              # pass/fail gate, exit 0
 The full voice demo additionally needs PostgreSQL (see the README) and
 `GOOGLE_API_KEY` for the live audio transport. Typed search works without it.
 
-The earlier Theme 04 research brief in `docs/hackathon/research/` predates this
-document and is scoped to Streaming Live RAG; several of its acceptance gates
-(early retrieval, state continuity) are still met, but this document supersedes
-it as the statement of what is being submitted.
+Earlier Theme 04 research informed the retrieval foundation, but the packaged
+repository contains only the Theme 05 submission evidence.

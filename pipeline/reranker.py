@@ -29,6 +29,28 @@ RERANKER_CATALOG = {
     "cohere":         ("rerank-english-v3.0",                    "$1/1K queries, excellent"),
 }
 
+_RERANK_DOCUMENT_MAX_CHARS = 2400
+
+
+def _build_rerank_document(result: SearchResult) -> str:
+    """Build a compact, evidence-rich document for pairwise reranking.
+
+    Cross-encoder limits are token based. The previous 512-character slice
+    used only a fraction of the model context and could cut the decisive skill
+    evidence out of long resume chunks.
+    """
+    location = ", ".join(part for part in (result.city, result.country) if part)
+    profile = [
+        f"Candidate: {result.full_name}" if result.full_name else "",
+        f"Location: {location}" if location else "",
+        f"Experience: {result.years_exp} years experience" if result.years_exp > 0 else "",
+        f"Skills: {', '.join(result.skills)}" if result.skills else "",
+    ]
+    evidence = [result.best_chunk]
+    evidence.extend(chunk.get("content", "") for chunk in result.supporting_chunks[:2])
+    text = "\n".join(part for part in profile + evidence if part)
+    return text[:_RERANK_DOCUMENT_MAX_CHARS]
+
 
 class Reranker(ABC):
     @abstractmethod
@@ -56,10 +78,7 @@ class LocalCrossEncoderReranker(Reranker):
 
         pairs = []
         for r in results:
-            evidence = r.best_chunk
-            for sc in r.supporting_chunks[:2]:
-                evidence += f"\n\n{sc.get('content', '')}"
-            pairs.append((query, evidence[:512]))
+            pairs.append((query, _build_rerank_document(r)))
 
         loop   = asyncio.get_running_loop()
         scores = await loop.run_in_executor(
@@ -116,12 +135,7 @@ class FastEmbedCrossEncoderReranker(Reranker):
         if not results:
             return results
 
-        documents = []
-        for result in results:
-            evidence = result.best_chunk
-            for chunk in result.supporting_chunks[:2]:
-                evidence += f"\n\n{chunk.get('content', '')}"
-            documents.append(evidence[:512])
+        documents = [_build_rerank_document(result) for result in results]
 
         loop = asyncio.get_running_loop()
         scores = await loop.run_in_executor(

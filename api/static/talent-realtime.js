@@ -58,7 +58,11 @@
     state.active = active;
     byId("voiceSessionBar").hidden = !active;
     byId("voiceToggle").setAttribute("aria-pressed", active ? "true" : "false");
-    var voiceLabel = active ? "End voice conversation" : "Start voice conversation";
+    var voiceLabel = active
+      ? "Pause voice input"
+      : (state.socket && state.socket.readyState === WebSocket.OPEN
+        ? "Resume voice conversation"
+        : "Start voice conversation");
     byId("voiceToggleLabel").textContent = voiceLabel;
     byId("voiceToggle").setAttribute("aria-label", voiceLabel);
     byId("voiceToggle").setAttribute("title", voiceLabel);
@@ -780,7 +784,9 @@
     setVoiceUi(true);
     setVoiceState("Connecting");
     try {
+      var resuming = !!(state.socket && state.socket.readyState === WebSocket.OPEN);
       var socket = await connectSocket();
+      if (resuming) socket.send(JSON.stringify({ type: "session.resume" }));
       state.mediaStream = await navigator.mediaDevices.getUserMedia({
         audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true }
       });
@@ -855,11 +861,22 @@
       byId("voiceHeard").hidden = true;
     }
     if (notify !== false && state.socket && state.socket.readyState === WebSocket.OPEN) {
-      state.socket.send(JSON.stringify({ type: "session.stop" }));
-      state.socket.close(1000, "user ended voice session");
+      state.socket.send(JSON.stringify({ type: "session.pause" }));
     }
     var chatStatus = byId("chatStatus");
     if (chatStatus) chatStatus.textContent = "copilot ready — keep refining";
+  }
+
+  async function closeRealtimeSession() {
+    await stopVoice(false);
+    var socket = state.socket;
+    state.socket = null;
+    state.socketReady = null;
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "session.stop" }));
+      socket.close(1000, "conversation ended");
+    }
+    setVoiceUi(false);
   }
 
   function bind() {
@@ -934,10 +951,15 @@
       }
     });
     window.addEventListener("resize", function () { drawGraphConnectors(nodesForRevision()); });
-    window.addEventListener("beforeunload", function () { if (state.active) stopVoice(true); });
+    window.addEventListener("beforeunload", function () { closeRealtimeSession(); });
   }
 
-  window.TalentRealtime = { openInspector: openInspector, handleEvent: handleEvent, state: state };
+  window.TalentRealtime = {
+    openInspector: openInspector,
+    handleEvent: handleEvent,
+    resetSession: closeRealtimeSession,
+    state: state
+  };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bind);
   else bind();
 }());

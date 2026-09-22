@@ -25,7 +25,7 @@
         kind: "Project artifacts",
         title: "Dataset search, rejection, transformation, and corpus growth",
         detail: "Evidence for the synthetic fixtures, 5,000-row transformation, resume corpus adapters, deduplication work, and measured local corpus.",
-        artifact: "pipeline/recruitment_dataset.py; pipeline/resume_corpus.py; docs/storage.md"
+        artifact: "pipeline/recruitment_dataset.py; pipeline/resume_corpus.py; db/migrations/"
       },
       {
         id: "minilm-model",
@@ -57,7 +57,7 @@
         kind: "Project benchmark",
         title: "Search strategy benchmark",
         detail: "An 80-query recorded evaluation comparing relevance and latency across search strategies. Its labels and sample size limit the strength of conclusions.",
-        artifact: "reports/search_strategy_benchmark.json; reports/reranking_evaluation.json"
+        artifact: "scripts/benchmark_realtime_interruptions.py; scripts/evaluate_realtime_agent.py"
       },
       {
         id: "pipeline-guide",
