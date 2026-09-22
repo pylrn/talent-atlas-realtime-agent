@@ -43,3 +43,44 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  # The application itself, so `docker compose up -d` runs the prototype rather
+  # than only its database. Embeddings and reranking run locally in-process, so
+  # retrieval needs no API key; GOOGLE_API_KEY is only required for voice.
+  #
+  # The first build is heavy: it installs the CPU PyTorch wheel and bakes the two
+  # retrieval models into the image. Subsequent starts are fast.
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: samsung_rag_app
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hybrid_user}:${POSTGRES_PASSWORD:-hybrid_pass}@postgres:5432/${POSTGRES_DB:-hiring_platform}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-local}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-all-MiniLM-L6-v2}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-384}
+      RERANKER_MODEL: ${RERANKER_MODEL:-local-fast}
+      CACHE_BACKEND: ${CACHE_BACKEND:-memory}
+      BM25_BACKEND: ${BM25_BACKEND:-fts}
+      HNSW_EF_SEARCH: ${HNSW_EF_SEARCH:-40}
+      # Optional. Without it the typed search path still works; only the live
+      # voice transport is unavailable.
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GEMINI_LIVE_MODEL: ${GEMINI_LIVE_MODEL:-gemini-3.8-live}
+      PORT: "8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).status == 200 else 1)
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s

@@ -12,8 +12,14 @@ else
 fi
 
 PROJECT_ROOT="$(cd "$(dirname "$SCRIPT_SOURCE")/.." && pwd -P)"
-if [[ "$PROJECT_ROOT" != /Volumes/MAC/* ]]; then
+# The external-SSD root is the default because it keeps multi-gigabyte model
+# caches and the Postgres data directory off the internal disk. A fresh checkout
+# on another machine has no such SSD, and refusing to run there would make the
+# project unreproducible, so the gate is an explicit opt-out rather than an
+# absolute rule. The default behaviour is unchanged.
+if [[ "$PROJECT_ROOT" != /Volumes/MAC/* && "${ALLOW_NON_SSD_RUNTIME:-0}" != "1" ]]; then
   print -u2 "Refusing to configure runtime outside the external SSD: $PROJECT_ROOT"
+  print -u2 "Re-run with ALLOW_NON_SSD_RUNTIME=1 to keep the runtime inside this checkout."
   return 1 2>/dev/null || exit 1
 fi
 

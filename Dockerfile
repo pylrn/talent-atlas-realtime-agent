@@ -18,6 +18,9 @@ RUN pip install --upgrade pip \
 COPY pyproject.toml README.md ./
 COPY api ./api
 COPY pipeline ./pipeline
+# Optional model instructions live outside the application code, so they have to
+# be copied explicitly or the image would silently run without them.
+COPY prompts ./prompts
 
 RUN pip install .
 

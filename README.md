@@ -19,18 +19,59 @@ The recruiter stays in the original `/talent` interface. The execution graph is
 hidden under **Activity** until someone wants to inspect the fork/join workflow,
 the exact bounded results, timings, inputs, evidence or raw event for each node.
 
+## Verify it without a database
+
+The graded surface needs no PostgreSQL, no network access and no API key. This
+is the whole harness, the interruption benchmark and the agent evaluation:
+
 ```bash
-cd /Volumes/MAC/Projects_devolopment/Samsum_rag
-source scripts/setup_external_runtime.sh
-docker compose up -d postgres
-.venv/bin/python scripts/verify_local_corpus.py --expected-candidates 10000 --require-external-root
-.venv/bin/python -m uvicorn api.main:app --host 127.0.0.1 --port 8010
-# Open http://127.0.0.1:8010/talent
+python -m pytest tests -q                            # 653 tests
+python scripts/benchmark_realtime_interruptions.py   # 12 scenarios, exits non-zero on failure
+python scripts/evaluate_realtime_agent.py            # pass/fail gate, exits non-zero on failure
+```
+
+The benchmark prints the headline numbers — first-acknowledgement latency
+against a 250 ms budget, which branches a query rewrite cancels, slot retention
+across a refinement, duplicate side effects, and whether the closing snapshot is
+grounded. Add `--output reports/realtime_benchmark.json` for the full report,
+including every check that ran.
+
+`reports/realtime_state_cards_preview.html` shows what the panel renders during
+an interruption. It is generated from the real handlers, so it cannot drift from
+the implementation:
+
+```bash
+npm install jsdom                                    # one optional dependency
+node scripts/verify_realtime_ui.js                   # 29 DOM checks
+node scripts/preview_realtime_cards.js               # regenerate the preview
+```
+
+## Run the full app
+
+```bash
+cd /path/to/this/checkout
+docker compose up -d                                 # postgres + redis + the app
+# Open http://127.0.0.1:8000/talent
+```
+
+The first build is heavy: it installs the CPU PyTorch wheel and bakes the two
+retrieval models into the image. Later starts are fast. The image ships the
+schema, not the data, so load the corpus once (it is a public dataset):
+
+```bash
+python scripts/import_recruitment_dataset.py --limit 10000 --load-db
+python scripts/verify_local_corpus.py --expected-candidates 10000
 ```
 
 `GOOGLE_API_KEY` and `GEMINI_LIVE_MODEL=gemini-3.8-live` are required only for
-voice. Typed search remains available without Gemini. The setup script
-deliberately selects the SSD-local Docker database and disables remote telemetry.
+voice. Typed search works without Gemini.
+
+**About `scripts/setup_external_runtime.sh`.** It keeps the multi-gigabyte model
+caches and the Postgres data directory inside an external-SSD checkout, and by
+default refuses to configure a runtime anywhere else. That default suits the
+machine this was built on; on a fresh clone either skip the script, or run it as
+`ALLOW_NON_SSD_RUNTIME=1 source scripts/setup_external_runtime.sh` to keep the
+runtime inside the checkout.
 
 Validate interruption, branch reuse, speculative prefetch and guardrails without
 network access:
