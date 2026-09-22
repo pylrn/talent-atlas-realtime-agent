@@ -5,6 +5,7 @@
 [Submission checklist](docs/hackathon/SUBMISSION_CHECKLIST.md) ·
 [Technical overview](docs/hackathon/TECHNICAL_OVERVIEW.md) ·
 [Demo script](docs/hackathon/DEMO_SCRIPT.md) ·
+[Video walkthrough](docs/hackathon/VIDEO_WALKTHROUGH.md) ·
 [AI disclosure](AI_DISCLOSURE.md) ·
 [Theme strategy](docs/hackathon/STRATEGY.md)
 
