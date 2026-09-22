@@ -1,0 +1,143 @@
+<Slide style={{
+    width: 1280,
+    height: 720,
+    padding: 0,
+    position: 'relative',
+    overflow: 'hidden',
+    background: 'linear-gradient(140deg, #04342C 0%, #0F6E56 100%)',
+}}>
+    <Box style={{
+        position: 'absolute',
+        left: 300,
+        top: 20,
+        width: 680,
+        height: 680,
+        borderRadius: 340,
+        border: '1px solid rgba(225,245,238,0.13)',
+    }} />
+    <Box style={{
+        position: 'absolute',
+        left: 400,
+        top: 120,
+        width: 480,
+        height: 480,
+        borderRadius: 240,
+        border: '1px solid rgba(151,196,89,0.26)',
+    }} />
+    <Box style={{
+        position: 'absolute',
+        left: 490,
+        top: 210,
+        width: 300,
+        height: 300,
+        borderRadius: 150,
+        background: 'rgba(151,196,89,0.07)',
+    }} />
+
+    <Box style={{
+        position: 'relative',
+        zIndex: 1,
+        width: '100%',
+        height: '100%',
+        padding: '64px 90px 48px 90px',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+    }}>
+        <Box style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+            <Box style={{ width: 34, height: 4, background: '#97C459' }} />
+            <Text style={{
+                fontFamily: 'JetBrains Mono',
+                fontSize: 15,
+                color: '#E1F5EE',
+                letterSpacing: 2.4,
+            }}>
+                THEME 05 · INTERRUPTIBLE REAL-TIME AGENTS
+            </Text>
+            <Box style={{ width: 34, height: 4, background: '#97C459' }} />
+        </Box>
+
+        <Text style={{
+            fontFamily: 'Inter',
+            fontSize: 56,
+            fontWeight: 'bold',
+            lineHeight: 1.28,
+            color: '#FFFFFF',
+            textAlign: 'center',
+            marginTop: 40,
+            maxWidth: 940,
+        }}>
+            Every turn publishes what it believes.
+            <br />
+            An interruption becomes a diff, not a restart.
+        </Text>
+
+        <Box style={{
+            marginTop: 44,
+            padding: '16px 30px',
+            border: '1px solid rgba(151,196,89,0.55)',
+            borderRadius: 4,
+            background: 'rgba(4,52,44,0.40)',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 20,
+        }}>
+            <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: '#97C459', letterSpacing: 1.4 }}>
+                RELEASE TAG
+            </Text>
+            <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 20, color: '#FFFFFF' }}>
+                PRISM_GENAI_HACKATHON_Y2026
+            </Text>
+        </Box>
+
+        <Box style={{
+            marginTop: 42,
+            paddingTop: 26,
+            borderTop: '1px solid rgba(225,245,238,0.22)',
+            flexDirection: 'row',
+            gap: 52,
+            alignItems: 'flex-start',
+        }}>
+            <Box style={{ flexDirection: 'column', gap: 7 }}>
+                <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 12, color: '#97C459', letterSpacing: 1.5 }}>
+                    TESTS
+                </Text>
+                <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 15, color: 'rgba(225,245,238,0.90)' }}>
+                    python -m pytest tests -q
+                </Text>
+            </Box>
+            <Box style={{ flexDirection: 'column', gap: 7 }}>
+                <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 12, color: '#97C459', letterSpacing: 1.5 }}>
+                    BENCHMARK
+                </Text>
+                <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 15, color: 'rgba(225,245,238,0.90)' }}>
+                    scripts/benchmark_realtime_interruptions.py
+                </Text>
+            </Box>
+            <Box style={{ flexDirection: 'column', gap: 7 }}>
+                <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 12, color: '#97C459', letterSpacing: 1.5 }}>
+                    EVALUATION
+                </Text>
+                <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 15, color: 'rgba(225,245,238,0.90)' }}>
+                    scripts/evaluate_realtime_agent.py
+                </Text>
+            </Box>
+        </Box>
+    </Box>
+
+    <Box style={{
+        position: 'absolute',
+        left: 90,
+        right: 90,
+        bottom: 30,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    }}>
+        <Text style={{ fontFamily: 'Inter', fontSize: 14, color: 'rgba(225,245,238,0.72)' }}>
+            Talent Atlas · Samsung PRISM Y2026 · Theme 05
+        </Text>
+        <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: 'rgba(225,245,238,0.72)' }}>
+            12 / 12
+        </Text>
+    </Box>
+</Slide>

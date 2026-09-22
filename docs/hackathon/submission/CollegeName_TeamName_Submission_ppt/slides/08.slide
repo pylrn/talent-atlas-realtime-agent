@@ -1,0 +1,124 @@
+<Slide style={{
+    width: 1280,
+    height: 720,
+    padding: '0 72px',
+    background: '#FFFFFF',
+}}>
+    <Box style={{ width: '100%', height: 720, flexDirection: 'column' }}>
+        <Box style={{
+            height: 120,
+            paddingTop: 20,
+            paddingBottom: 16,
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+        }}>
+            <Box style={{ width: 56, height: 6, background: '#97C459', marginBottom: 14 }} />
+            <Text style={{ fontFamily: 'Inter', fontSize: 34, fontWeight: 'bold', color: '#0B1F1A' }}>
+                The write that can be proved
+            </Text>
+        </Box>
+
+        <Box style={{ height: 540, flexDirection: 'row', gap: 40 }}>
+            <Box style={{
+                width: 658,
+                background: 'linear-gradient(160deg, #04342C 0%, #0F6E56 100%)',
+                padding: '28px 30px',
+                flexDirection: 'column',
+            }}>
+                <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: '#97C459', letterSpacing: 1.6 }}>
+                    EFFECT LOG
+                </Text>
+
+                <Box style={{ flexDirection: 'row', gap: 16, paddingTop: 24, paddingBottom: 12, borderBottom: '1px solid rgba(225,245,238,0.20)' }}>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: 'rgba(225,245,238,0.55)', width: 34 }}>[0]</Text>
+                    <Box style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 16, color: '#FFFFFF' }}>add_to_shortlist</Text>
+                        <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: 'rgba(225,245,238,0.65)', marginTop: 4 }}>
+                            candidate = cand-any-1
+                        </Text>
+                    </Box>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 15, color: '#97C459', fontWeight: 'bold' }}>applied</Text>
+                </Box>
+
+                <Box style={{ flexDirection: 'row', gap: 16, paddingTop: 14, paddingBottom: 12, borderBottom: '1px solid rgba(225,245,238,0.20)' }}>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: 'rgba(225,245,238,0.55)', width: 34 }}>[1]</Text>
+                    <Box style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 16, color: '#FFFFFF' }}>add_to_shortlist</Text>
+                        <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: 'rgba(225,245,238,0.65)', marginTop: 4 }}>
+                            candidate = cand-any-1 · same idempotency key
+                        </Text>
+                    </Box>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 15, color: 'rgba(225,245,238,0.85)' }}>replayed</Text>
+                </Box>
+
+                <Box style={{ paddingTop: 22, flexDirection: 'column', gap: 10 }}>
+                    <Box style={{ flexDirection: 'row' }}>
+                        <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: 'rgba(225,245,238,0.55)', width: 230 }}>shortlist after both calls</Text>
+                        <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: '#FFFFFF', flex: 1 }}>["cand-any-1"]</Text>
+                    </Box>
+                    <Box style={{ flexDirection: 'row' }}>
+                        <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: 'rgba(225,245,238,0.55)', width: 230 }}>duplicate calls reported</Text>
+                        <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: '#FFFFFF', flex: 1 }}>1</Text>
+                    </Box>
+                    <Box style={{ flexDirection: 'row' }}>
+                        <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: 'rgba(225,245,238,0.55)', width: 230 }}>side effects landed</Text>
+                        <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: '#97C459', fontWeight: 'bold', flex: 1 }}>1</Text>
+                    </Box>
+                </Box>
+
+                <Box style={{ marginTop: 'auto' }}>
+                    <Box style={{ height: 1, background: 'rgba(225,245,238,0.28)', marginBottom: 14 }} />
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: 'rgba(225,245,238,0.72)', lineHeight: 1.6 }}>
+                        outcome ∈ {'{'} applied · replayed · cancelled · failed {'}'}
+                    </Text>
+                </Box>
+            </Box>
+
+            <Box style={{ width: 438, flexDirection: 'column' }}>
+                <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: '#0F6E56', letterSpacing: 1.6 }}>
+                    IDEMPOTENT WRITES
+                </Text>
+                <Text style={{ fontFamily: 'Inter', fontSize: 23, fontWeight: 'bold', color: '#04342C', lineHeight: 1.4, marginTop: 14 }}>
+                    Exactly one side effect, provable from the log
+                </Text>
+                <Text style={{ fontFamily: 'Inter', fontSize: 17, lineHeight: 1.55, color: '#0B1F1A', marginTop: 12 }}>
+                    <span style={{ fontFamily: 'JetBrains Mono', fontSize: 15, color: '#0F6E56' }}>add_to_shortlist</span> is the only tool
+                    that changes stored state. It takes an explicit or content-derived idempotency key, and writes sharing a scope
+                    cancel an older in-flight one — surfaced as a <span style={{ fontFamily: 'JetBrains Mono', fontSize: 15, color: '#0F6E56' }}>CancelledError</span>,
+                    never as a dict.
+                </Text>
+
+                <Box style={{
+                    marginTop: 'auto',
+                    background: '#E1F5EE',
+                    borderLeft: '5px solid #97C459',
+                    padding: '18px 20px',
+                }}>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: '#0F6E56', letterSpacing: 1.4 }}>
+                        THE BUG WE FOUND
+                    </Text>
+                    <Text style={{ fontFamily: 'Inter', fontSize: 16, lineHeight: 1.55, color: '#04342C', marginTop: 10 }}>
+                        The audit log was written on the replay, cancelled and failed paths — but not on success. It showed the
+                        retry and not the effect it retried, so “exactly one side effect” was unprovable from the very structure
+                        meant to prove it. The behaviour was right; the evidence was missing.
+                    </Text>
+                </Box>
+            </Box>
+        </Box>
+
+        <Box style={{
+            height: 60,
+            paddingBottom: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+        }}>
+            <Text style={{ fontFamily: 'Inter', fontSize: 14, color: '#6B7280' }}>
+                Talent Atlas · Samsung PRISM Y2026 · Theme 05
+            </Text>
+            <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: '#6B7280' }}>
+                08 / 12
+            </Text>
+        </Box>
+    </Box>
+</Slide>

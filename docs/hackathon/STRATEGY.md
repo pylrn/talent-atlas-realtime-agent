@@ -197,7 +197,7 @@ grades.
 The graded surface needs no database, no network and no API keys:
 
 ```bash
-python -m pytest tests -q                              # 653 tests
+python -m pytest tests -q                              # 654 tests
 python scripts/benchmark_realtime_interruptions.py     # 12 scenarios, exit 0
 python scripts/evaluate_realtime_agent.py              # pass/fail gate, exit 0
 ```

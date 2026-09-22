@@ -25,7 +25,7 @@ The graded surface needs no PostgreSQL, no network access and no API key. This
 is the whole harness, the interruption benchmark and the agent evaluation:
 
 ```bash
-python -m pytest tests -q                            # 653 tests
+python -m pytest tests -q                            # 654 tests
 python scripts/benchmark_realtime_interruptions.py   # 12 scenarios, exits non-zero on failure
 python scripts/evaluate_realtime_agent.py            # pass/fail gate, exits non-zero on failure
 ```

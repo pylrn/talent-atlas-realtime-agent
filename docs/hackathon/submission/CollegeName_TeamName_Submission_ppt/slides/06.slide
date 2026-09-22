@@ -1,0 +1,115 @@
+<Slide style={{
+    width: 1280,
+    height: 720,
+    padding: '0 72px',
+    background: '#FFFFFF',
+}}>
+    <Box style={{ width: '100%', height: 720, flexDirection: 'column' }}>
+        <Box style={{
+            height: 120,
+            paddingTop: 20,
+            paddingBottom: 16,
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+        }}>
+            <Box style={{ width: 56, height: 6, background: '#97C459', marginBottom: 14 }} />
+            <Text style={{ fontFamily: 'Inter', fontSize: 34, fontWeight: 'bold', color: '#0B1F1A' }}>
+                Cancel only what the revision invalidated
+            </Text>
+        </Box>
+
+        <Box style={{ height: 540, flexDirection: 'row', gap: 40 }}>
+            <Box style={{ width: 712, flexDirection: 'column' }}>
+                <svg width={712} height={404} viewBox='0 0 712 404'>
+                    <text x='300' y='16' fill='#6B7280' fontSize='13' fontFamily='JetBrains Mono' letterSpacing='1.4'>REVISION</text>
+                    <path d='M300 26 L300 392' stroke='#6B7280' strokeWidth='1.5' strokeDasharray='6 5' />
+
+                    <text x='0' y='92' fill='#0B1F1A' fontSize='15' fontFamily='JetBrains Mono'>vector</text>
+                    <rect x='84' y='60' width='216' height='52' rx='5' fill='#0F6E56' />
+                    <rect x='300' y='60' width='320' height='52' rx='5' fill='#FFFFFF' stroke='#97C459' strokeWidth='2.5' strokeDasharray='7 5' />
+                    <text x='460' y='92' fill='#0F6E56' fontSize='14' fontFamily='JetBrains Mono' textAnchor='middle'>cancelled</text>
+
+                    <text x='0' y='172' fill='#0B1F1A' fontSize='15' fontFamily='JetBrains Mono'>bm25</text>
+                    <rect x='84' y='140' width='216' height='52' rx='5' fill='#0F6E56' />
+                    <rect x='300' y='140' width='320' height='52' rx='5' fill='#FFFFFF' stroke='#97C459' strokeWidth='2.5' strokeDasharray='7 5' />
+                    <text x='460' y='172' fill='#0F6E56' fontSize='14' fontFamily='JetBrains Mono' textAnchor='middle'>cancelled</text>
+
+                    <text x='0' y='252' fill='#0B1F1A' fontSize='15' fontFamily='JetBrains Mono'>skills</text>
+                    <rect x='84' y='220' width='536' height='52' rx='5' fill='#0F6E56' />
+
+                    <text x='0' y='332' fill='#0B1F1A' fontSize='15' fontFamily='JetBrains Mono'>sql</text>
+                    <rect x='84' y='300' width='536' height='52' rx='5' fill='#0F6E56' />
+
+                    <text x='84' y='392' fill='#6B7280' fontSize='13' fontFamily='Inter'>started</text>
+                    <text x='352' y='392' fill='#6B7280' fontSize='13' fontFamily='Inter' textAnchor='middle'>work avoided</text>
+                    <text x='620' y='392' fill='#6B7280' fontSize='13' fontFamily='Inter' textAnchor='end'>would have finished</text>
+                </svg>
+                <Text style={{ fontFamily: 'Inter', fontSize: 17, lineHeight: 1.5, color: '#6B7280', marginTop: 14 }}>
+                    A query rewrite moves <span style={{ fontFamily: 'JetBrains Mono', fontSize: 15, color: '#0F6E56' }}>vector</span> and
+                    <span style={{ fontFamily: 'JetBrains Mono', fontSize: 15, color: '#0F6E56' }}> bm25</span>. The count branch and the
+                    skill branch were answering questions the rewrite did not change, so they keep running.
+                </Text>
+            </Box>
+
+            <Box style={{ width: 384, flexDirection: 'column' }}>
+                <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: '#0F6E56', letterSpacing: 1.6 }}>
+                    SELECTIVE CANCELLATION
+                </Text>
+                <Text style={{ fontFamily: 'Inter', fontSize: 23, fontWeight: 'bold', color: '#04342C', lineHeight: 1.4, marginTop: 14 }}>
+                    Two branches, not four
+                </Text>
+                <Text style={{ fontFamily: 'Inter', fontSize: 17, lineHeight: 1.55, color: '#0B1F1A', marginTop: 12 }}>
+                    Cancelling everything destroys work that is still valid. Preserving everything runs queries the user already
+                    invalidated. The only way to choose is to know what each branch actually depends on — so the dependency is
+                    explicit in the code rather than implied by a call graph.
+                </Text>
+
+                <Box style={{ marginTop: 22, flexDirection: 'column', gap: 12 }}>
+                    <Box style={{ flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px solid #E1F5EE' }}>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 16, color: '#6B7280' }}>branches cancelled</Text>
+                        <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 16, color: '#0B1F1A' }}>1 of 4</Text>
+                    </Box>
+                    <Box style={{ flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px solid #E1F5EE' }}>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 16, color: '#6B7280' }}>work avoided</Text>
+                        <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 16, color: '#0B1F1A' }}>120 ms</Text>
+                    </Box>
+                    <Box style={{ flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px solid #E1F5EE' }}>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 16, color: '#6B7280' }}>cancellation latency</Text>
+                        <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 16, color: '#0B1F1A' }}>0.0 ms</Text>
+                    </Box>
+                    <Box style={{ flexDirection: 'row', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px solid #E1F5EE' }}>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 16, color: '#6B7280' }}>branch calls after</Text>
+                        <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 16, color: '#0B1F1A' }}>vector 2 · bm25 1</Text>
+                    </Box>
+                </Box>
+
+                <Box style={{
+                    marginTop: 'auto',
+                    background: '#E1F5EE',
+                    borderLeft: '5px solid #0F6E56',
+                    padding: '18px 20px',
+                }}>
+                    <Text style={{ fontFamily: 'Inter', fontSize: 16, lineHeight: 1.5, color: '#04342C' }}>
+                        Change the <span style={{ fontWeight: 'bold' }}>hard filter</span> instead and all four branches move — rows fetched
+                        under a different eligibility clause are not the same rows.
+                    </Text>
+                </Box>
+            </Box>
+        </Box>
+
+        <Box style={{
+            height: 60,
+            paddingBottom: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+        }}>
+            <Text style={{ fontFamily: 'Inter', fontSize: 14, color: '#6B7280' }}>
+                Talent Atlas · Samsung PRISM Y2026 · Theme 05
+            </Text>
+            <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: '#6B7280' }}>
+                06 / 12
+            </Text>
+        </Box>
+    </Box>
+</Slide>

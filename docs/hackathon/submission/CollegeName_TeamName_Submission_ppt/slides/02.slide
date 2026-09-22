@@ -1,0 +1,135 @@
+<Slide style={{
+    width: 1280,
+    height: 720,
+    padding: '0 72px',
+    background: '#FFFFFF',
+}}>
+    <Box style={{ width: '100%', height: 720, flexDirection: 'column' }}>
+        <Box style={{
+            height: 120,
+            paddingTop: 20,
+            paddingBottom: 16,
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+        }}>
+            <Box style={{ width: 56, height: 6, background: '#97C459', marginBottom: 14 }} />
+            <Text style={{ fontFamily: 'Inter', fontSize: 34, fontWeight: 'bold', color: '#0B1F1A' }}>
+                The problem, in our own words
+            </Text>
+        </Box>
+
+        <Box style={{ height: 540, flexDirection: 'row', gap: 44 }}>
+            <Box style={{ width: 655, flexDirection: 'column', gap: 18 }}>
+                <Text style={{
+                    fontFamily: 'JetBrains Mono',
+                    fontSize: 14,
+                    color: '#6B7280',
+                    letterSpacing: 1.8,
+                }}>
+                    WHAT THE BRIEF ASKS FOR
+                </Text>
+
+                <Box style={{ flexDirection: 'row', gap: 18, alignItems: 'flex-start' }}>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 17, color: '#97C459', width: 26 }}>
+                        01
+                    </Text>
+                    <Text style={{ fontFamily: 'Inter', fontSize: 19, lineHeight: 1.55, color: '#0B1F1A', flex: 1 }}>
+                        Keep the user entertained and the conversation alive,
+                        <span style={{ color: '#6B7280' }}> without losing logical depth or core functionality</span>
+                    </Text>
+                </Box>
+
+                <Box style={{ flexDirection: 'row', gap: 18, alignItems: 'flex-start' }}>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 17, color: '#97C459', width: 26 }}>
+                        02
+                    </Text>
+                    <Text style={{ fontFamily: 'Inter', fontSize: 19, lineHeight: 1.55, color: '#0B1F1A', flex: 1 }}>
+                        Handle and recover from real-time interruptions,
+                        <span style={{ color: '#6B7280' }}> while still driving the conversation toward the end goal</span>
+                    </Text>
+                </Box>
+
+                <Box style={{ flexDirection: 'row', gap: 18, alignItems: 'flex-start' }}>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 17, color: '#97C459', width: 26 }}>
+                        03
+                    </Text>
+                    <Text style={{ fontFamily: 'Inter', fontSize: 19, lineHeight: 1.55, color: '#0B1F1A', flex: 1 }}>
+                        Cater to changes in goals,
+                        <span style={{ color: '#6B7280' }}> without losing the relevant session context</span>
+                    </Text>
+                </Box>
+
+                <Box style={{ flexDirection: 'row', gap: 18, alignItems: 'flex-start' }}>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 17, color: '#97C459', width: 26 }}>
+                        04
+                    </Text>
+                    <Text style={{ fontFamily: 'Inter', fontSize: 19, lineHeight: 1.55, color: '#0B1F1A', flex: 1 }}>
+                        Build a solid harness around the agent,
+                        <span style={{ color: '#6B7280' }}> safe and reliable enough to trust with state</span>
+                    </Text>
+                </Box>
+
+                <Box style={{ height: 2, background: '#E1F5EE', marginTop: 6 }} />
+
+                <Text style={{ fontFamily: 'Inter', fontSize: 18, lineHeight: 1.55, color: '#0F6E56', fontWeight: 600 }}>
+                    Read together, those are not four features. They are one requirement — and stating it that way is what made the work testable.
+                </Text>
+            </Box>
+
+            <Box style={{
+                width: 437,
+                flexDirection: 'column',
+                background: 'linear-gradient(180deg, #E1F5EE 0%, #FFFFFF 100%)',
+                borderLeft: '6px solid #97C459',
+                padding: '30px 30px 26px 30px',
+            }}>
+                <Text style={{
+                    fontFamily: 'JetBrains Mono',
+                    fontSize: 14,
+                    color: '#0F6E56',
+                    letterSpacing: 1.8,
+                }}>
+                    THE ONE REQUIREMENT
+                </Text>
+
+                <Text style={{
+                    fontFamily: 'Inter',
+                    fontSize: 23,
+                    fontWeight: 'bold',
+                    lineHeight: 1.5,
+                    color: '#04342C',
+                    marginTop: 22,
+                }}>
+                    At any instant the system must state what it is doing, what it believes, and which of its in-flight actions are still valid — and it must never say something it cannot yet back with evidence.
+                </Text>
+
+                <Box style={{ marginTop: 'auto', paddingTop: 22 }}>
+                    <Box style={{ height: 1, background: 'rgba(15,110,86,0.25)', marginBottom: 18 }} />
+                    <Text style={{ fontFamily: 'Inter', fontSize: 17, lineHeight: 1.6, color: '#0B1F1A' }}>
+                        <span style={{ color: '#6B7280' }}>“Be interruptible” is not testable.</span>
+                        <br />
+                        <span style={{ fontFamily: 'JetBrains Mono', fontSize: 15, color: '#0F6E56' }}>
+                            “Publish a snapshot on every event, and prove a revision cancels only the work it invalidated”
+                        </span>
+                        <span style={{ color: '#6B7280' }}> is.</span>
+                    </Text>
+                </Box>
+            </Box>
+        </Box>
+
+        <Box style={{
+            height: 60,
+            paddingBottom: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+        }}>
+            <Text style={{ fontFamily: 'Inter', fontSize: 14, color: '#6B7280' }}>
+                Talent Atlas · Samsung PRISM Y2026 · Theme 05
+            </Text>
+            <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: '#6B7280' }}>
+                02 / 12
+            </Text>
+        </Box>
+    </Box>
+</Slide>

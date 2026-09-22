@@ -1,0 +1,104 @@
+<Slide style={{
+    width: 1280,
+    height: 720,
+    padding: '0 72px',
+    background: '#FFFFFF',
+}}>
+    <Box style={{ width: '100%', height: 720, flexDirection: 'column' }}>
+        <Box style={{
+            height: 120,
+            paddingTop: 20,
+            paddingBottom: 16,
+            flexDirection: 'row',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+        }}>
+            <Box style={{ flexDirection: 'column', justifyContent: 'flex-end' }}>
+                <Box style={{ width: 56, height: 6, background: '#97C459', marginBottom: 14 }} />
+                <Text style={{ fontFamily: 'Inter', fontSize: 34, fontWeight: 'bold', color: '#0B1F1A' }}>
+                    Fast, and not allowed to cheat
+                </Text>
+            </Box>
+            <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: '#6B7280', letterSpacing: 1.4, paddingBottom: 6 }}>
+                SPEECH OVERLAPS RETRIEVAL
+            </Text>
+        </Box>
+
+        <Box style={{ height: 540, flexDirection: 'column', gap: 16 }}>
+            <svg width={1136} height={300} viewBox='0 0 1136 300'>
+                <path d='M380 34 L380 256' stroke='#6B7280' strokeWidth='1.5' strokeDasharray='6 5' />
+                <text x='380' y='20' fill='#6B7280' fontSize='13' fontFamily='JetBrains Mono' textAnchor='middle'>UTTERANCE ENDS</text>
+
+                <text x='0' y='72' fill='#0B1F1A' fontSize='14' fontFamily='JetBrains Mono'>transcript</text>
+                <rect x='150' y='46' width='230' height='40' rx='4' fill='#E1F5EE' stroke='#0F6E56' strokeWidth='1' />
+                <text x='392' y='72' fill='#6B7280' fontSize='13' fontFamily='Inter'>settled prefix</text>
+
+                <text x='0' y='152' fill='#0B1F1A' fontSize='14' fontFamily='JetBrains Mono'>retrieval</text>
+                <rect x='150' y='126' width='700' height='40' rx='4' fill='#0F6E56' />
+                <text x='866' y='152' fill='#6B7280' fontSize='13' fontFamily='Inter'>~120 ms, in the background</text>
+
+                <text x='0' y='232' fill='#0B1F1A' fontSize='14' fontFamily='JetBrains Mono'>ack</text>
+                <rect x='150' y='206' width='17' height='40' rx='3' fill='#97C459' />
+                <text x='182' y='232' fill='#0F6E56' fontSize='14' fontFamily='JetBrains Mono'>1.2 ms — emitted while retrieval is still running</text>
+            </svg>
+
+            <Box style={{ height: 224, flexDirection: 'row', gap: 24 }}>
+                <Box style={{
+                    flex: 1,
+                    background: '#E1F5EE',
+                    borderLeft: '5px solid #0F6E56',
+                    padding: '22px 24px',
+                    flexDirection: 'column',
+                }}>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: '#0F6E56', letterSpacing: 1.5 }}>
+                        GROUNDED, OR NOT SAID AT ALL
+                    </Text>
+                    <Text style={{ fontFamily: 'Inter', fontSize: 20, fontWeight: 'bold', color: '#04342C', lineHeight: 1.35, marginTop: 12 }}>
+                        Every mid-retrieval utterance is audited
+                    </Text>
+                    <Text style={{ fontFamily: 'Inter', fontSize: 16, lineHeight: 1.5, color: '#0B1F1A', marginTop: 10 }}>
+                        Filler is classified as <span style={{ fontFamily: 'JetBrains Mono', fontSize: 14.5, color: '#0F6E56' }}>empty</span>,
+                        <span style={{ fontFamily: 'JetBrains Mono', fontSize: 14.5, color: '#0F6E56' }}> acknowledgement</span>,
+                        <span style={{ fontFamily: 'JetBrains Mono', fontSize: 14.5, color: '#0F6E56' }}> over_budget</span> or
+                        <span style={{ fontFamily: 'JetBrains Mono', fontSize: 14.5, color: '#0F6E56' }}> violation</span>. Claiming a result
+                        before evidence exists is a violation, and the evaluation asserts that it is caught.
+                    </Text>
+                </Box>
+
+                <Box style={{
+                    flex: 1,
+                    background: '#E1F5EE',
+                    borderLeft: '5px solid #0F6E56',
+                    padding: '22px 24px',
+                    flexDirection: 'column',
+                }}>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: '#0F6E56', letterSpacing: 1.5 }}>
+                        SPEED IS NOT A LOOPHOLE
+                    </Text>
+                    <Text style={{ fontFamily: 'Inter', fontSize: 20, fontWeight: 'bold', color: '#04342C', lineHeight: 1.35, marginTop: 12 }}>
+                        The sentence comes from the instruction
+                    </Text>
+                    <Text style={{ fontFamily: 'Inter', fontSize: 16, lineHeight: 1.5, color: '#0B1F1A', marginTop: 10 }}>
+                        It is derived from the diff between what the user just said and what the plan already held — never from the
+                        corpus. That is why it costs ~1 ms and why it cannot assert something retrieval has not yet found.
+                    </Text>
+                </Box>
+            </Box>
+        </Box>
+
+        <Box style={{
+            height: 60,
+            paddingBottom: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+        }}>
+            <Text style={{ fontFamily: 'Inter', fontSize: 14, color: '#6B7280' }}>
+                Talent Atlas · Samsung PRISM Y2026 · Theme 05
+            </Text>
+            <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: '#6B7280' }}>
+                09 / 12
+            </Text>
+        </Box>
+    </Box>
+</Slide>

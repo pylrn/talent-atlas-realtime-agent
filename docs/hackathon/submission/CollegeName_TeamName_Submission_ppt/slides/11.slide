@@ -1,0 +1,171 @@
+<Slide style={{
+    width: 1280,
+    height: 720,
+    padding: '0 72px',
+    background: '#FFFFFF',
+}}>
+    <Box style={{ width: '100%', height: 720, flexDirection: 'column' }}>
+        <Box style={{
+            height: 120,
+            paddingTop: 20,
+            paddingBottom: 16,
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+        }}>
+            <Box style={{ width: 56, height: 6, background: '#97C459', marginBottom: 14 }} />
+            <Text style={{ fontFamily: 'Inter', fontSize: 34, fontWeight: 'bold', color: '#0B1F1A' }}>
+                What is new, and what we did not solve
+            </Text>
+        </Box>
+
+        <Box style={{ height: 540, flexDirection: 'row', gap: 40 }}>
+            <Box style={{ width: 712, flexDirection: 'column' }}>
+                <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: '#0F6E56', letterSpacing: 1.6 }}>
+                    INNOVATION HIGHLIGHTS
+                </Text>
+
+                <Box style={{ flexDirection: 'row', gap: 16, marginTop: 18 }}>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 17, color: '#97C459', width: 30 }}>01</Text>
+                    <Box style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 18, fontWeight: 'bold', color: '#04342C' }}>
+                            Selective branch cancellation
+                        </Text>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 15.5, lineHeight: 1.5, color: '#0B1F1A', marginTop: 4 }}>
+                            The dependency that matters is normally invisible. Fingerprinting it turns “cancel the stale work” from a
+                            heuristic into a decision with a reason.
+                        </Text>
+                    </Box>
+                </Box>
+
+                <Box style={{ flexDirection: 'row', gap: 16, marginTop: 14 }}>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 17, color: '#97C459', width: 30 }}>02</Text>
+                    <Box style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 18, fontWeight: 'bold', color: '#04342C' }}>
+                            An audit log that proves its own guarantee
+                        </Text>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 15.5, lineHeight: 1.5, color: '#0B1F1A', marginTop: 4 }}>
+                            It records the effect when it lands, not only when a retry replays it. We found that gap by trying to read
+                            the guarantee out of the log.
+                        </Text>
+                    </Box>
+                </Box>
+
+                <Box style={{ flexDirection: 'row', gap: 16, marginTop: 14 }}>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 17, color: '#97C459', width: 30 }}>03</Text>
+                    <Box style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 18, fontWeight: 'bold', color: '#04342C' }}>
+                            A fast path that cannot cheat
+                        </Text>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 15.5, lineHeight: 1.5, color: '#0B1F1A', marginTop: 4 }}>
+                            The acknowledgement passes the same ungrounded-claim audit as anything else said mid-retrieval. Speed is
+                            not permitted to become a loophole.
+                        </Text>
+                    </Box>
+                </Box>
+
+                <Box style={{ flexDirection: 'row', gap: 16, marginTop: 14 }}>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 17, color: '#97C459', width: 30 }}>04</Text>
+                    <Box style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 18, fontWeight: 'bold', color: '#04342C' }}>
+                            Visual grounding with honest limits
+                        </Text>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 15.5, lineHeight: 1.5, color: '#0B1F1A', marginTop: 4 }}>
+                            Requirements the database cannot enforce are reported as unenforceable — never described as a filter that
+                            was applied.
+                        </Text>
+                    </Box>
+                </Box>
+
+                <Box style={{ flexDirection: 'row', gap: 16, marginTop: 14 }}>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 17, color: '#97C459', width: 30 }}>05</Text>
+                    <Box style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 18, fontWeight: 'bold', color: '#04342C' }}>
+                            A deterministic benchmark
+                        </Text>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 15.5, lineHeight: 1.5, color: '#0B1F1A', marginTop: 4 }}>
+                            Branch lifecycle runs on a virtual clock, so a cancellation latency is a measurement rather than a
+                            coincidence.
+                        </Text>
+                    </Box>
+                </Box>
+            </Box>
+
+            <Box style={{
+                width: 384,
+                background: '#E1F5EE',
+                padding: '24px 24px 20px 24px',
+                flexDirection: 'column',
+            }}>
+                <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: '#0F6E56', letterSpacing: 1.6 }}>
+                    LIMITATIONS
+                </Text>
+
+                <Box style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
+                    <Box style={{ width: 5, background: '#0F6E56' }} />
+                    <Box style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: 'bold', color: '#04342C' }}>Public corpus</Text>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 1.4, color: '#0B1F1A', marginTop: 2 }}>
+                            A transformed public recruitment dataset. Retrieval numbers describe this dataset only.
+                        </Text>
+                    </Box>
+                </Box>
+
+                <Box style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+                    <Box style={{ width: 5, background: '#0F6E56' }} />
+                    <Box style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: 'bold', color: '#04342C' }}>Simulated benchmark</Text>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 1.4, color: '#0B1F1A', marginTop: 2 }}>
+                            It proves control behaviour — what was cancelled, preserved, deduplicated — not database performance at scale.
+                        </Text>
+                    </Box>
+                </Box>
+
+                <Box style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+                    <Box style={{ width: 5, background: '#0F6E56' }} />
+                    <Box style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: 'bold', color: '#04342C' }}>Rule-based image parser</Text>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 1.4, color: '#0B1F1A', marginTop: 2 }}>
+                            Handles requirement extraction well but will not generalise to arbitrary layouts. That interface is where a
+                            vision model plugs in.
+                        </Text>
+                    </Box>
+                </Box>
+
+                <Box style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+                    <Box style={{ width: 5, background: '#0F6E56' }} />
+                    <Box style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: 'bold', color: '#04342C' }}>Inherited ranking quality</Text>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 1.4, color: '#0B1F1A', marginTop: 2 }}>
+                            This work neither claims nor measures an improvement in retrieval ranking.
+                        </Text>
+                    </Box>
+                </Box>
+
+                <Box style={{ flexDirection: 'row', gap: 12, marginTop: 12 }}>
+                    <Box style={{ width: 5, background: '#0F6E56' }} />
+                    <Box style={{ flex: 1 }}>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: 'bold', color: '#04342C' }}>Local fast path</Text>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 14, lineHeight: 1.4, color: '#0B1F1A', marginTop: 2 }}>
+                            The 250 ms budget is met because the sentence is generated locally. A hosted model would need its own budget.
+                        </Text>
+                    </Box>
+                </Box>
+            </Box>
+        </Box>
+
+        <Box style={{
+            height: 60,
+            paddingBottom: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+        }}>
+            <Text style={{ fontFamily: 'Inter', fontSize: 14, color: '#6B7280' }}>
+                Talent Atlas · Samsung PRISM Y2026 · Theme 05
+            </Text>
+            <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: '#6B7280' }}>
+                11 / 12
+            </Text>
+        </Box>
+    </Box>
+</Slide>

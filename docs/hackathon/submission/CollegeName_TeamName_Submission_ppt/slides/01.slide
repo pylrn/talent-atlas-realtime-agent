@@ -1,0 +1,154 @@
+<Slide style={{
+    width: 1280,
+    height: 720,
+    padding: 0,
+    position: 'relative',
+    overflow: 'hidden',
+    background: 'linear-gradient(140deg, #04342C 0%, #0F6E56 100%)',
+}}>
+    {/* Field: concentric rings, fully inside the canvas so nothing bleeds. */}
+    <Box style={{
+        position: 'absolute',
+        right: 48,
+        top: 44,
+        width: 556,
+        height: 556,
+        borderRadius: 278,
+        border: '1px solid rgba(225,245,238,0.16)',
+    }} />
+    <Box style={{
+        position: 'absolute',
+        right: 138,
+        top: 134,
+        width: 376,
+        height: 376,
+        borderRadius: 188,
+        border: '1px solid rgba(151,196,89,0.38)',
+    }} />
+    <Box style={{
+        position: 'absolute',
+        right: 208,
+        top: 204,
+        width: 236,
+        height: 236,
+        borderRadius: 118,
+        background: 'rgba(151,196,89,0.10)',
+    }} />
+    <Box style={{
+        position: 'absolute',
+        right: 326,
+        top: 322,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        background: '#97C459',
+    }} />
+    <Box style={{
+        position: 'absolute',
+        right: 246,
+        top: 148,
+        width: 11,
+        height: 11,
+        borderRadius: 6,
+        background: 'rgba(225,245,238,0.58)',
+    }} />
+    <Box style={{
+        position: 'absolute',
+        right: 118,
+        top: 424,
+        width: 13,
+        height: 13,
+        borderRadius: 7,
+        background: 'rgba(225,245,238,0.42)',
+    }} />
+
+    {/* Content rides in from the left. */}
+    <Box style={{
+        position: 'relative',
+        zIndex: 1,
+        width: '100%',
+        height: '100%',
+        padding: '68px 72px 52px 72px',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+    }}>
+        <Box style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <Box style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                <Box style={{ width: 34, height: 4, background: '#97C459' }} />
+                <Text style={{
+                    fontFamily: 'JetBrains Mono',
+                    fontSize: 15,
+                    color: '#E1F5EE',
+                    letterSpacing: 2.4,
+                }}>
+                    THEME 05 · INTERRUPTIBLE REAL-TIME AGENTS
+                </Text>
+            </Box>
+            <Box style={{
+                padding: '9px 18px',
+                border: '1px solid rgba(151,196,89,0.55)',
+                borderRadius: 4,
+                background: 'rgba(4,52,44,0.35)',
+            }}>
+                <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: '#97C459', letterSpacing: 1.1 }}>
+                    PRISM_GENAI_HACKATHON_Y2026
+                </Text>
+            </Box>
+        </Box>
+
+        <Box style={{ flexDirection: 'column', gap: 22, maxWidth: 720 }}>
+            <Text style={{
+                fontFamily: 'Inter',
+                fontSize: 76,
+                fontWeight: 'bold',
+                lineHeight: 1.1,
+                color: '#FFFFFF',
+            }}>
+                Talent Atlas
+            </Text>
+            <Box style={{ width: 96, height: 5, background: '#97C459' }} />
+            <Text style={{
+                fontFamily: 'Inter',
+                fontSize: 25,
+                lineHeight: 1.5,
+                color: 'rgba(225,245,238,0.88)',
+            }}>
+                An assistant that stays responsive while it thinks,
+                <br />
+                and recovers cleanly when the plan changes.
+            </Text>
+        </Box>
+
+        <Box style={{
+            flexDirection: 'row',
+            gap: 40,
+            paddingTop: 26,
+            borderTop: '1px solid rgba(225,245,238,0.22)',
+        }}>
+            <Box style={{ flexDirection: 'column', gap: 7, width: 250 }}>
+                <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: '#97C459', letterSpacing: 1.6 }}>
+                    TEAM
+                </Text>
+                <Text style={{ fontFamily: 'Inter', fontSize: 19, fontWeight: 600, color: '#FFFFFF' }}>
+                    &lt;TeamName&gt;
+                </Text>
+            </Box>
+            <Box style={{ flexDirection: 'column', gap: 7, width: 290 }}>
+                <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: '#97C459', letterSpacing: 1.6 }}>
+                    COLLEGE
+                </Text>
+                <Text style={{ fontFamily: 'Inter', fontSize: 19, fontWeight: 600, color: '#FFFFFF' }}>
+                    &lt;CollegeName&gt;
+                </Text>
+            </Box>
+            <Box style={{ flexDirection: 'column', gap: 7, flex: 1 }}>
+                <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: '#97C459', letterSpacing: 1.6 }}>
+                    MEMBERS
+                </Text>
+                <Text style={{ fontFamily: 'Inter', fontSize: 19, fontWeight: 600, color: '#FFFFFF' }}>
+                    &lt;Member 1&gt; · &lt;Member 2&gt; · &lt;Member 3&gt; · &lt;Member 4&gt;
+                </Text>
+            </Box>
+        </Box>
+    </Box>
+</Slide>

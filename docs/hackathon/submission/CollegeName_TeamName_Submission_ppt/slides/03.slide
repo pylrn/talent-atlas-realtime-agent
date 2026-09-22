@@ -1,0 +1,137 @@
+<Slide style={{
+    width: 1280,
+    height: 720,
+    padding: '0 72px',
+    background: '#FFFFFF',
+}}>
+    <Box style={{ width: '100%', height: 720, flexDirection: 'column' }}>
+        <Box style={{
+            height: 120,
+            paddingTop: 20,
+            paddingBottom: 16,
+            flexDirection: 'row',
+            alignItems: 'flex-end',
+            justifyContent: 'space-between',
+        }}>
+            <Box style={{ flexDirection: 'column', justifyContent: 'flex-end' }}>
+                <Box style={{ width: 56, height: 6, background: '#97C459', marginBottom: 14 }} />
+                <Text style={{ fontFamily: 'Inter', fontSize: 34, fontWeight: 'bold', color: '#0B1F1A' }}>
+                    It works, and here is the proof
+                </Text>
+            </Box>
+            <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: '#6B7280', letterSpacing: 1.4, paddingBottom: 6 }}>
+                MEASURED, NOT ASSERTED
+            </Text>
+        </Box>
+
+        <Box style={{ height: 540, flexDirection: 'column', gap: 40 }}>
+            <Box style={{ height: 350, flexDirection: 'row', gap: 60 }}>
+                <Box style={{ width: 392, flexDirection: 'column', justifyContent: 'center' }}>
+                    <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: '#0F6E56', letterSpacing: 1.8 }}>
+                        PYTEST SUITE
+                    </Text>
+                    <Text style={{
+                        fontFamily: 'JetBrains Mono',
+                        fontSize: 132,
+                        fontWeight: 'bold',
+                        lineHeight: 1.0,
+                        color: '#97C459',
+                        marginTop: 6,
+                    }}>
+                        654
+                    </Text>
+                    <Text style={{ fontFamily: 'Inter', fontSize: 20, fontWeight: 600, color: '#0B1F1A', marginTop: 14 }}>
+                        tests pass
+                    </Text>
+                    <Text style={{ fontFamily: 'Inter', fontSize: 18, lineHeight: 1.5, color: '#6B7280', marginTop: 6 }}>
+                        0 failed, 0 errors. The interruption harness, the state
+                        machine and the agent surface are all under test.
+                    </Text>
+                </Box>
+
+                <Box style={{ width: 2, background: '#E1F5EE' }} />
+
+                <Box style={{ flex: 1, flexDirection: 'column', justifyContent: 'center', gap: 34 }}>
+                    <Box style={{ flexDirection: 'column' }}>
+                        <Text style={{
+                            fontFamily: 'JetBrains Mono',
+                            fontSize: 96,
+                            fontWeight: 'bold',
+                            lineHeight: 1.0,
+                            color: '#04342C',
+                        }}>
+                            12 / 12
+                        </Text>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 19, fontWeight: 600, color: '#0B1F1A', marginTop: 10 }}>
+                            benchmark scenarios pass
+                        </Text>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 17, lineHeight: 1.5, color: '#6B7280', marginTop: 5 }}>
+                            Interruption, revision, retry, tool failure, dropped transport. The script exits non-zero if any of them fails.
+                        </Text>
+                    </Box>
+
+                    <Box style={{ flexDirection: 'column' }}>
+                        <Text style={{
+                            fontFamily: 'JetBrains Mono',
+                            fontSize: 96,
+                            fontWeight: 'bold',
+                            lineHeight: 1.0,
+                            color: '#04342C',
+                        }}>
+                            1.2 ms
+                        </Text>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 19, fontWeight: 600, color: '#0B1F1A', marginTop: 10 }}>
+                            first acknowledgement
+                        </Text>
+                        <Text style={{ fontFamily: 'Inter', fontSize: 17, lineHeight: 1.5, color: '#6B7280', marginTop: 5 }}>
+                            Against a 250 ms budget. A repeat run measured 2.6 ms: only the two wall-clock metrics move, everything else replays bit-identically.
+                        </Text>
+                        <Box style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 12 }}>
+                            <Box style={{ flex: 1, height: 12, background: '#E1F5EE', borderRadius: 6, flexDirection: 'row' }}>
+                                <Box style={{ width: 12, height: 12, background: '#0F6E56', borderRadius: 6 }} />
+                            </Box>
+                            <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 13, color: '#6B7280' }}>
+                                250 ms budget
+                            </Text>
+                        </Box>
+                    </Box>
+                </Box>
+            </Box>
+
+            <Box style={{
+                height: 150,
+                background: 'linear-gradient(135deg, #04342C 0%, #0F6E56 100%)',
+                padding: '28px 34px',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 34,
+            }}>
+                <Box style={{ width: 6, height: 74, background: '#97C459' }} />
+                <Box style={{ flexDirection: 'column', gap: 12, flex: 1 }}>
+                    <Text style={{ fontFamily: 'Inter', fontSize: 25, fontWeight: 'bold', color: '#FFFFFF', lineHeight: 1.35 }}>
+                        Every number above was produced with no database running, no network access and no API key.
+                    </Text>
+                    <Text style={{ fontFamily: 'Inter', fontSize: 18, lineHeight: 1.5, color: 'rgba(225,245,238,0.86)' }}>
+                        Port 5432 was closed on the machine that produced them. Reproducibility was designed in rather than
+                        asserted — a jury can clone the tag and get the same figures in one command.
+                    </Text>
+                </Box>
+            </Box>
+        </Box>
+
+        <Box style={{
+            height: 60,
+            paddingBottom: 20,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+        }}>
+            <Text style={{ fontFamily: 'Inter', fontSize: 14, color: '#6B7280' }}>
+                Talent Atlas · Samsung PRISM Y2026 · Theme 05
+            </Text>
+            <Text style={{ fontFamily: 'JetBrains Mono', fontSize: 14, color: '#6B7280' }}>
+                03 / 12
+            </Text>
+        </Box>
+    </Box>
+</Slide>
