@@ -1,0 +1,221 @@
+{
+  "passed": true,
+  "failed": [],
+  "totals": {
+    "scenarios": 12,
+    "failed": 0
+  },
+  "scenarios": {
+    "fast_path_acknowledgement": {
+      "passed": true,
+      "metrics": {
+        "first_ack_ms": 1.343,
+        "budget_ms": 250.0,
+        "text": "Starting a fresh search with the pune location filter.",
+        "audit_kind": "acknowledgement"
+      },
+      "checks": {
+        "acknowledgement_emitted": true,
+        "within_budget": true,
+        "makes_no_result_claim": true,
+        "names_the_instruction": true
+      }
+    },
+    "speculative_retrieval_start": {
+      "passed": true,
+      "metrics": {
+        "calls_before_tool_call": 1,
+        "calls_added_by_tool_call": 0,
+        "served_from_speculation": true
+      },
+      "checks": {
+        "retrieval_started_before_tool_call": true,
+        "tool_call_reused_the_guess": true
+      }
+    },
+    "selective_cancellation": {
+      "passed": true,
+      "metrics": {
+        "invalidated_branches": [
+          "bm25",
+          "vector"
+        ],
+        "cancellation_latency_ms": 0.0,
+        "work_avoided_ms": 120.0,
+        "branches_cancelled": 1,
+        "branch_calls": {
+          "vector": 2,
+          "bm25": 1,
+          "skills": 1,
+          "sql": 1
+        }
+      },
+      "checks": {
+        "only_query_dependent_branches_invalidated": true,
+        "invalidated_branch_was_cancelled": true,
+        "cancelled_before_it_could_return": true,
+        "count_branch_not_touched": true,
+        "skill_branch_not_touched": true
+      }
+    },
+    "slot_retention": {
+      "passed": true,
+      "metrics": {
+        "changed_fields": [
+          "city"
+        ],
+        "city": "bangalore",
+        "must_skills": [
+          "python"
+        ],
+        "min_years_exp": 5,
+        "unset_slots": [
+          "country",
+          "max_years_exp",
+          "should_skills",
+          "should_themes",
+          "should_roles",
+          "should_locations",
+          "excluded_skills"
+        ]
+      },
+      "checks": {
+        "city_updated": true,
+        "required_skills_kept": true,
+        "experience_kept": true,
+        "only_the_city_changed": true
+      }
+    },
+    "duplicate_call_id": {
+      "passed": true,
+      "metrics": {
+        "shortlist": [
+          "cand-any-1"
+        ],
+        "duplicate_calls": 1,
+        "side_effect_log": [
+          "applied",
+          "replayed"
+        ],
+        "reported_duplicate": true
+      },
+      "checks": {
+        "retry_reported_as_duplicate": true,
+        "one_side_effect": true,
+        "audit_shows_one_apply_and_one_replay": true,
+        "second_call_replayed": true
+      }
+    },
+    "idempotent_write": {
+      "passed": true,
+      "metrics": {
+        "shortlist": [
+          "cand-any-1",
+          "cand-any-2"
+        ],
+        "first_replay": false,
+        "second_replay": true,
+        "applied_once": true
+      },
+      "checks": {
+        "second_call_replayed": true,
+        "no_duplicate_side_effect": true
+      }
+    },
+    "superseded_write": {
+      "passed": true,
+      "metrics": {
+        "before": [
+          "cand-any-1",
+          "cand-any-2"
+        ],
+        "after": [
+          "cand-any-1"
+        ],
+        "replace_existing": true,
+        "surfaced": [
+          "cand-any-1",
+          "cand-any-2"
+        ]
+      },
+      "checks": {
+        "first_selection_applied": true,
+        "correction_replaced_it": true,
+        "no_orphaned_entries": true
+      }
+    },
+    "malformed_arguments": {
+      "passed": true,
+      "metrics": {
+        "rejections": 1,
+        "error": "Invalid arguments for search_candidates: 2 validation errors for SearchCandidatesArgs\ntop_k\n  Input should be less than ",
+        "plan_unchanged": true
+      },
+      "checks": {
+        "rejected": true,
+        "plan_untouched": true,
+        "no_orphaned_work": true
+      }
+    },
+    "tool_failure": {
+      "passed": true,
+      "metrics": {
+        "failure_reported": true,
+        "status_after_failure": "failed",
+        "recovered_count": 2
+      },
+      "checks": {
+        "failure_surfaced": true,
+        "state_marked_failed": true,
+        "session_recovered": true
+      }
+    },
+    "burst_barge_in": {
+      "passed": true,
+      "metrics": {
+        "interrupts": 3,
+        "cancellations": 0,
+        "engine_calls": 2,
+        "status": "ready"
+      },
+      "checks": {
+        "no_cancellation_from_interrupt": true,
+        "search_was_not_restarted": true,
+        "revision_still_served": true
+      }
+    },
+    "dropped_transport": {
+      "passed": true,
+      "metrics": {
+        "close_ms": 0.167,
+        "in_flight_after_close": false,
+        "active_branches_after_close": 0,
+        "dispatch_outcome": "CancelledError",
+        "snapshot_available": true
+      },
+      "checks": {
+        "close_is_bounded": true,
+        "no_in_flight_search": true,
+        "no_active_branches": true
+      }
+    },
+    "final_grounding": {
+      "passed": true,
+      "metrics": {
+        "final_kind": "snapshot",
+        "authoritative": true,
+        "candidate_count": 1,
+        "actual_candidates": 1,
+        "shortlist": [
+          "cand-pune-1"
+        ]
+      },
+      "checks": {
+        "final_snapshot_emitted": true,
+        "snapshot_is_authoritative": true,
+        "count_matches_answer": true,
+        "shortlist_was_surfaced": true
+      }
+    }
+  }
+}
