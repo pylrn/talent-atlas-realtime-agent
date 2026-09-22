@@ -159,6 +159,21 @@
       Object.keys(payload.nodes).forEach(function (id) { state.nodes.set(id, payload.nodes[id]); });
       renderGraph();
     }
+    if (event.type === "acknowledgement.ready") {
+      appendAcknowledgement(payload);
+    }
+    if (event.type === "state.snapshot") {
+      appendStateSnapshot(payload);
+    }
+    if (event.type === "clarification.requested") {
+      appendClarification(payload);
+    }
+    if (event.type === "vision.role_attached") {
+      appendRoleImage(payload);
+    }
+    if (event.type === "search.cancelled") {
+      appendCancellation(payload);
+    }
     if (event.type === "error" || event.type === "gemini.error") setVoiceState("Voice error — text search still works");
   }
 
@@ -324,6 +339,152 @@
     card.appendChild(detail);
     thread.appendChild(card);
     thread.scrollTop = thread.scrollHeight;
+  }
+
+  function threadCard(className) {
+    var thread = byId("thread");
+    if (!thread) return null;
+    var card = document.createElement("div");
+    card.className = className;
+    thread.appendChild(card);
+    thread.scrollTop = thread.scrollHeight;
+    return card;
+  }
+
+  function chipRow(labels, kind) {
+    var row = document.createElement("span");
+    row.className = "realtime-chips";
+    labels.forEach(function (label) {
+      var chip = document.createElement("span");
+      chip.className = "realtime-chip";
+      if (kind) chip.dataset.kind = kind;
+      chip.textContent = String(label);
+      row.appendChild(chip);
+    });
+    return row;
+  }
+
+  function appendAcknowledgement(payload) {
+    // The fast path, shown as it happens: what the agent said before retrieval
+    // returned, and how long it took to say it. The latency is the claim, so it
+    // is displayed rather than asserted.
+    var card = threadCard("realtime-ack");
+    if (!card) return;
+    var title = document.createElement("strong");
+    title.textContent = "Acknowledged in " + Math.round(Number(payload.latency_ms) || 0) + " ms";
+    var detail = document.createElement("span");
+    detail.textContent = String(payload.text || "");
+    card.appendChild(title);
+    card.appendChild(detail);
+    if (payload.changed_fields && payload.changed_fields.length) {
+      card.appendChild(chipRow(payload.changed_fields, "changed"));
+    }
+  }
+
+  function appendStateSnapshot(payload) {
+    // Every turn event carries a snapshot. Rendering all of them would bury the
+    // conversation, so the thread shows only the ones that say something moved:
+    // a revision that changed fields, or the closing state of a turn.
+    var changed = payload.changed_fields || [];
+    if (!changed.length && payload.phase !== "final") return;
+
+    var card = threadCard("realtime-state-card");
+    if (!card) return;
+
+    var revision = payload.revision || {};
+    var title = document.createElement("strong");
+    title.textContent = "State · " + String(payload.phase || "snapshot") +
+      (revision.revision_id ? " · rev " + String(revision.revision_id).slice(0, 12) : "");
+    card.appendChild(title);
+
+    var summary = [];
+    if (payload.intent) summary.push("intent " + payload.intent);
+    if (payload.status) summary.push("status " + payload.status);
+    summary.push(payload.authoritative ? "authoritative" : "speculative");
+    var detail = document.createElement("span");
+    detail.textContent = summary.join(" · ");
+    card.appendChild(detail);
+
+    if (changed.length) card.appendChild(chipRow(changed, "changed"));
+
+    // Slots are total, so the ones that are unset are listed separately rather
+    // than silently omitted.
+    var slots = payload.slots || {};
+    var unset = payload.unset_slots || [];
+    var setSlots = Object.keys(slots).filter(function (key) {
+      var value = slots[key];
+      if (unset.indexOf(key) !== -1) return false;
+      if (value === null || value === undefined) return false;
+      return !(Array.isArray(value) && !value.length);
+    }).map(function (key) {
+      var value = slots[key];
+      return key + "=" + (Array.isArray(value) ? value.join("/") : String(value));
+    });
+    if (setSlots.length) card.appendChild(chipRow(setSlots, "slot"));
+
+    // What the branch executor decided, per branch. This is the part a
+    // recruiter never sees but the demo is about: work kept versus work dropped.
+    var branches = payload.branches || {};
+    ["reused", "executed", "preserved", "cancelled"].forEach(function (kind) {
+      var names = branches[kind] || [];
+      if (!names.length) return;
+      card.appendChild(chipRow(names.map(function (name) {
+        return kind + ": " + name;
+      }), kind));
+    });
+  }
+
+  function appendClarification(payload) {
+    var card = threadCard("realtime-clarification");
+    if (!card) return;
+    var already = payload.already_answered || [];
+    var title = document.createElement("strong");
+    title.textContent = already.length ? "Clarification already answered" : "Asking the recruiter";
+    var detail = document.createElement("span");
+    detail.textContent = String(payload.question || "");
+    card.appendChild(title);
+    card.appendChild(detail);
+    var needed = payload.slots_needed || [];
+    if (needed.length) card.appendChild(chipRow(needed, "slot"));
+  }
+
+  function appendRoleImage(payload) {
+    var card = threadCard("realtime-role-card");
+    if (!card) return;
+    var title = document.createElement("strong");
+    title.textContent = payload.role_title
+      ? "Role from image · " + payload.role_title
+      : "Role from image";
+    var detail = document.createElement("span");
+    var count = Number(payload.requirement_count) || 0;
+    detail.textContent = count + " requirement" + (count === 1 ? "" : "s") + " read from the shared image.";
+    card.appendChild(title);
+    card.appendChild(detail);
+
+    var slots = payload.enforceable_slots || [];
+    if (slots.length) card.appendChild(chipRow(slots, "slot"));
+
+    var unenforceable = payload.unenforceable || [];
+    if (unenforceable.length) {
+      // A requirement this database cannot enforce must never be presented as a
+      // filter that was applied, so it is labelled rather than hidden.
+      var note = document.createElement("span");
+      note.className = "realtime-role-note";
+      note.textContent = "Not enforceable here, so not used as a filter: " +
+        unenforceable.join(", ") + ".";
+      card.appendChild(note);
+    }
+  }
+
+  function appendCancellation(payload) {
+    var card = threadCard("realtime-cancellation");
+    if (!card) return;
+    var title = document.createElement("strong");
+    title.textContent = "Retrieval cancelled";
+    var detail = document.createElement("span");
+    detail.textContent = "Reason: " + String(payload.reason || "cancelled").replace(/_/g, " ") + ".";
+    card.appendChild(title);
+    card.appendChild(detail);
   }
 
   function openInspector() {

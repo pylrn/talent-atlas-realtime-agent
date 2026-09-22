@@ -181,6 +181,116 @@
   font: 400 12px/1.45 Archivo, sans-serif;
 }
 
+/* Turn-state cards. Each one is a claim the harness can back: the
+   acknowledgement with the latency it took, the snapshot with the revision and
+   the branch decisions, the role image with the requirements it could not
+   enforce. */
+.realtime-ack,
+.realtime-state-card,
+.realtime-clarification,
+.realtime-role-card,
+.realtime-cancellation {
+  align-self: start;
+  background: #fff;
+  border: 1px solid var(--rt-line);
+  border-radius: 5px;
+  display: grid;
+  gap: 5px;
+  margin-left: 38px;
+  max-width: min(720px, calc(100% - 38px));
+  padding: 10px 12px;
+}
+
+.realtime-ack {
+  background: #f4fbf8;
+  border-left: 3px solid var(--rt-green);
+}
+
+.realtime-state-card {
+  border-left: 3px solid var(--rt-blue);
+}
+
+.realtime-clarification {
+  background: #fbf9f4;
+  border-left: 3px solid #b3903f;
+}
+
+.realtime-role-card {
+  border-left: 3px solid var(--rt-rust);
+}
+
+.realtime-cancellation {
+  background: #fbf4f1;
+  border-left: 3px solid var(--rt-rust);
+}
+
+.realtime-ack strong,
+.realtime-state-card strong,
+.realtime-clarification strong,
+.realtime-role-card strong,
+.realtime-cancellation strong {
+  color: var(--rt-ink);
+  font: 600 11px/1.2 Archivo, sans-serif;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.realtime-ack span,
+.realtime-state-card span,
+.realtime-clarification span,
+.realtime-role-card span,
+.realtime-cancellation span {
+  color: #4b5c68;
+  font: 400 12px/1.45 Archivo, sans-serif;
+}
+
+.realtime-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.realtime-chip {
+  background: #eef2f4;
+  border-radius: 3px;
+  color: #44586a !important;
+  font: 500 10px/1.6 "IBM Plex Mono", monospace !important;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+.realtime-chip[data-kind="changed"] {
+  background: #fdeee7;
+  color: #9a4622 !important;
+}
+
+.realtime-chip[data-kind="reused"] {
+  background: #e7f4ef;
+  color: #0f6b59 !important;
+}
+
+.realtime-chip[data-kind="executed"] {
+  background: #e8f1f7;
+  color: #1f5c85 !important;
+}
+
+.realtime-chip[data-kind="preserved"] {
+  background: #eef2f4;
+  color: #44586a !important;
+}
+
+.realtime-chip[data-kind="cancelled"] {
+  background: #fbe4dc;
+  color: #9a3b1a !important;
+  text-decoration: line-through;
+}
+
+.realtime-role-note {
+  color: #6b501a !important;
+  font: 400 11px/1.45 Archivo, sans-serif !important;
+  font-style: italic;
+}
+
 .realtime-tool-body {
   min-width: 0;
 }

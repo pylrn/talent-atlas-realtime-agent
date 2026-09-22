@@ -65,6 +65,57 @@ def test_realtime_transcript_and_tool_styles_are_present():
     assert "white-space: pre-wrap" in css
 
 
+def test_realtime_client_renders_every_turn_state_event():
+    """Each event the session emits for a turn must have a renderer.
+
+    The backend is covered by pytest and the rendering itself by
+    `scripts/verify_realtime_ui.js`; this pins the wiring between them, so an
+    event can never be emitted into a client that silently ignores it.
+    """
+    script = (ROOT / "api/static/talent-realtime.js").read_text()
+
+    for event_type in (
+        "state.snapshot",
+        "acknowledgement.ready",
+        "clarification.requested",
+        "vision.role_attached",
+        "search.cancelled",
+    ):
+        assert f'event.type === "{event_type}"' in script, f"{event_type} has no renderer"
+
+    for renderer in (
+        "appendAcknowledgement",
+        "appendStateSnapshot",
+        "appendClarification",
+        "appendRoleImage",
+        "appendCancellation",
+    ):
+        assert f"function {renderer}(" in script
+
+
+def test_the_state_card_reports_branch_decisions_and_latency():
+    script = (ROOT / "api/static/talent-realtime.js").read_text()
+    css = (ROOT / "api/static/talent-realtime.css").read_text()
+
+    # The demo's claim is that kept work and dropped work are both visible.
+    for decision in ('"reused"', '"executed"', '"preserved"', '"cancelled"'):
+        assert decision in script
+    # The fast path is only a claim if the latency is shown with it.
+    assert "latency_ms" in script
+    assert ".realtime-ack" in css
+    assert ".realtime-state-card" in css
+    assert ".realtime-chip[data-kind=\"cancelled\"]" in css
+
+
+def test_the_role_card_labels_unenforceable_requirements():
+    script = (ROOT / "api/static/talent-realtime.js").read_text()
+
+    # A requirement the database cannot enforce must never be shown as a filter
+    # that was applied.
+    assert "unenforceable" in script
+    assert "Not enforceable here, so not used as a filter" in script
+
+
 def test_new_talent_header_does_not_use_straatix_branding():
     html = (ROOT / "api/static/talent.html").read_text()
 
