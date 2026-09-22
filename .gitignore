@@ -34,6 +34,10 @@ package-lock.json
 # Local test scratch
 .pytest-tmp/
 
+# Deck tooling scratch (slidep internals, not deck content)
+**/.slidep/
+**/.cache/media/
+
 # Docker
 pgdata/
 
