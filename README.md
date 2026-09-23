@@ -4,13 +4,13 @@
 
 ## Project links
 
-- **Demo:** [Watch the unlisted YouTube video (4:59)](https://www.youtube.com/watch?v=vkD0u_HZwzQ)
+- **Demo:** [Watch the unlisted YouTube video (4:59)](https://youtu.be/yKeZO3TMvAg)
 - **Presentation:** [Download the Samsung PRISM deck](docs/hackathon/submission/Talent_Atlas_PRISM_Y2026_Presentation.pptx)
 - **Architecture:** [Read the technical overview](docs/hackathon/TECHNICAL_OVERVIEW.md)
 - **Demo guide:** [Follow the presentation script](docs/hackathon/DEMO_SCRIPT.md)
 - **AI disclosure:** [Review the project disclosure](AI_DISCLOSURE.md)
 
-[![Play the Talent Atlas demo](docs/hackathon/demo/Talent_Atlas_PRISM_Demo_Poster.jpg)]([https://youtu.be/0Df-gXn6DRM](https://www.youtube.com/watch?v=vkD0u_HZwzQ))
+[![Play the Talent Atlas demo](docs/hackathon/demo/Talent_Atlas_PRISM_Demo_Poster.jpg)]([https://youtu.be/yKeZO3TMvAg](https://www.youtube.com/watch?v=vkD0u_HZwzQ))
 
 **Demo video:** Click the preview to watch the unlisted YouTube upload. It is viewable only by people who have the link.
 
