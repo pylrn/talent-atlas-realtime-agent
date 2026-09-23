@@ -10,7 +10,7 @@
 - **Demo guide:** [Follow the presentation script](docs/hackathon/DEMO_SCRIPT.md)
 - **AI disclosure:** [Review the project disclosure](AI_DISCLOSURE.md)
 
-[![Play the Talent Atlas demo](docs/hackathon/demo/Talent_Atlas_PRISM_Demo_Poster.jpg)]([https://youtu.be/yKeZO3TMvAg](https://www.youtube.com/watch?v=vkD0u_HZwzQ))
+[![Play the Talent Atlas demo](docs/hackathon/demo/Talent_Atlas_PRISM_Demo_Poster.jpg)]([https://youtu.be/yKeZO3TMvAg]([https://www.youtube.com/watch?v=vkD0u_HZwzQ](https://youtu.be/yKeZO3TMvAg)))
 
 **Demo video:** Click the preview to watch the unlisted YouTube upload. It is viewable only by people who have the link.
 
@@ -30,12 +30,12 @@ auditable activity graph.
 |---|---|
 | Source code | `api/`, `pipeline/`, `db/`, `scripts/` |
 | Presentation | `docs/hackathon/submission/Talent_Atlas_PRISM_Y2026_Presentation.pptx` |
-| Demo video | [Unlisted YouTube video (4:59)](https://youtu.be/0Df-gXn6DRM) |
+| Demo video | [Unlisted YouTube video (4:59)](https://youtu.be/yKeZO3TMvAg) |
 | AI disclosure | `AI_DISCLOSURE.md` |
 | Detailed README | This file |
 | Requirements | `requirements.txt`, `pyproject.toml` |
 | Docker | `Dockerfile`, `docker-compose.yml` |
-| APK / SDK | Not applicable: browser application and Python service |
+| APK / SDK | Google GenAI SDK |
 | Judging tag | `PRISM_GENAI_HACKATHON_Y2026` |
 
 ## What makes it interruptible
