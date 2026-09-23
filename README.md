@@ -12,7 +12,6 @@
 
 [![Play the Talent Atlas demo](docs/hackathon/demo/Talent_Atlas_PRISM_Demo_Poster.jpg)]([https://youtu.be/yKeZO3TMvAg]([https://www.youtube.com/watch?v=vkD0u_HZwzQ](https://youtu.be/yKeZO3TMvAg)))
 
-**Demo video:** Click the preview to watch the unlisted YouTube upload. It is viewable only by people who have the link.
 
 Talent Atlas is a conversational recruiting system that searches a transformed
 public candidate corpus with hybrid RAG. A recruiter can speak naturally,
